@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
+    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <RuntimeFrameworkVersion>8.0.0</RuntimeFrameworkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="build\**" />
+    <EmbeddedResource Remove="build\**" />
+    <None Remove="build\**" />
+  </ItemGroup>
+  <ItemGroup Condition="$(DefineConstants.Contains(';NETFRAMEWORK'))">
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Control1.uixml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Alternet.UI" Version="X.X.X" />
+	<PackageReference Include="Alternet.UI.Pal" Version="X.X.X" />
+  </ItemGroup>
+</Project>

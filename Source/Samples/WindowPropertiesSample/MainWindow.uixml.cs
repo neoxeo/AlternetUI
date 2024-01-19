@@ -66,20 +66,33 @@ namespace WindowPropertiesSample
 
         private void CreateAndShowWindowButton_Click(object sender, EventArgs e)
         {
-            CreateWindowAndSetProperties(false);
+            CreateWindowAndSetProperties(typeof(Window));
 
             if (testWindow == null)
                 throw new InvalidOperationException();
 
+            UpdateWindowState();
+            UpdateControls();
+
             testWindow.Show();
+        }
+
+        private void CreateAndShowMiniFrameButton_Click(object sender, EventArgs e)
+        {
+            CreateWindowAndSetProperties(typeof(MiniFrameWindow));
+
+            if (testWindow == null)
+                throw new InvalidOperationException();
 
             UpdateWindowState();
             UpdateControls();
+
+            testWindow.Show();
         }
 
         private void CreateAndShowModalWindowButton_Click(object sender, EventArgs e)
         {
-            CreateWindowAndSetProperties(true);
+            CreateWindowAndSetProperties(typeof(DialogWindow));
 
             if (testWindow is not DialogWindow dialogWindow)
                 throw new InvalidOperationException();
@@ -91,7 +104,7 @@ namespace WindowPropertiesSample
             OnWindowClosed();
         }
 
-        private void CreateWindowAndSetProperties(bool isDialog)
+        private void CreateWindowAndSetProperties(Type type)
         {
             WindowStartLocation? sLocation = null;
             var startLocationItem = startLocationComboBox.SelectedItem;
@@ -108,18 +121,14 @@ namespace WindowPropertiesSample
                 sLocation = WindowStartLocation.Manual;
             }
 
-            if (isDialog)
-                testWindow = new DialogWindow();
-            else
-                testWindow = new Window()
-                {
-
-                };                    
+            testWindow = (Window)Activator.CreateInstance(type)!;
 
             if (setOwnerCheckBox.IsChecked)
                 testWindow.Owner = this;
 
             testWindow.BeginInit();
+
+            testWindow.Title = "Test Window";
 
             testWindow.ShowInTaskbar = showInTaskBarCheckBox.IsChecked;
 
@@ -147,6 +156,38 @@ namespace WindowPropertiesSample
             testWindow.StateChanged += TestWindow_StateChanged;
             testWindow.SizeChanged += TestWindow_SizeChanged;
             testWindow.LocationChanged += TestWindow_LocationChanged;
+
+            VerticalStackPanel panel = new()
+            {
+                Padding = 10,
+                Parent = testWindow,
+                AllowStretch = true,
+            };
+
+            PanelOkCancelButtons buttons = new()
+            {
+                Parent = panel,
+                UseModalResult = true,
+            };
+
+            buttons.OkButton.Click += OkButton_Click;
+            buttons.CancelButton.Click += CancelButton_Click;
+
+            ListBox listBox = new()
+            {
+                Parent = panel,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+        }
+
+        private void OkButton_Click(object? sender, EventArgs e)
+        {
+            Application.Log("OK Clicked");
+        }
+
+        private void CancelButton_Click(object? sender, EventArgs e)
+        {
+            Application.Log("Cancel Clicked");
         }
 
         private void TestWindow_LocationChanged(object? sender, EventArgs e)
@@ -174,13 +215,16 @@ namespace WindowPropertiesSample
 
         private void UpdateActiveWindowInfoLabel()
         {
-            var title = ActiveWindow?.Title ?? "N/A";
-            activeWindowTitleLabel.Text = title;
+            Application.AddIdleTask(() =>
+            {
+                var title = ActiveWindow?.Title ?? "N/A";
+                activeWindowTitleLabel.Text = title;
 
-            if (testWindow != null)
-                isWindowActiveLabel.Text = "Test window active: " + (testWindow.IsActive ? "Yes" : "No");
-            else
-                isWindowActiveLabel.Text = string.Empty;
+                if (testWindow != null)
+                    isWindowActiveLabel.Text = "Test window active: " + (testWindow.IsActive ? "Yes" : "No");
+                else
+                    isWindowActiveLabel.Text = string.Empty;
+            });
         }
 
         private void TestWindow_Deactivated(object? sender, EventArgs e)
@@ -208,6 +252,7 @@ namespace WindowPropertiesSample
 
                 Group(
                     createAndShowWindowButton,
+                    createAndShowMiniFrameButton,
                     createAndShowModalWindowButton,
                     startLocationComboBox).Enabled(!haveTestWindow);
 

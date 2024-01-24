@@ -14,7 +14,7 @@ namespace Alternet.UI
     /// your application.</remarks>
     [DesignerCategory("Code")]
     [ControlCategory("Hidden")]
-    public class Window : Control
+    public partial class Window : Control
     {
         private static RectD defaultBounds = new(100, 100, 400, 400);
         private static int incFontSizeHighDpi = 2;
@@ -163,7 +163,7 @@ namespace Alternet.UI
         /// </summary>
         /// <value>A <see cref="Window"/> that represents the currently active window,
         /// or <see langword="null"/> if there is no active window.</value>
-        public static Window? ActiveWindow => NativeWindowHandler.ActiveWindow;
+        public static Window? ActiveWindow => WindowHandler.ActiveWindow;
 
         /// <summary>
         /// Gets or sets default location and position of the window.
@@ -566,8 +566,15 @@ namespace Alternet.UI
 
             set
             {
-                if (statusBar == value || GetWindowKind() == WindowKind.Dialog)
+                if (statusBar == value)
                     return;
+
+                if(GetWindowKind() == WindowKind.Dialog)
+                {
+                    statusBar = value;
+                    return;
+                }
+
                 if (value is not null)
                 {
                     if (value.IsDisposed)
@@ -633,6 +640,9 @@ namespace Alternet.UI
                 var oldValue = menu;
                 menu = value;
 
+                if (GetWindowKind() == WindowKind.Dialog)
+                    return;
+
                 oldValue?.SetParentInternal(null);
                 menu?.SetParentInternal(this);
 
@@ -690,11 +700,39 @@ namespace Alternet.UI
                 var oldValue = toolbar;
                 toolbar = value;
 
+                if (GetWindowKind() == WindowKind.Dialog)
+                    return;
+
                 oldValue?.SetParentInternal(null);
                 toolbar?.SetParentInternal(this);
 
                 OnToolbarChanged(EventArgs.Empty);
                 ToolbarChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Visible
+        {
+            get
+            {
+                return base.Visible;
+            }
+
+            set
+            {
+                if (Visible == value)
+                    return;
+                if (value)
+                {
+                    if (!StateFlags.HasFlag(ControlFlags.StartLocationApplied))
+                    {
+                        StateFlags |= ControlFlags.StartLocationApplied;
+                        ApplyStartLocation(Owner);
+                    }
+                }
+
+                base.Visible = value;
             }
         }
 
@@ -708,10 +746,10 @@ namespace Alternet.UI
         public override ControlTypeId ControlKind => ControlTypeId.Window;
 
         /// <summary>
-        /// Gets a <see cref="NativeWindowHandler"/> associated with this class.
+        /// Gets a <see cref="WindowHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
-        internal new NativeWindowHandler Handler => (NativeWindowHandler)base.Handler;
+        internal new WindowHandler Handler => (WindowHandler)base.Handler;
 
         [Browsable(false)]
         internal new Native.Window NativeControl => (Native.Window)base.NativeControl;
@@ -765,14 +803,24 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Changes size of the window to fit the size of its content.
+        /// Shows window and focuses it.
         /// </summary>
-        /// <param name="mode">Specifies how a window will size itself to fit the size of
-        /// its content.</param>
-        public virtual void SetSizeToContent(
-            WindowSizeToContentMode mode = WindowSizeToContentMode.WidthAndHeight)
+        /// <param name="useIdle">Whether to use <see cref="Application.Idle"/>
+        /// event to show the window.</param>
+        public virtual void ShowAndFocus(bool useIdle = false)
         {
-            Handler.SetSizeToContent(mode);
+            if (useIdle)
+                Application.AddIdleTask(Fn);
+            else
+                Fn();
+
+            void Fn()
+            {
+                Show();
+                Raise();
+                if (CanFocus)
+                    SetFocus();
+            }
         }
 
         /// <summary>
@@ -837,7 +885,6 @@ namespace Alternet.UI
 
         internal static Window? GetParentWindow(DependencyObject dp)
         {
-            // For use instead of PresentationSource.CriticalFromVisual(focusScope).
             if (dp is Window w)
                 return w;
 
@@ -1026,6 +1073,44 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Applies <see cref="Window.StartLocation"/> to the location of the window.
+        /// </summary>
+        protected virtual void ApplyStartLocation(Control? owner)
+        {
+            RectD displayRect = GetDisplay().ClientAreaDip;
+            RectD parentRect = RectD.Empty;
+            bool center = true;
+
+            if (StartLocation == WindowStartLocation.CenterScreen)
+            {
+                parentRect = displayRect;
+            }
+            else
+            if (StartLocation == WindowStartLocation.CenterOwner)
+            {
+                if (owner is null)
+                    parentRect = displayRect;
+                else
+                    parentRect = new(owner.ClientToScreen((0, 0)), owner.ClientSize);
+            }
+            else
+                center = false;
+
+            var bounds = Bounds;
+
+            var newWidth = Math.Min(bounds.Width, displayRect.Width);
+            var newHeight = Math.Min(bounds.Height, displayRect.Height);
+
+            bounds.Width = newWidth;
+            bounds.Height = newHeight;
+
+            if (center)
+                bounds = bounds.CenterIn(parentRect);
+
+            Bounds = bounds;
+        }
+
+        /// <summary>
         /// Called when the value of the <see cref="StatusBar"/> property changes.
         /// </summary>
         /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
@@ -1042,6 +1127,6 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        protected override ControlHandler CreateHandler() => new NativeWindowHandler();
+        protected override ControlHandler CreateHandler() => new WindowHandler();
     }
 }

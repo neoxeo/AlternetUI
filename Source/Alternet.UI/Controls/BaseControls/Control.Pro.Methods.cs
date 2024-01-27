@@ -11,6 +11,21 @@ namespace Alternet.UI
     public partial class Control
     {
         /// <summary>
+        /// Creates a handler for the control.
+        /// </summary>
+        /// <remarks>
+        /// You typically should not call the <see cref="CreateHandler"/>
+        /// method directly.
+        /// The preferred method is to call the
+        /// <see cref="EnsureHandlerCreated"/> method, which forces a handler
+        /// to be created for the control.
+        /// </remarks>
+        internal virtual ControlHandler CreateHandler()
+        {
+            return new GenericControlHandler();
+        }
+
+        /// <summary>
         /// Ensures that the control <see cref="Handler"/> is created,
         /// creating and attaching it if necessary.
         /// </summary>
@@ -84,6 +99,33 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Called when the conrol's handle is created.
+        /// </summary>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the
+        /// event data.</param>
+        protected virtual void OnHandleCreated(EventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// Called when the native conrol size is changed.
+        /// </summary>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the
+        /// event data.</param>
+        protected virtual void OnNativeSizeChanged(EventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// Called when the conrol's handle is destroyed.
+        /// </summary>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the
+        /// event data.</param>
+        protected virtual void OnHandleDestroyed(EventArgs e)
+        {
+        }
+
+        /// <summary>
         /// Sets a specified <see cref="ControlStyles" /> flag to either <see langword="true" />
         /// or <see langword="false" />.</summary>
         /// <param name="flag">The <see cref="ControlStyles" /> bit to set.</param>
@@ -98,8 +140,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Called when a <see cref="Control"/> is removed from the
-        /// <see cref="Control.Children"/> or
-        /// <see cref="ControlHandler.VisualChildren"/> collections.
+        /// <see cref="Control.Children"/> collections.
         /// </summary>
         protected virtual void OnChildRemoved(Control childControl)
         {
@@ -216,21 +257,6 @@ namespace Alternet.UI
         {
             base.OnMouseRightButtonDown(e);
             ShowPopupMenu(ContextMenuStrip);
-        }
-
-        /// <summary>
-        /// Creates a handler for the control.
-        /// </summary>
-        /// <remarks>
-        /// You typically should not call the <see cref="CreateHandler"/>
-        /// method directly.
-        /// The preferred method is to call the
-        /// <see cref="EnsureHandlerCreated"/> method, which forces a handler
-        /// to be created for the control.
-        /// </remarks>
-        protected virtual ControlHandler CreateHandler()
-        {
-            return new GenericControlHandler();
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace Alternet.UI
     /// Provides base functionality for implementing a specific <see cref="Control"/> behavior
     /// and appearance.
     /// </summary>
-    public abstract class ControlHandler : BaseObject
+    internal abstract class ControlHandler : BaseObject
     {
         private Control? control;
         private Native.Control? nativeControl;
@@ -542,20 +542,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Initiates invocation of <see cref="OnLayoutChanged"/> for this and
-        /// all parent controls.
-        /// </summary>
-        public void RaiseLayoutChanged()
-        {
-            var control = Control;
-            while (control != null)
-            {
-                control.Handler.OnLayoutChanged();
-                control = control.Parent;
-            }
-        }
-
-        /// <summary>
         /// Releases the mouse capture, if the control held the capture.
         /// </summary>
         public void ReleaseMouseCapture()
@@ -687,6 +673,13 @@ namespace Alternet.UI
             new Native.Panel();
 
         /// <summary>
+        /// This methods is called when the layout of the control changes.
+        /// </summary>
+        protected internal virtual void OnLayoutChanged()
+        {
+        }
+
+        /// <summary>
         /// Starts the initialization process for this control.
         /// </summary>
         protected internal virtual void BeginInit()
@@ -785,13 +778,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// This methods is called when the layout of the control changes.
-        /// </summary>
-        protected virtual void OnLayoutChanged()
-        {
-        }
-
-        /// <summary>
         /// Called when a <see cref="Control"/> is inserted into the
         /// <see cref="Control.Children"/> or <see cref="VisualChildren"/> collection.
         /// </summary>
@@ -831,6 +817,8 @@ namespace Alternet.UI
 
             if (NativeControl != null)
             {
+                NativeControl.HandleCreated -= NativeControl_HandleCreated;
+                NativeControl.HandleDestroyed -= NativeControl_HandleDestroyed;
                 NativeControl.Activated -= NativeControl_Activated;
                 NativeControl.Deactivated -= NativeControl_Deactivated;
                 NativeControl.Idle -= NativeControl_Idle;
@@ -858,6 +846,7 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void NativeControlSizeChanged()
         {
+            Control.RaiseNativeSizeChanged();
         }
 
         /// <summary>
@@ -896,6 +885,8 @@ namespace Alternet.UI
                 parent.PerformLayout();
             }
 
+            NativeControl.HandleCreated += NativeControl_HandleCreated;
+            NativeControl.HandleDestroyed += NativeControl_HandleDestroyed;
             NativeControl.Activated += NativeControl_Activated;
             NativeControl.Deactivated += NativeControl_Deactivated;
             NativeControl.Paint += NativeControl_Paint;
@@ -929,6 +920,16 @@ namespace Alternet.UI
         private void NativeControl_Deactivated(object? sender, EventArgs e)
         {
             Control.RaiseDeactivated();
+        }
+
+        private void NativeControl_HandleCreated(object? sender, EventArgs e)
+        {
+            Control.RaiseHandleCreated();
+        }
+
+        private void NativeControl_HandleDestroyed(object? sender, EventArgs e)
+        {
+            Control.RaiseHandleDestroyed();
         }
 
         private void NativeControl_Activated(object? sender, EventArgs e)
@@ -1007,7 +1008,7 @@ namespace Alternet.UI
         private void Control_FontChanged(object? sender, EventArgs e)
         {
             ApplyFont();
-            RaiseLayoutChanged();
+            Control.RaiseLayoutChanged();
             Control.PerformLayout();
             Control.Refresh();
         }
@@ -1077,13 +1078,13 @@ namespace Alternet.UI
 
         private void Control_VerticalAlignmentChanged(object? sender, EventArgs e)
         {
-            RaiseLayoutChanged();
+            Control.RaiseLayoutChanged();
             Control.PerformLayout();
         }
 
         private void Control_HorizontalAlignmentChanged(object? sender, EventArgs e)
         {
-            RaiseLayoutChanged();
+            Control.RaiseLayoutChanged();
             Control.PerformLayout();
         }
 
@@ -1245,14 +1246,14 @@ namespace Alternet.UI
         private void Children_ItemInserted(object? sender, int index, Control item)
         {
             RaiseChildInserted(item);
-            RaiseLayoutChanged();
+            Control.RaiseLayoutChanged();
             Control.PerformLayout();
         }
 
         private void Children_ItemRemoved(object? sender, int index, Control item)
         {
             RaiseChildRemoved(item);
-            RaiseLayoutChanged();
+            Control.RaiseLayoutChanged();
             Control.PerformLayout();
         }
 

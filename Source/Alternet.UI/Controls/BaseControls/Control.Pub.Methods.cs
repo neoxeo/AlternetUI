@@ -1072,6 +1072,20 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Initiates invocation of layout changed nethods for this and
+        /// all parent controls.
+        /// </summary>
+        public void RaiseLayoutChanged()
+        {
+            var control = this;
+            while (control != null)
+            {
+                control.Handler.OnLayoutChanged();
+                control = control.Parent;
+            }
+        }
+
+        /// <summary>
         /// Forces the control to apply layout logic to child controls.
         /// </summary>
         /// <remarks>
@@ -1083,7 +1097,7 @@ namespace Alternet.UI
         /// <see cref="PerformLayout"/>. Optional. By default is <c>true</c>.</param>
         public virtual void PerformLayout(bool layoutParent = true)
         {
-            if (IsLayoutSuspended)
+            if (IsLayoutSuspended || IsDisposed)
                 return;
 
             if (inLayout)

@@ -725,11 +725,7 @@ namespace Alternet.UI
                     return;
                 if (value)
                 {
-                    if (!StateFlags.HasFlag(ControlFlags.StartLocationApplied))
-                    {
-                        StateFlags |= ControlFlags.StartLocationApplied;
-                        ApplyStartLocation(Owner);
-                    }
+                    ApplyStartLocationOnce(Owner);
                 }
 
                 base.Visible = value;
@@ -923,6 +919,18 @@ namespace Alternet.UI
             foreach (var child in children.AsEnumerable().Reverse())
                 child.EnsureHandlerCreated();
         }
+
+        internal void ApplyStartLocationOnce(Control? owner)
+        {
+            if (!StateFlags.HasFlag(ControlFlags.StartLocationApplied))
+            {
+                StateFlags |= ControlFlags.StartLocationApplied;
+                ApplyStartLocation(owner);
+            }
+        }
+
+        /// <inheritdoc/>
+        internal override ControlHandler CreateHandler() => new WindowHandler();
 
         /// <summary>
         /// Raises the <see cref="Closing"/> event and calls
@@ -1125,8 +1133,5 @@ namespace Alternet.UI
         protected virtual void OnStateChanged(EventArgs e)
         {
         }
-
-        /// <inheritdoc/>
-        protected override ControlHandler CreateHandler() => new WindowHandler();
     }
 }

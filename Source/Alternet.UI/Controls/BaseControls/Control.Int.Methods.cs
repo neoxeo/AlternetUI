@@ -146,11 +146,116 @@ namespace Alternet.UI
             ControlHandlerFactory ??
                 Application.Current.VisualTheme.ControlHandlerFactory;
 
-        internal void RaiseKeyPress(KeyPressEventArgs e) => OnKeyPress(e);
+        internal void RaiseKeyPress(KeyPressEventArgs e)
+        {
+            var control = this;
+            var form = ParentWindow;
+            if (form is not null && form.KeyPreview)
+            {
+                form.OnKeyPress(e);
+                if (e.Handled)
+                    return;
+            }
+            else
+                form = null;
 
-        internal void RaiseKeyDown(KeyEventArgs e) => OnKeyDown(e);
+            while (control is not null && control != form)
+            {
+                control.OnKeyPress(e);
 
-        internal void RaiseKeyUp(KeyEventArgs e) => OnKeyUp(e);
+                if (e.Handled)
+                    return;
+                control = control.Parent;
+            }
+        }
+
+        internal void RaiseMouseMove(MouseEventArgs e)
+        {
+            OnMouseMove(e);
+        }
+
+        internal void RaiseMouseUp(MouseEventArgs e)
+        {
+            OnMouseUp(e);
+
+            if(e.ChangedButton == MouseButton.Left)
+            {
+                OnMouseLeftButtonUp(e);
+            }
+            else if (e.ChangedButton == MouseButton.Right)
+            {
+                OnMouseRightButtonUp(e);
+            }
+        }
+
+        internal void RaiseMouseDown(MouseEventArgs e)
+        {
+            OnMouseDown(e);
+
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                OnMouseLeftButtonDown(e);
+            }
+            else if (e.ChangedButton == MouseButton.Right)
+            {
+                OnMouseRightButtonDown(e);
+            }
+        }
+
+        internal void RaiseMouseWheel(MouseEventArgs e)
+        {
+            OnMouseWheel(e);
+        }
+
+        internal void RaiseMouseDoubleClick(MouseEventArgs e)
+        {
+            OnMouseDoubleClick(e);
+        }
+
+        internal void RaiseKeyDown(KeyEventArgs e)
+        {
+            var control = this;
+            var form = ParentWindow;
+            if (form is not null && form.KeyPreview)
+            {
+                form.OnKeyDown(e);
+                if (e.Handled)
+                    return;
+            }
+            else
+                form = null;
+
+            while (control is not null && control != form)
+            {
+                control.OnKeyDown(e);
+
+                if (e.Handled)
+                    return;
+                control = control.Parent;
+            }
+        }
+
+        internal void RaiseKeyUp(KeyEventArgs e)
+        {
+            var control = this;
+            var form = ParentWindow;
+            if (form is not null && form.KeyPreview)
+            {
+                form.OnKeyUp(e);
+                if (e.Handled)
+                    return;
+            }
+            else
+                form = null;
+
+            while (control is not null && control != form)
+            {
+                control.OnKeyUp(e);
+                if (e.Handled)
+                    return;
+                control = control.Parent;
+            }
+        }
 
         internal void RaiseTextChanged(EventArgs e) => OnTextChanged(e);
 

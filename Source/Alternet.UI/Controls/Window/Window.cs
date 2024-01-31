@@ -111,7 +111,7 @@ namespace Alternet.UI
         /// and to save information entered in the form or to update its parent window.
         /// </para>
         /// </remarks>
-        public event EventHandler<WindowClosedEventArgs>? Closed;
+        public event EventHandler? Closed;
 
         /// <summary>
         /// Occurs when the value of the <see cref="MaximizeEnabled"/> property changes.
@@ -129,7 +129,7 @@ namespace Alternet.UI
         public event EventHandler? CloseEnabledChanged;
 
         /// <summary>
-        /// Occurs when the value of the <see cref="AlwaysOnTop"/> property changes.
+        /// Occurs when the value of the <see cref="TopMost"/> property changes.
         /// </summary>
         public event EventHandler? AlwaysOnTopChanged;
 
@@ -226,6 +226,21 @@ namespace Alternet.UI
         /// </summary>
         [Browsable(false)]
         public virtual bool IsActive => NativeControl.IsActive;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the form will receive key events
+        /// before the event is passed to the control that has focus.</summary>
+        /// <returns>
+        ///   <see langword="true" /> if the form will receive all
+        ///   key events; <see langword="false" /> if the currently selected
+        ///   control on the form receives key events.
+        ///   The default is <see langword="false" />.</returns>
+        [DefaultValue(false)]
+        public bool KeyPreview
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Gets or sets a boolean value indicating whether window has title bar.
@@ -353,7 +368,7 @@ namespace Alternet.UI
         /// non-topmost windows and
         /// should stay above them, even when the window is deactivated.
         /// </summary>
-        public virtual bool AlwaysOnTop
+        public virtual bool TopMost
         {
             get => info.AlwaysOnTop;
 
@@ -736,7 +751,7 @@ namespace Alternet.UI
         /// Gets the collection of input bindings associated with this window.
         /// </summary>
         [Browsable(false)]
-        public virtual Collection<InputBinding> InputBindings { get; } = [];
+        public virtual Collection<InputBinding> InputBindings { get; } = new();
 
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.Window;
@@ -871,7 +886,7 @@ namespace Alternet.UI
             StartLocation = WindowStartLocation.Manual;
             HasTitleBar = false;
             HasBorder = false;
-            AlwaysOnTop = true;
+            TopMost = true;
             CloseEnabled = false;
             MinimizeEnabled = false;
             MaximizeEnabled = false;
@@ -958,7 +973,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Called when the value of the <see cref="AlwaysOnTop"/> property changes.
+        /// Called when the value of the <see cref="TopMost"/> property changes.
         /// </summary>
         /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
         protected virtual void OnAlwaysOnTopChanged(EventArgs e)
@@ -983,12 +998,12 @@ namespace Alternet.UI
 
         /// <summary>
         /// Raises the <see cref="Closed"/> event and calls
-        /// <see cref="OnClosed(WindowClosedEventArgs)"/>.
+        /// <see cref="OnClosed(EventArgs)"/>.
         /// See <see cref="Closed"/> event description for more details.
         /// </summary>
-        /// <param name="e">An <see cref="WindowClosedEventArgs"/> that contains the event
+        /// <param name="e">An <see cref="EventArgs"/> that contains the event
         /// data.</param>
-        protected virtual void OnClosed(WindowClosedEventArgs e) => Closed?.Invoke(this, e);
+        protected virtual void OnClosed(EventArgs e) => Closed?.Invoke(this, e);
 
         /// <summary>
         /// Called when the value of the <see cref="Owner"/> property changes.

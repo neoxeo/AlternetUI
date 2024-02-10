@@ -296,6 +296,11 @@ namespace Alternet.UI
         public event HelpEventHandler? HelpRequested;
 
         /// <summary>
+        /// Occurs when exception is raised inside <see cref="AvoidException"/>.
+        /// </summary>
+        public event EventHandler<ControlExceptionEventArgs>? ProcessException;
+
+        /// <summary>
         /// Occurs when the mouse pointer enters the control.
         /// </summary>
         public event EventHandler? MouseEnter;
@@ -341,6 +346,17 @@ namespace Alternet.UI
         /// Occurs when the control's size is changed.
         /// </summary>
         public event EventHandler? SizeChanged;
+
+        /// <summary>
+        /// Occurs when the application finishes processing events and is
+        /// about to enter the idle state. This is the same as <see cref="Application.Idle"/>
+        /// but on the control level.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="ProcessIdle"/> property to specify whether <see cref="Idle"/>
+        /// event is fired.
+        /// </remarks>
+        public event EventHandler? Idle;
 
         /// <summary>
         /// Occurs when the control's size is changed.
@@ -395,13 +411,6 @@ namespace Alternet.UI
         /// Occurs when an object is dragged out of the control's bounds.
         /// </summary>
         public event EventHandler? DragLeave;
-
-        /// <summary>
-        /// Occurs when the application finishes processing and is
-        /// about to enter the idle state. This is the same as <see cref="Application.Idle"/>
-        /// but on the control level.
-        /// </summary>
-        public event EventHandler? Idle;
 
         /// <summary>
         /// Internal control flags.
@@ -524,6 +533,12 @@ namespace Alternet.UI
                 stateObjects.Borders = value;
             }
         }
+
+        /// <summary>
+        /// Gets or sets whether mouse events are bubbled to parent control.
+        /// </summary>
+        [Browsable(false)]
+        public virtual bool BubbleMouse { get; set; }
 
         /// <summary>
         /// Gets or sets whether layout rules are ignored for this control.
@@ -725,7 +740,7 @@ namespace Alternet.UI
         /// Gets control flags.
         /// </summary>
         [Browsable(false)]
-        public ControlFlags StateFlags
+        public virtual ControlFlags StateFlags
         {
             get => stateFlags;
             internal set => stateFlags = value;
@@ -765,7 +780,7 @@ namespace Alternet.UI
         /// connects control with the designer.
         /// </summary>
         [Browsable(false)]
-        public IComponentDesigner? Designer
+        public virtual IComponentDesigner? Designer
         {
             get
             {
@@ -805,7 +820,7 @@ namespace Alternet.UI
         /// Usage of this data depends on the control.
         /// </remarks>
         [Browsable(false)]
-        public ControlStateSettings? StateObjects
+        public virtual ControlStateSettings? StateObjects
         {
             get
             {
@@ -867,7 +882,11 @@ namespace Alternet.UI
         [Browsable(false)]
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public double Right => Bounds.Right;
+        public double Right
+        {
+            get => Bounds.Right;
+            set => Left = value - Width;
+        }
 
         /// <summary>
         /// Gets the distance, in dips, between the bottom edge of the control and the top edge
@@ -879,7 +898,11 @@ namespace Alternet.UI
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Category("Layout")]
-        public double Bottom => Bounds.Bottom;
+        public double Bottom
+        {
+            get => Bounds.Bottom;
+            set => Top = value - Height;
+        }
 
         /// <summary>
         /// Gets control index in the <see cref="Children"/> of the container control.
@@ -889,7 +912,7 @@ namespace Alternet.UI
         {
             get
             {
-                var index = Parent?.Children.IndexOf(this);
+                var index = Parent?.children?.IndexOf(this);
                 return index;
             }
         }
@@ -913,7 +936,7 @@ namespace Alternet.UI
         /// Gets next visible sibling control.
         /// </summary>
         [Browsable(false)]
-        public Control? NextSibling
+        public virtual Control? NextSibling
         {
             get
             {
@@ -958,7 +981,7 @@ namespace Alternet.UI
         /// is closely associated with the control.
         /// </remarks>
         [Browsable(false)]
-        public object? Tag
+        public virtual object? Tag
         {
             get;
             set;
@@ -983,6 +1006,8 @@ namespace Alternet.UI
                     return;
                 toolTip = value;
                 OnToolTipChanged(EventArgs.Empty);
+                ToolTipChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_ToolTipChanged();
             }
         }
 
@@ -1082,6 +1107,7 @@ namespace Alternet.UI
                 visible = value;
                 OnVisibleChanged(EventArgs.Empty);
                 VisibleChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_VisibleChanged();
                 if (visible)
                     AfterShow?.Invoke(this, EventArgs.Empty);
                 else
@@ -1131,7 +1157,8 @@ namespace Alternet.UI
         {
             get
             {
-                return (handler is not null) && handler.IsNativeControlCreated && NativeControl.IsHandleCreated;
+                return (handler is not null) && handler.IsNativeControlCreated
+                    && NativeControl.IsHandleCreated;
             }
         }
 
@@ -1317,7 +1344,7 @@ namespace Alternet.UI
         /// set to it and is not changed by the layout system.
         /// </remarks>
         [Browsable(false)]
-        public SizeD SuggestedSize
+        public virtual SizeD SuggestedSize
         {
             get
             {
@@ -1497,6 +1524,7 @@ namespace Alternet.UI
 
                 OnMarginChanged(EventArgs.Empty);
                 MarginChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_MarginChanged();
             }
         }
 
@@ -1533,6 +1561,7 @@ namespace Alternet.UI
 
                 OnPaddingChanged(EventArgs.Empty);
                 PaddingChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_PaddingChanged();
             }
         }
 
@@ -1657,7 +1686,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the background color for the control.
         /// </summary>
-        [Browsable(false)]
+        [Browsable(true)]
         public virtual Color? BackgroundColor
         {
             get
@@ -1725,7 +1754,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the foreground color for the control.
         /// </summary>
-        [Browsable(true)]
+        [Browsable(false)]
         public virtual Color ForeColor
         {
             get
@@ -1747,7 +1776,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the background color for the control.
         /// </summary>
-        [Browsable(true)]
+        [Browsable(false)]
         public virtual Color BackColor
         {
             get
@@ -1769,7 +1798,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the foreground color for the control.
         /// </summary>
-        [Browsable(false)]
+        [Browsable(true)]
         public virtual Color? ForegroundColor
         {
             get
@@ -1798,7 +1827,7 @@ namespace Alternet.UI
         /// Gets or sets group indexes which are assigned to this control.
         /// </summary>
         [Browsable(false)]
-        public int[]? GroupIndexes { get; set; }
+        public virtual int[]? GroupIndexes { get; set; }
 
         /// <summary>
         /// Gets or sets group indexes of this control. Group indexes are used
@@ -1808,7 +1837,7 @@ namespace Alternet.UI
         /// This property modifies <see cref="GroupIndexes"/>.
         /// </remarks>
         [Browsable(false)]
-        public int? GroupIndex
+        public virtual int? GroupIndex
         {
             get
             {
@@ -1846,13 +1875,13 @@ namespace Alternet.UI
         /// Gets or sets column index which is used in <see cref="GetColumnGroup"/> and
         /// by the <see cref="Grid"/> control.
         /// </summary>
-        public int? ColumnIndex { get; set; }
+        public virtual int? ColumnIndex { get; set; }
 
         /// <summary>
         /// Gets or sets row index which is used in <see cref="GetRowGroup"/> and
         /// by the <see cref="Grid"/> control.
         /// </summary>
-        public int? RowIndex { get; set; }
+        public virtual int? RowIndex { get; set; }
 
         /// <summary>
         /// Gets or sets the background brush for the control.
@@ -1942,6 +1971,7 @@ namespace Alternet.UI
                 font = value;
                 OnFontChanged(EventArgs.Empty);
                 FontChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_FontChanged();
             }
         }
 
@@ -1979,7 +2009,7 @@ namespace Alternet.UI
         /// Returns true if control's background color is darker than foreground color.
         /// </summary>
         [Browsable(false)]
-        public bool IsDarkBackground
+        public virtual bool IsDarkBackground
         {
             get
             {
@@ -2009,6 +2039,7 @@ namespace Alternet.UI
 
                 verticalAlignment = value;
                 VerticalAlignmentChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_VerticalAlignmentChanged();
             }
         }
 
@@ -2028,6 +2059,7 @@ namespace Alternet.UI
 
                 horizontalAlignment = value;
                 HorizontalAlignmentChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Control_HorizontalAlignmentChanged();
             }
         }
 
@@ -2138,7 +2170,7 @@ namespace Alternet.UI
         /// Note that <see cref="LayoutDirection.Default"/> is returned if layout direction
         /// is not supported.
         /// </remarks>
-        public LayoutDirection LayoutDirection
+        public virtual LayoutDirection LayoutDirection
         {
             get
             {
@@ -2167,7 +2199,7 @@ namespace Alternet.UI
         /// with the <see cref="Control" />, if any.</returns>
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         [Browsable(false)]
-        public ISite? Site
+        public virtual ISite? Site
         {
             get => site;
             set => site = value;
@@ -2287,7 +2319,7 @@ namespace Alternet.UI
         /// Gets or sets whether <see cref="Idle"/> event is fired.
         /// </summary>
         [Browsable(false)]
-        public bool ProcessIdle
+        public virtual bool ProcessIdle
         {
             get
             {

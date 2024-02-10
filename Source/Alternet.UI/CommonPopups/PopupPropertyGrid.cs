@@ -41,20 +41,17 @@ namespace Alternet.UI
         {
             PopupPropertyGrid popupWindowProps = new()
             {
-                /*Title = CommonStrings.Default.WindowTitleProperties,*/
-                /*HasTitleBar = true,
+                Title = CommonStrings.Default.WindowTitleProperties,
+                HasTitleBar = true,
                 HasBorder = true,
                 Resizable = true,
                 CloseEnabled = true,
-                AlwaysOnTop = true,*/
-                IsTransient = false,
+                TopMost = true,
                 HideOnEnter = false,
                 HideOnClick = false,
                 HideOnDoubleClick = false,
                 HideOnDeactivate = false,
-                /*StatusBar = new(),*/
             };
-            popupWindowProps.Border.HasBorder = false;
             popupWindowProps.MainControl.SuggestedInitDefaults();
             popupWindowProps.MainControl.ApplyFlags |= PropertyGridApplyFlags.PropInfoSetValue
                 | PropertyGridApplyFlags.ReloadAllAfterSetValue;

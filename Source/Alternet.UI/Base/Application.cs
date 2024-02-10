@@ -202,7 +202,7 @@ namespace Alternet.UI
         public event EventHandler? VisualThemeChanged;
 
         /// <summary>
-        /// Occurs when the application finishes processing and is
+        /// Occurs when the application finishes processing events and is
         /// about to enter the idle state.
         /// </summary>
         public event EventHandler? Idle;
@@ -1127,7 +1127,7 @@ namespace Alternet.UI
             }
         }
 
-        private void NativeApplication_Idle(object? sender, EventArgs e)
+        private void NativeApplication_Idle()
         {
             if (IdleTasks.Count > 0 && Application.current?.Windows.Count > 0)
             {
@@ -1144,7 +1144,7 @@ namespace Alternet.UI
                 window.RecreateAllHandlers();
         }
 
-        private void NativeApplication_LogMessage(object? sender, EventArgs e)
+        private void NativeApplication_LogMessage()
         {
             Log(this.EventArgString);
         }

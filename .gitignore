@@ -45,3 +45,5 @@ Source/Alternet.UI.Pal/Alternet.UI.Pal.aps
 Documentation/Alternet.UI.Documentation/Build.Result.txt
 Install.Scripts/MinMasterTemplateNew/Templates/LocalPackages/*
 Install.Scripts/MinMasterTemplateNew.zip
+*.nupkg
+*.snupkg

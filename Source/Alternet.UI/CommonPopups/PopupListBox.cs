@@ -4,15 +4,29 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alternet.Drawing;
 
 namespace Alternet.UI
 {
     /// <summary>
     /// Popup window with <see cref="ListBox"/> control.
     /// </summary>
-    public class PopupListBox : PopupWindow
+    public partial class PopupListBox : PopupWindow
     {
         private int? resultIndex;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PopupListBox"/> class.
+        /// </summary>
+        public PopupListBox()
+        {
+            MinimumSize = DefaultMinimumSize;
+        }
+
+        /// <summary>
+        /// Gets or sets default minimum size of the listbox popup main control.
+        /// </summary>
+        public static SizeD DefaultMinimumSize { get; set; } = (200, 300);
 
         /// <summary>
         /// Gets or sets <see cref="ListBox"/> control used in the popup window.

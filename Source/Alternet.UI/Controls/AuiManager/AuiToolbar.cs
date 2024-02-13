@@ -78,6 +78,10 @@ namespace Alternet.UI
             }
         }
 
+        /// <inheritdoc/>
+        public override IReadOnlyList<Control> AllChildrenInLayout
+            => Array.Empty<Control>();
+
         /// <summary>
         /// Gets id of the tool passed in the event handler.
         /// </summary>
@@ -301,7 +305,7 @@ namespace Alternet.UI
         /// </summary>
         /// <remarks>
         /// Gets DPI settings from <paramref name="dpiControl"/> and selects appropriate
-        /// images size using <see cref="Toolbar.GetDefaultImageSize(Control)"/>.
+        /// images size using <see cref="ToolBar.GetDefaultImageSize(Control)"/>.
         /// </remarks>
         /// <param name="url">File or resource url with Svg data.</param>
         /// <param name="dpiControl">Control which <see cref="Control.GetDPI"/> method

@@ -16,7 +16,7 @@ namespace Alternet.UI
     /// use <see cref="PanelAuiManagerBase"/>.
     /// </remarks>
     [ControlCategory("Hidden")]
-    public class PanelAuiManager : PanelAuiManagerBase
+    public partial class PanelAuiManager : PanelAuiManagerBase
     {
         private ListBox? actionsControl;
         private AuiNotebook? leftNotebook;
@@ -491,7 +491,7 @@ namespace Alternet.UI
         /// <returns></returns>
         public static SizeI GetBaseToolSvgSize()
         {
-            var imageSize = Math.Max(UI.Toolbar.DefaultImageSize96dpi, DefaultMinToolbarImageSize);
+            var imageSize = Math.Max(UI.ToolBar.DefaultImageSize96dpi, DefaultMinToolbarImageSize);
             return imageSize;
         }
 
@@ -564,7 +564,7 @@ namespace Alternet.UI
         public virtual SizeI GetToolBitmapSize()
         {
             var imageSize = SizeI.Max(
-                UI.Toolbar.GetDefaultImageSize(this),
+                UI.ToolBar.GetDefaultImageSize(this),
                 new SizeI(DefaultMinToolbarImageSize));
             return imageSize;
         }

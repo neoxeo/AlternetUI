@@ -47,3 +47,4 @@ Install.Scripts/MinMasterTemplateNew/Templates/LocalPackages/*
 Install.Scripts/MinMasterTemplateNew.zip
 *.nupkg
 *.snupkg
+node_modules

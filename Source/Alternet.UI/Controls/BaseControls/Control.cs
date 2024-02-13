@@ -311,6 +311,21 @@ namespace Alternet.UI
         public event EventHandler? MouseLeave;
 
         /// <summary>
+        /// Occurs when the child control is removed from this control.
+        /// </summary>
+        public event EventHandler<BaseEventArgs<Control>>? ChildRemoved;
+
+        /// <summary>
+        /// Occurs when the child control's <see cref="Visible"/> property is changed.
+        /// </summary>
+        public event EventHandler<BaseEventArgs<Control>>? ChildVisibleChanged;
+
+        /// <summary>
+        /// Occurs when the child control is added to this control.
+        /// </summary>
+        public event EventHandler<BaseEventArgs<Control>>? ChildInserted;
+
+        /// <summary>
         /// Occurs when the value of the <see cref="Enabled"/> property changes.
         /// </summary>
         public event EventHandler? EnabledChanged;
@@ -1107,6 +1122,7 @@ namespace Alternet.UI
                 visible = value;
                 OnVisibleChanged(EventArgs.Empty);
                 VisibleChanged?.Invoke(this, EventArgs.Empty);
+                Parent?.ChildVisibleChanged?.Invoke(Parent, new BaseEventArgs<Control>(this));
                 Handler.Control_VisibleChanged();
                 if (visible)
                     AfterShow?.Invoke(this, EventArgs.Empty);
@@ -2040,6 +2056,64 @@ namespace Alternet.UI
                 verticalAlignment = value;
                 VerticalAlignmentChanged?.Invoke(this, EventArgs.Empty);
                 Handler.Control_VerticalAlignmentChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="Control.Children"/> or an empty array if there are no
+        /// child controls.
+        /// </summary>
+        /// <remarks>
+        /// This method doesn't allocate memory if there are no children.
+        /// </remarks>
+        [Browsable(false)]
+        public IReadOnlyList<Control> AllChildren
+        {
+            get
+            {
+                if (HasChildren)
+                    return Children;
+
+                return Array.Empty<Control>();
+            }
+        }
+
+        /// <summary>
+        /// Gets all child controls which are visible and included in the layout.
+        /// </summary>
+        /// <remarks>
+        /// This method uses <see cref="AllChildren"/>, <see cref="Control.Visible"/>
+        /// and <see cref="Control.IgnoreLayout"/> properties.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual IReadOnlyList<Control> AllChildrenInLayout
+        {
+            get
+            {
+                var controls = AllChildren;
+                var all = true;
+
+                foreach (var control in controls)
+                {
+                    if (!control.Visible || control.IgnoreLayout)
+                    {
+                        all = false;
+                        break;
+                    }
+                }
+
+                if (all)
+                    return controls;
+
+                List<Control> result = new();
+
+                foreach (var control in controls)
+                {
+                    if (control.Visible && !control.IgnoreLayout)
+                        result.Add(control);
+                }
+
+                return result;
             }
         }
 

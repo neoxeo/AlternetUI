@@ -22,6 +22,11 @@ namespace Alternet.UI
         /// </summary>
         public static bool UseDebugBackgroundColor = false;
 
+        internal int rowIndex;
+        internal int columnIndex;
+        internal int columnSpan = 1;
+        internal int rowSpan = 1;
+
         private static readonly SizeD DefaultControlSize = SizeD.NaN;
         private static int groupIndexCounter;
         private static Font? defaultFont;
@@ -62,6 +67,8 @@ namespace Alternet.UI
         private string? toolTip;
         private ObjectUniqueId? uniqueId;
         private string? text;
+        private DockStyle dock;
+        private LayoutStyle? layout;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Control"/> class.
@@ -72,6 +79,25 @@ namespace Alternet.UI
             defaults.RaiseInitDefaults(this);
             Designer?.RaiseCreated(this);
         }
+
+        /// <summary>
+        /// Occurs inside <see cref="Control.GetPreferredSize"/> method.
+        /// </summary>
+        /// <remarks>
+        /// If default <see cref="Control.GetPreferredSize"/> call is not needed,
+        /// set <see cref="HandledEventArgs.Handled"/>
+        /// property to <c>true</c>.
+        /// </remarks>
+        public static event EventHandler<HandledEventArgs<SizeD>>? GlobalGetPreferredSize;
+
+        /// <summary>
+        /// Occurs when the the control should reposition its child controls.
+        /// </summary>
+        /// <remarks>
+        /// If default layout is not needed, set <see cref="HandledEventArgs.Handled"/>
+        /// property to <c>true</c>.
+        /// </remarks>
+        public static event EventHandler<HandledEventArgs>? GlobalOnLayout;
 
         /// <summary>
         /// Occurs when the user scrolls through the control contents using scrollbars.
@@ -550,6 +576,26 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets layout style of the child controls.
+        /// </summary>
+        [DefaultValue(null)]
+        public virtual LayoutStyle? Layout
+        {
+            get
+            {
+                return layout;
+            }
+
+            set
+            {
+                if (layout == value)
+                    return;
+                layout = value;
+                PerformLayout();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets whether mouse events are bubbled to parent control.
         /// </summary>
         [Browsable(false)]
@@ -575,27 +621,19 @@ namespace Alternet.UI
         [Localizable(true)]
         [RefreshProperties(RefreshProperties.Repaint)]
         [DefaultValue(DockStyle.None)]
-        [Browsable(false)]
         public virtual DockStyle Dock
         {
             get
             {
-                return LayoutPanel.GetDock(this);
+                return dock;
             }
 
             set
             {
-                if (value != Dock)
+                if (value != dock)
                 {
-                    SuspendLayout();
-                    try
-                    {
-                        LayoutPanel.SetDock(this, value);
-                    }
-                    finally
-                    {
-                        ResumeLayout();
-                    }
+                    dock = value;
+                    PerformLayout();
                 }
             }
         }
@@ -1891,13 +1929,57 @@ namespace Alternet.UI
         /// Gets or sets column index which is used in <see cref="GetColumnGroup"/> and
         /// by the <see cref="Grid"/> control.
         /// </summary>
-        public virtual int? ColumnIndex { get; set; }
+        /// <remarks>
+        /// Currently this property works only in <see cref="Grid"/> container.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual int ColumnIndex
+        {
+            get => columnIndex;
+            set => Grid.SetColumn(this, value);
+        }
 
         /// <summary>
         /// Gets or sets row index which is used in <see cref="GetRowGroup"/> and
         /// by the <see cref="Grid"/> control.
         /// </summary>
-        public virtual int? RowIndex { get; set; }
+        /// <remarks>
+        /// Currently this property works only in <see cref="Grid"/> container.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual int RowIndex
+        {
+            get => rowIndex;
+            set => Grid.SetRow(this, value);
+        }
+
+        /// <summary>
+        /// Gets or sets a value that indicates the total number of columns
+        /// this control's content spans within a container.
+        /// </summary>
+        /// <remarks>
+        /// Currently this property works only in <see cref="Grid"/> container.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual int ColumnSpan
+        {
+            get => columnSpan;
+            set => Grid.SetColumnSpan(this, value);
+        }
+
+        /// <summary>
+        /// Gets or sets a value that indicates the total number of rows
+        /// this control's content spans within a container.
+        /// </summary>
+        /// <remarks>
+        /// Currently this property works only in <see cref="Grid"/> container.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual int RowSpan
+        {
+            get => rowSpan;
+            set => Grid.SetRowSpan(this, value);
+        }
 
         /// <summary>
         /// Gets or sets the background brush for the control.
@@ -2044,7 +2126,7 @@ namespace Alternet.UI
         /// is positioned within a parent control.
         /// </summary>
         /// <value>A vertical alignment setting. The default is
-        /// <see cref="VerticalAlignment.Stretch"/>.</value>
+        /// <c>null</c>.</value>
         public virtual VerticalAlignment VerticalAlignment
         {
             get => verticalAlignment;
@@ -2122,7 +2204,7 @@ namespace Alternet.UI
         /// it is positioned within a parent control.
         /// </summary>
         /// <value>A horizontal alignment setting. The default is
-        /// <see cref="HorizontalAlignment.Stretch"/>.</value>
+        /// <c>null</c>.</value>
         public virtual HorizontalAlignment HorizontalAlignment
         {
             get => horizontalAlignment;
@@ -2238,26 +2320,27 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets the layout direction for this control.
+        /// Gets or sets the language direction for this control.
         /// </summary>
         /// <remarks>
-        /// Note that <see cref="LayoutDirection.Default"/> is returned if layout direction
+        /// Note that <see cref="LangDirection.Default"/> is returned if layout direction
         /// is not supported.
         /// </remarks>
-        public virtual LayoutDirection LayoutDirection
+        [Browsable(false)]
+        public virtual LangDirection LangDirection
         {
             get
             {
                 var control = NativeControl;
                 if (control is null)
-                    return LayoutDirection.Default;
+                    return LangDirection.Default;
 
-                return (LayoutDirection)control.LayoutDirection;
+                return (LangDirection)control.LayoutDirection;
             }
 
             set
             {
-                if (value == LayoutDirection.Default)
+                if (value == LangDirection.Default)
                     return;
                 var control = NativeControl;
                 if (control is null)

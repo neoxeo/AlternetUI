@@ -43,32 +43,15 @@ namespace Alternet.UI
         {
             label = CreateLabel();
             label.Margin = new Thickness(0, 0, DefaultControlLabelDistance, 0);
-            label.VerticalAlignment = VerticalAlignment.Center;
+            label.VerticalAlignment = UI.VerticalAlignment.Center;
 
             Orientation = StackPanelOrientation.Horizontal;
             label.Parent = this;
             mainControl = CreateControl();
-            mainControl.VerticalAlignment = VerticalAlignment.Center;
+            mainControl.VerticalAlignment = UI.VerticalAlignment.Center;
             mainControl.Parent = this;
             TextBox.InitErrorPicture(errorPicture);
             errorPicture.Parent = this;
-        }
-
-        /// <summary>
-        /// Gets or sets <see cref="Control.ColumnIndex"/> property of the attached
-        /// <see cref="Label"/> control.
-        /// </summary>
-        public int? LabelColumnIndex
-        {
-            get
-            {
-                return Label.ColumnIndex;
-            }
-
-            set
-            {
-                Label.ColumnIndex = value;
-            }
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace Alternet.UI
     [DefaultProperty("Image")]
     [DefaultBindingProperty("Image")]
     [ControlCategory("Common")]
-    public partial class PictureBox : UserPaintControl, IValidatorReporter
+    public partial class PictureBox : GraphicControl, IValidatorReporter
     {
         private readonly ImagePrimitivePainter primitive = new();
         private string text = string.Empty;
@@ -38,7 +38,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets whether to display text in the control.
         /// </summary>
-        public bool TextVisible
+        public virtual bool TextVisible
         {
             get
             {
@@ -59,7 +59,7 @@ namespace Alternet.UI
         /// Gets or sets a value which specifies display modes for
         /// item image and text.
         /// </summary>
-        public ImageToText ImageToText
+        public virtual ImageToText ImageToText
         {
             get => imageToText;
             set
@@ -96,7 +96,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the image that is displayed by <see cref="PictureBox"/>.
         /// </summary>
-        public Image? Image
+        [DefaultValue(null)]
+        public virtual Image? Image
         {
             get
             {
@@ -118,7 +119,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the disabled image that is displayed by <see cref="PictureBox"/>.
         /// </summary>
-        public Image? DisabledImage
+        public virtual Image? DisabledImage
         {
             get
             {
@@ -153,7 +154,7 @@ namespace Alternet.UI
         /// you can paint.
         /// </summary>
         [Browsable(false)]
-        public Graphics? Canvas
+        public virtual Graphics? Canvas
         {
             get
             {
@@ -165,7 +166,7 @@ namespace Alternet.UI
         /// Gets or sets whether to center image vertically in the control rectangle.
         /// Default is <c>true</c>. This property is used when image is not stretched.
         /// </summary>
-        public bool CenterVert
+        public virtual bool CenterVert
         {
             get
             {
@@ -185,7 +186,7 @@ namespace Alternet.UI
         /// Gets or sets whether to center image horizontally in the control rectangle.
         /// Default is <c>true</c>. This property is used when image is not stretched.
         /// </summary>
-        public bool CenterHorz
+        public virtual bool CenterHorz
         {
             get
             {
@@ -202,9 +203,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to draw image stretched to the size of the control.
+        /// Gets or sets a value indicating whether to draw image stretched
+        /// to the size of the control.
         /// </summary>
-        public bool ImageStretch
+        public virtual bool ImageStretch
         {
             get
             {
@@ -223,7 +225,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether to draw image.
         /// </summary>
-        public bool ImageVisible
+        public virtual bool ImageVisible
         {
             get
             {
@@ -335,12 +337,6 @@ namespace Alternet.UI
                 return result + Padding.Size;
 
             return base.GetPreferredSize(availableSize);
-        }
-
-        /// <inheritdoc/>
-        internal override ControlHandler CreateHandler()
-        {
-            return GetEffectiveControlHandlerHactory().CreatePictureBoxHandler(this);
         }
 
         /// <inheritdoc/>
@@ -467,25 +463,6 @@ namespace Alternet.UI
             using var dc = CreateDrawingContext();
             var result = dc.GetTextExtent(text, Font ?? UI.Control.DefaultFont, this);
             return result;
-        }
-
-        internal class PictureBoxHandler : NativeControlHandler<PictureBox, Native.Panel>
-        {
-            protected override bool NeedsPaint => true;
-
-            public override void OnPaint(Graphics drawingContext)
-            {
-                Control.DefaultPaint(drawingContext, Control.DrawClientRectangle);
-            }
-
-            internal override Native.Control CreateNativeControl()
-            {
-                var result = new Native.Panel
-                {
-                    AcceptsFocusAll = false,
-                };
-                return result;
-            }
         }
     }
 }

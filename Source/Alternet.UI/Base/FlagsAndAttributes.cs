@@ -6,8 +6,25 @@ using System.Threading.Tasks;
 
 namespace Alternet.UI
 {
-    internal class FlagsAndAttributes : AdvDictionary<string, object>, IFlagsAndAttributes
+    internal class FlagsAndAttributes
+        : AdvDictionary<string, object>, IFlagsAndAttributes, ICustomFlags, ICustomAttributes
     {
+        public ICustomFlags Flags => this;
+
+        public ICustomAttributes Attr => this;
+
+        bool ICustomFlags.this[string name]
+        {
+            get => HasFlag(name);
+            set => SetFlag(name, value);
+        }
+
+        object? ICustomAttributes.this[string name]
+        {
+            get => GetAttribute(name);
+            set => SetAttribute(name, value);
+        }
+
         public bool HasFlag(string name) => HasAttribute(name);
 
         public void AddFlag(string name) => TryAdd(name, AssemblyUtils.True);

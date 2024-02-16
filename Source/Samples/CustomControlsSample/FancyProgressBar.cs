@@ -1,32 +1,48 @@
-﻿#nullable disable
-
-using System;
+﻿using System;
 using Alternet.Drawing;
-using Alternet.UI;
 
 namespace Alternet.UI
 {
-    internal class FancyProgressBarHandler : ProgressBarHandler
+    /// <summary>
+    /// <see cref="ProgressBar"/> with custom painted fancy look.
+    /// </summary>
+    public partial class FancyProgressBar : ProgressBar
     {
         private readonly SolidBrush gaugeBackgroundBrush = new((Color)"#484854");
-
         private readonly Pen gaugeBorderPen = new((Color)"#9EAABA", 2);
-
         private readonly Font font = Font.Default;
-
         private readonly Pen pointerPen1 = new((Color)"#FC4154", 3);
-
         private readonly Pen pointerPen2 = new((Color)"#FF827D", 1);
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FancyProgressBar"/> class.
+        /// </summary>
+        public FancyProgressBar()
+        {
+            UserPaint = true;
+            ValueChanged += Control_ValueChanged;
+        }
+
+        /// <inheritdoc/>
         public override bool IsIndeterminate { get; set; }
 
+        /// <inheritdoc/>
         public override ProgressBarOrientation Orientation { get; set; }
 
-        protected override bool NeedsPaint => true;
-
-        public override void OnPaint(Graphics dc)
+        /// <inheritdoc/>
+        public override SizeD GetPreferredSize(SizeD availableSize)
         {
-            var bounds = Control.ClientRectangle;
+            return new SizeD(200, 100);
+        }
+
+        /// <inheritdoc/>
+        protected override HandlerType GetRequiredHandlerType() => HandlerType.Generic;
+
+        /// <inheritdoc/>
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var bounds = e.Bounds;
+            var dc = e.DrawingContext;
 
             var gaugeBounds = bounds.InflatedBy(-2, -2);
             var scaleBounds = gaugeBounds.InflatedBy(-4, -4);
@@ -52,7 +68,9 @@ namespace Alternet.UI
 
             dc.Clip = new Region(scaleBounds);
 
-            var fontMaxSize = dc.MeasureText(new string('M', Control.Maximum.ToString().Length), font);
+            var fontMaxSize = dc.MeasureText(
+                new string('M', Maximum.ToString().Length),
+                font);
 
             void DrawTicks(double ticksStartX, double offsetInSteps)
             {
@@ -61,27 +79,34 @@ namespace Alternet.UI
                 var y = bounds.Center.Y;
                 var minY = y - (bounds.Height * 5);
 
-                var yStep = MathUtils.MapRanges(step, Control.Minimum, Control.Maximum, 0, minY);
+                var yStep = MapRanges(step, Minimum, Maximum, 0, minY);
 
                 y += offsetInSteps * yStep;
 
-                var shift = -MathUtils.MapRanges(
-                    Control.Value,
-                    Control.Minimum,
-                    Control.Maximum,
+                var shift = -MapRanges(
+                    Value,
+                    Minimum,
+                    Maximum,
                     0,
                     minY);
 
-                for (int tickValue = Control.Minimum; tickValue <= Control.Maximum; tickValue += step)
+                for (
+                    int tickValue = Minimum;
+                    tickValue <= Maximum;
+                    tickValue += step)
                 {
                     double value = tickValue + (step * offsetInSteps);
-                    if (value > Control.Maximum)
+                    if (value > Maximum)
                         break;
 
                     var startPoint = new PointD(ticksStartX, y + shift);
                     dc.DrawLine(Pens.White, startPoint, new PointD(scaleBounds.Right, y + shift));
 
-                    dc.DrawText(value.ToString(), font, Brushes.White, startPoint - new SizeD(fontMaxSize.Width * 0.6, fontMaxSize.Height / 2));
+                    dc.DrawText(
+                        value.ToString(),
+                        font,
+                        Brushes.White,
+                        startPoint - new SizeD(fontMaxSize.Width * 0.6, fontMaxSize.Height / 2));
 
                     y += yStep;
                 }
@@ -96,23 +121,17 @@ namespace Alternet.UI
             dc.DrawLine(pointerPen2, pointerLineStartPoint, pointerLineEndPoint);
         }
 
-        protected override void OnAttach()
-        {
-            base.OnAttach();
-            Control.UserPaint = true;
-            Control.ValueChanged += Control_ValueChanged;
-        }
+        internal static double MapRanges(
+            double value,
+            double from1,
+            double to1,
+            double from2,
+            double to2) =>
+            ((value - from1) / (to1 - from1) * (to2 - from2)) + from2;
 
-        protected override void OnDetach()
+        private void Control_ValueChanged(object? sender, EventArgs e)
         {
-            Control.ValueChanged -= Control_ValueChanged;
-
-            base.OnDetach();
-        }
-
-        private void Control_ValueChanged(object sender, EventArgs e)
-        {
-            Control.Refresh();
+            Refresh();
         }
     }
 }

@@ -14,25 +14,58 @@ namespace Alternet.UI
     [ControlCategory("MenusAndToolbars")]
     public partial class FindReplaceControl : GenericToolBarSet
     {
-        private readonly TextBox findEdit = new()
+        private readonly ComboBox scopeEdit = new()
         {
             Margin = (2, 0, 2, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        private readonly TextBox replaceEdit = new()
+        private readonly ComboBox findEdit = new()
         {
             Margin = (2, 0, 2, 0),
             VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        private readonly ComboBox replaceEdit = new()
+        {
+            Margin = (2, 0, 2, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        private readonly ListControlItem scopeCurrentDocument = new()
+        {
+            Text = CommonStrings.Default.FindScopeCurrentDocument,
+        };
+
+        private readonly ListControlItem scopeAllOpenDocuments = new()
+        {
+            Text = CommonStrings.Default.FindScopeAllOpenDocuments,
+        };
+
+        private readonly ListControlItem scopeCurrentProject = new()
+        {
+            Text = CommonStrings.Default.FindScopeCurrentProject,
+        };
+
+        private readonly ListControlItem scopeSelectionOnly = new()
+        {
+            Text = CommonStrings.Default.FindScopeSelectionOnly,
         };
 
         private IFindReplaceConnect? manager;
+        private bool canFindInCurrentDocument = true;
+        private bool canFindInAllOpenDocuments = true;
+        private bool canFindInCurrentProject = true;
+        private bool canFindInSelectionOnly = true;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FindReplaceControl"/> class.
         /// </summary>
         public FindReplaceControl()
         {
+            scopeEdit.IsEditable = false;
+            UpdateFindScope();
+
             replaceEdit.TextChanged += ReplaceEdit_TextChanged;
             findEdit.TextChanged += FindEdit_TextChanged;
 
@@ -64,14 +97,16 @@ namespace Alternet.UI
                 OnClickUseRegularExpressions);
             OptionsToolBar.SetToolShortcut(IdUseRegularExpressions, KnownKeys.FindReplaceControlKeys.UseRegularExpressions);
 
+            IdScopeEdit = OptionsToolBar.AddControl(scopeEdit);
+
             IdToggleReplaceOptions = FindToolBar.AddSpeedBtn(
                 CommonStrings.Default.ToggleToSwitchBetweenFindReplace,
                 FindToolBar.GetNormalSvgImages().ImgAngleDown,
                 FindToolBar.GetDisabledSvgImages().ImgAngleDown);
 
             findEdit.SuggestedWidth = 150;
-            findEdit.EmptyTextHint = CommonStrings.Default.ButtonFind;
-            replaceEdit.EmptyTextHint = CommonStrings.Default.ButtonReplace;
+            /*findEdit.EmptyTextHint = CommonStrings.Default.ButtonFind;
+            replaceEdit.EmptyTextHint = CommonStrings.Default.ButtonReplace;*/
             replaceEdit.SuggestedWidth = 150;
             IdFindEdit = FindToolBar.AddControl(findEdit);
 
@@ -91,6 +126,7 @@ namespace Alternet.UI
                 CommonStrings.Default.ButtonClose,
                 FindToolBar.GetNormalSvgImages().ImgCancel,
                 FindToolBar.GetDisabledSvgImages().ImgCancel);
+            FindToolBar.SetToolAlignRight(IdFindClose, true);
 
             FindToolBar.Parent = this;
 
@@ -242,6 +278,82 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Get or sets whether 'Current Document' find scope is available.
+        /// </summary>
+        public bool CanFindInCurrentDocument
+        {
+            get
+            {
+                return canFindInCurrentDocument;
+            }
+
+            set
+            {
+                if (canFindInCurrentDocument == value)
+                    return;
+                canFindInCurrentDocument = value;
+                UpdateFindScope();
+            }
+        }
+
+        /// <summary>
+        /// Get or sets whether 'All Open Documents' find scope is available.
+        /// </summary>
+        public bool CanFindInAllOpenDocuments
+        {
+            get
+            {
+                return canFindInAllOpenDocuments;
+            }
+
+            set
+            {
+                if (canFindInAllOpenDocuments == value)
+                    return;
+                canFindInAllOpenDocuments = value;
+                UpdateFindScope();
+            }
+        }
+
+        /// <summary>
+        /// Get or sets whether 'Current Project' find scope is available.
+        /// </summary>
+        public bool CanFindInCurrentProject
+        {
+            get
+            {
+                return canFindInCurrentProject;
+            }
+
+            set
+            {
+                if (canFindInCurrentProject == value)
+                    return;
+                canFindInCurrentProject = value;
+                UpdateFindScope();
+            }
+        }
+
+        /// <summary>
+        /// Get or sets whether 'Current Project' find scope is available.
+        /// </summary>
+        public bool CanFindInSelectionOnly
+        {
+            get
+            {
+                return canFindInSelectionOnly;
+            }
+
+            set
+            {
+                if (canFindInSelectionOnly == value)
+                    return;
+                canFindInSelectionOnly = value;
+                UpdateFindScope();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets <see cref="IFindReplaceConnect"/> instance.
         /// </summary>
         public IFindReplaceConnect? Manager
@@ -262,6 +374,21 @@ namespace Alternet.UI
                 OptionUseRegularExpressionsEnabled = manager.CanUseRegularExpressions;
             }
         }
+
+        /// <summary>
+        /// Gets 'Current Document' item in the <see cref="ScopeEdit"/>.
+        /// </summary>
+        public ListControlItem ScopeItemCurrentDocument => scopeCurrentDocument;
+
+        /// <summary>
+        /// Gets 'All Open Documents' item in the <see cref="ScopeEdit"/>.
+        /// </summary>
+        public ListControlItem ScopeItemAllOpenDocuments => scopeAllOpenDocuments;
+
+        /// <summary>
+        /// Gets 'Current Project' item in the <see cref="ScopeEdit"/>.
+        /// </summary>
+        public ListControlItem ScopeItemCurrentProject => scopeCurrentProject;
 
         /// <summary>
         /// Gets or sets 'Hidden Text' option.
@@ -460,6 +587,12 @@ namespace Alternet.UI
         public ObjectUniqueId IdFindEdit { get; }
 
         /// <summary>
+        /// Gets id of the 'Scope' editor.
+        /// </summary>
+        [Browsable(false)]
+        public ObjectUniqueId IdScopeEdit { get; }
+
+        /// <summary>
         /// Gets id of the 'Replace' editor.
         /// </summary>
         [Browsable(false)]
@@ -496,16 +629,22 @@ namespace Alternet.UI
         public ObjectUniqueId IdReplaceAll { get; }
 
         /// <summary>
-        /// Gets <see cref="TextBox"/> which allows to specify text to find.
+        /// Gets <see cref="ComboBox"/> which allows to specify text to find.
         /// </summary>
         [Browsable(false)]
-        public TextBox FindEdit => findEdit;
+        public ComboBox FindEdit => findEdit;
 
         /// <summary>
-        /// Gets <see cref="TextBox"/> which allows to specify text to replace.
+        /// Gets <see cref="ComboBox"/> which allows to specify text to find.
         /// </summary>
         [Browsable(false)]
-        public TextBox ReplaceEdit => replaceEdit;
+        public ComboBox ScopeEdit => scopeEdit;
+
+        /// <summary>
+        /// Gets <see cref="ComboBox"/> which allows to specify text to replace.
+        /// </summary>
+        [Browsable(false)]
+        public ComboBox ReplaceEdit => replaceEdit;
 
         /// <summary>
         /// Gets <see cref="GenericToolBar"/> with find buttons.
@@ -793,6 +932,42 @@ namespace Alternet.UI
         private void ReplaceEdit_TextChanged(object? sender, EventArgs e)
         {
             Manager?.SetReplaceText(replaceEdit.Text);
+        }
+
+        private void UpdateFindScope()
+        {
+            void AddOrRemove(object item, bool add)
+            {
+                if (add)
+                {
+                    if (scopeEdit.Items.IndexOf(item) < 0)
+                        scopeEdit.Items.Add(item);
+                }
+                else
+                    scopeEdit.Items.Remove(item);
+            }
+
+            var selected = false;
+
+            void SelectIf(object? item, bool select)
+            {
+                if (select && !selected)
+                {
+                    scopeEdit.SelectedItem = item;
+                    selected = true;
+                }
+            }
+
+            AddOrRemove(scopeCurrentDocument, CanFindInCurrentDocument);
+            AddOrRemove(scopeAllOpenDocuments, CanFindInAllOpenDocuments);
+            AddOrRemove(scopeCurrentProject, CanFindInCurrentProject);
+            AddOrRemove(scopeSelectionOnly, CanFindInSelectionOnly);
+
+            SelectIf(scopeCurrentDocument, CanFindInCurrentDocument);
+            SelectIf(scopeAllOpenDocuments, CanFindInAllOpenDocuments);
+            SelectIf(scopeCurrentProject, CanFindInCurrentProject);
+            SelectIf(scopeSelectionOnly, CanFindInSelectionOnly);
+            SelectIf(null, true);
         }
 
         internal class FindReplaceManagerLogger : IFindReplaceConnect

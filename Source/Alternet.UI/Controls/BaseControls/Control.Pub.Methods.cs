@@ -19,29 +19,46 @@ namespace Alternet.UI
         /// </remarks>
         /// <param name="container">Container control which childs will be processed.</param>
         /// <param name="layout">Layout style to use.</param>
-        public static void DefaultOnLayout(Control container, LayoutStyle layout)
+        /// <param name="space">Rectangle in which layout is performed.</param>
+        /// <param name="items">List of controls to layout.</param>
+        public static void DefaultOnLayout(
+            Control container,
+            LayoutStyle layout,
+            RectD space,
+            IReadOnlyList<Control> items)
         {
-            if (GlobalOnLayout is not null)
+            var number = LayoutPanel.LayoutDockedChildren(
+                container,
+                ref space,
+                items);
+
+            void UpdateItems()
             {
-                var e = new HandledEventArgs();
-                GlobalOnLayout(container, e);
-                if (e.Handled)
+                if (number == 0 || number == items.Count)
                     return;
+                var newItems = new List<Control>();
+                foreach(var item in items)
+                {
+                    if (item.Dock == DockStyle.None)
+                        newItems.Add(item);
+                }
+
+                items = newItems;
             }
 
             switch (layout)
             {
-                case LayoutStyle.Dock:
-                    LayoutPanel.LayoutDockedChildren(container);
-                    break;
                 case LayoutStyle.Basic:
-                    UI.Control.PerformDefaultLayout(container);
+                    UpdateItems();
+                    UI.Control.PerformDefaultLayout(container, space, items);
                     break;
                 case LayoutStyle.Vertical:
-                    StackPanel.LayoutVerticalStackPanel(container);
+                    UpdateItems();
+                    StackPanel.LayoutVerticalStackPanel(container, space, items);
                     break;
                 case LayoutStyle.Horizontal:
-                    StackPanel.LayoutHorizontalStackPanel(container);
+                    UpdateItems();
+                    StackPanel.LayoutHorizontalStackPanel(container, space, items);
                     break;
             }
         }
@@ -65,13 +82,6 @@ namespace Alternet.UI
             SizeD availableSize,
             LayoutStyle layout)
         {
-            if (GlobalGetPreferredSize is not null)
-            {
-                var e = new HandledEventArgs<SizeD>(availableSize);
-                if (e.Handled)
-                    return e.Value;
-            }
-
             switch (layout)
             {
                 case LayoutStyle.Dock:
@@ -1542,7 +1552,37 @@ namespace Alternet.UI
         /// </summary>
         public virtual void OnLayout()
         {
-            DefaultOnLayout(this, Layout ?? GetDefaultLayout());
+            if (CustomLayout is not null)
+            {
+                var e = new HandledEventArgs();
+                CustomLayout(this, e);
+                if (e.Handled)
+                    return;
+            }
+
+            var layoutType = Layout ?? GetDefaultLayout();
+            var space = ChildrenLayoutBounds;
+            var items = AllChildrenInLayout;
+
+            if (GlobalOnLayout is not null)
+            {
+                var e = new DefaultLayoutEventArgs(this, layoutType, space, items);
+                GlobalOnLayout(this, e);
+                if (e.Handled)
+                    return;
+                else
+                {
+                    layoutType = e.Layout;
+                    space = e.Bounds;
+                    items = e.Children;
+                }
+            }
+
+            DefaultOnLayout(
+                this,
+                layoutType,
+                space,
+                items);
         }
 
         /// <summary>
@@ -1555,10 +1595,19 @@ namespace Alternet.UI
         /// a rectangle, in device-independent units (1/96th inch per unit).</returns>
         public virtual SizeD GetPreferredSize(SizeD availableSize)
         {
+            var layoutType = Layout ?? GetDefaultLayout();
+
+            if (GlobalGetPreferredSize is not null)
+            {
+                var e = new DefaultPreferredSizeEventArgs(layoutType, availableSize);
+                if (e.Handled && e.PreferredSize != SizeD.MinusOne)
+                    return e.PreferredSize;
+            }
+
             return DefaultGetPreferredSize(
                 this,
                 availableSize,
-                Layout ?? GetDefaultLayout());
+                layoutType);
         }
 
         /// <summary>

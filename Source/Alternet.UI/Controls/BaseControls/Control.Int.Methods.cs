@@ -9,17 +9,32 @@ namespace Alternet.UI
 {
     public partial class Control
     {
+        /// <summary>
+        /// Enumerates known handler types.
+        /// </summary>
+        public enum HandlerType
+        {
+            /// <summary>
+            /// Native handler type.
+            /// </summary>
+            Native,
+
+            /// <summary>
+            /// Generic type.
+            /// </summary>
+            Generic,
+        }
+
         internal static void NotifyCaptureLost()
         {
             Native.Control.NotifyCaptureLost();
         }
 
-        internal static void PerformDefaultLayout(Control container)
+        internal static void PerformDefaultLayout(
+            Control container,
+            RectD childrenLayoutBounds,
+            IReadOnlyList<Control> childs)
         {
-            var childrenLayoutBounds = container.ChildrenLayoutBounds;
-
-            var childs = container.AllChildrenInLayout;
-
             foreach (var control in childs)
             {
                 var preferredSize = control.GetPreferredSizeLimited(childrenLayoutBounds.Size);
@@ -80,6 +95,21 @@ namespace Alternet.UI
             return Font.FromInternal(font);
         }
 
+        /// <summary>
+        /// Creates a handler for the control.
+        /// </summary>
+        /// <remarks>
+        /// You typically should not call the <see cref="CreateHandler"/>
+        /// method directly.
+        /// The preferred method is to call the
+        /// <see cref="EnsureHandlerCreated"/> method, which forces a handler
+        /// to be created for the control.
+        /// </remarks>
+        internal virtual ControlHandler CreateHandler()
+        {
+            return new GenericControlHandler();
+        }
+
         internal void RaiseNativeSizeChanged()
         {
             OnNativeSizeChanged(EventArgs.Empty);
@@ -88,7 +118,6 @@ namespace Alternet.UI
         internal void RaiseDeactivated()
         {
             Deactivated?.Invoke(this, EventArgs.Empty);
-            /*Application.DebugLog($"Deactivated {Name}");*/
         }
 
         internal void RaiseHandleCreated()
@@ -327,9 +356,6 @@ namespace Alternet.UI
 
         internal void RaisePaint(PaintEventArgs e)
         {
-            if (e == null)
-                throw new ArgumentNullException(nameof(e));
-
             OnPaint(e);
             Paint?.Invoke(this, e);
         }

@@ -11,21 +11,6 @@ namespace Alternet.UI
     public partial class Control
     {
         /// <summary>
-        /// Creates a handler for the control.
-        /// </summary>
-        /// <remarks>
-        /// You typically should not call the <see cref="CreateHandler"/>
-        /// method directly.
-        /// The preferred method is to call the
-        /// <see cref="EnsureHandlerCreated"/> method, which forces a handler
-        /// to be created for the control.
-        /// </remarks>
-        internal virtual ControlHandler CreateHandler()
-        {
-            return new GenericControlHandler();
-        }
-
-        /// <summary>
         /// Ensures that the control <see cref="Handler"/> is created,
         /// creating and attaching it if necessary.
         /// </summary>
@@ -481,6 +466,15 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets whether child control ignores layout.
+        /// </summary>
+        /// <param name="control"></param>
+        protected virtual bool ChildIgnoresLayout(Control control)
+        {
+            return !control.Visible || control.IgnoreLayout;
+        }
+
+        /// <summary>
         /// Called when an exception need to be processed.
         /// </summary>
         /// <param name="e">An <see cref="ControlExceptionEventArgs"/> that contains
@@ -558,5 +552,11 @@ namespace Alternet.UI
         {
             RaiseCurrentStateChanged();
         }
+
+        /// <summary>
+        /// Gets required control handler type.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual HandlerType GetRequiredHandlerType() => HandlerType.Native;
     }
 }

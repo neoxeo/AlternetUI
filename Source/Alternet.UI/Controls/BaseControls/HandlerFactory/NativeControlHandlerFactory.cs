@@ -22,14 +22,6 @@ namespace Alternet.UI
             new NativeButtonHandler();
 
         /// <inheritdoc/>
-        public ControlHandler CreateBorderHandler(Control control) =>
-            new Border.BorderHandler();
-
-        /// <inheritdoc/>
-        public ControlHandler CreatePictureBoxHandler(Control control) =>
-            new PictureBox.PictureBoxHandler();
-
-        /// <inheritdoc/>
         public ControlHandler CreateTextBoxHandler(Control control) =>
             new NativeTextBoxHandler();
 
@@ -51,11 +43,11 @@ namespace Alternet.UI
 
         /// <inheritdoc/>
         public ControlHandler CreateProgressBarHandler(Control control) =>
-            new NativeProgressBarHandler();
+            new ProgressBarHandler();
 
         /// <inheritdoc/>
         public ControlHandler CreateSliderHandler(Control control) =>
-            new NativeSliderHandler();
+            new SliderHandler();
 
         /// <inheritdoc/>
         public ControlHandler CreateNumericUpDownHandler(Control control) =>

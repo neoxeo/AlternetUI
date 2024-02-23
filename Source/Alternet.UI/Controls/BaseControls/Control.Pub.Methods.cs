@@ -37,7 +37,7 @@ namespace Alternet.UI
                 if (number == 0 || number == items.Count)
                     return;
                 var newItems = new List<Control>();
-                foreach(var item in items)
+                foreach (var item in items)
                 {
                     if (item.Dock == DockStyle.None)
                         newItems.Add(item);
@@ -216,6 +216,14 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets the border settings for specified state of the control.
+        /// </summary>
+        public virtual BorderSettings? GetBorderSettings(GenericControlState state)
+        {
+            return Borders?.GetObjectOrNormal(state);
+        }
+
+        /// <summary>
         /// Gets the foreground brush for specified state of the control.
         /// </summary>
         public virtual Brush? GetForeground(GenericControlState state)
@@ -236,7 +244,7 @@ namespace Alternet.UI
         /// <see cref="IsDarkBackground"/> property.
         /// </summary>
         /// <param name="knownSvgColor">Known svg color identifier.</param>
-        public virtual Color GetSvgColor(KnownSvgColor knownSvgColor)
+        public virtual Color GetSvgColor(KnownSvgColor knownSvgColor = KnownSvgColor.Normal)
         {
             return SvgColors.GetSvgColor(knownSvgColor, IsDarkBackground);
         }
@@ -364,6 +372,24 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Calls <see cref="PerformLayout"/> and <see cref="Invalidate()"/>.
+        /// </summary>
+        public virtual void PerformLayoutAndInvalidate(Action? action = null)
+        {
+            if (action is null)
+                PerformLayout();
+            else
+                DoInsideLayout(action);
+            Invalidate();
+        }
+
+        /// <summary>
+        /// Sets value of the <see cref="Text"/> property.
+        /// </summary>
+        /// <param name="value">New value of the <see cref="Text"/> property.</param>
+        public void SetText(string? value) => Text = value ?? string.Empty;
+
+        /// <summary>
         /// Executes a delegate asynchronously on the thread that the control
         /// was created on.
         /// </summary>
@@ -405,6 +431,26 @@ namespace Alternet.UI
         /// <param name="action">An action to execute.</param>
         /// <returns>An <see cref="IAsyncResult"/> that represents the result
         /// of the operation.</returns>
+        /// <remarks>
+        /// You can call this method from another non-ui thread with action
+        /// which can perform operation on ui controls.
+        /// </remarks>
+        /// <example>
+        /// private void StartCounterThread1()
+        /// {
+        ///    var thread1 = new Thread(() =>
+        ///    {
+        ///      for (int i = 0; ; i++)
+        ///      {
+        ///          BeginInvoke(() => beginInvokeCounterLabel.Text = i.ToString());
+        ///          Thread.Sleep(1000);
+        ///       }
+        ///    })
+        ///    { IsBackground = true };
+        ///
+        ///    thread1.Start();
+        /// }
+        /// </example>
         public virtual IAsyncResult BeginInvoke(Action action)
         {
             if (action == null)
@@ -911,78 +957,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets the sizer of which this control is a member, if any, otherwise <c>null</c>.
-        /// </summary>
-        /// <returns></returns>
-        public ISizer? GetContainingSizer()
-        {
-            var nativeControl = Handler?.NativeControl;
-
-            if (nativeControl is null)
-                return null;
-
-            var sizer = nativeControl.GetContainingSizer();
-
-            if (sizer == IntPtr.Zero)
-                return null;
-
-            return new Sizer(sizer, false);
-        }
-
-        /// <summary>
-        /// Gets the sizer associated with the control by a previous call to <see cref="SetSizer"/>,
-        /// or <c>null</c>.
-        /// </summary>
-        public ISizer? GetSizer()
-        {
-            var nativeControl = Handler?.NativeControl;
-
-            if (nativeControl is null)
-                return null;
-
-            var sizer = nativeControl.GetSizer();
-
-            if (sizer == IntPtr.Zero)
-                return null;
-
-            return new Sizer(sizer, false);
-        }
-
-        /// <summary>
-        /// Sets the control to have the given layout sizer.
-        /// </summary>
-        /// <param name="sizer">The sizer to set. Pass <c>null</c> to disassociate
-        /// and conditionally delete the control's sizer.</param>
-        /// <param name="deleteOld">If <c>true</c> (the default), this will delete any
-        /// pre-existing sizer. Pass <c>false</c> if you wish to handle deleting
-        /// the old sizer yourself but remember to do it yourself in this case
-        /// to avoid memory leaks.</param>
-        /// <remarks>
-        /// The control will then own the object, and will take care of its deletion.
-        /// If an existing layout constraints object is already owned by the control,
-        /// it will be deleted if the <paramref name="deleteOld"/> parameter is <c>true</c>.
-        /// </remarks>
-        /// <remarks>
-        /// This function will also update layout so that the sizer will be effectively
-        /// used to layout the control children whenever it is resized.
-        /// </remarks>
-        /// <remarks>
-        /// This function enables and disables Layout automatically.
-        /// </remarks>
-        public void SetSizer(ISizer? sizer, bool deleteOld = true)
-        {
-            var nativeControl = Handler?.NativeControl;
-
-            if (nativeControl is null)
-                return;
-
-            if (sizer is null)
-                nativeControl.SetSizer(IntPtr.Zero, deleteOld);
-            else
-                nativeControl.SetSizer(sizer.Handle, deleteOld);
-        }
-
-        /// <summary>
         /// Gets <see cref="Display"/> where this control is shown.
         /// </summary>
         /// <returns></returns>
@@ -1017,31 +991,6 @@ namespace Alternet.UI
                 Refresh();
                 NativeControl.SendSizeEvent();
             }
-        }
-
-        /// <summary>
-        /// This method calls SetSizer() and then updates the initial control size to the
-        /// size needed to accommodate all sizer elements and sets the size hints which,
-        /// if this control is a top level one, prevent the user from resizing it to be
-        /// less than this minimal size.
-        /// </summary>
-        /// <param name="sizer">The sizer to set. Pass <c>null</c> to disassociate
-        /// and conditionally delete the control's sizer.</param>
-        /// <param name="deleteOld">If <c>true</c> (the default), this will delete any
-        /// pre-existing sizer. Pass <c>false</c> if you wish to handle deleting
-        /// the old sizer yourself but remember to do it yourself in this case
-        /// to avoid memory leaks.</param>
-        public void SetSizerAndFit(ISizer? sizer, bool deleteOld = false)
-        {
-            var nativeControl = Handler?.NativeControl;
-
-            if (nativeControl is null)
-                return;
-
-            if (sizer is null)
-                nativeControl.SetSizerAndFit(IntPtr.Zero, deleteOld);
-            else
-                nativeControl.SetSizerAndFit(sizer.Handle, deleteOld);
         }
 
         /// <summary>
@@ -1282,6 +1231,19 @@ namespace Alternet.UI
         {
             return Handler.SetFocus();
         }
+
+        /// <summary>
+        /// Sets input focus to the control.
+        /// </summary>
+        /// <returns>
+        ///   <see langword="true" /> if the input focus request was successful;
+        ///   otherwise, <see langword="false" />.
+        /// </returns>
+        /// <remarks>
+        /// Same as <see cref="SetFocus"/>.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        public bool Focus() => SetFocus();
 
         /// <summary>
         /// Sets input focus to the control if it can accept it.
@@ -1600,8 +1562,8 @@ namespace Alternet.UI
             if (GlobalGetPreferredSize is not null)
             {
                 var e = new DefaultPreferredSizeEventArgs(layoutType, availableSize);
-                if (e.Handled && e.PreferredSize != SizeD.MinusOne)
-                    return e.PreferredSize;
+                if (e.Handled && e.Result != SizeD.MinusOne)
+                    return e.Result;
             }
 
             return DefaultGetPreferredSize(

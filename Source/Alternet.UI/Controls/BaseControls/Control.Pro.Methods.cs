@@ -181,6 +181,7 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void OnMouseCaptureLost(EventArgs e)
         {
+            IsMouseLeftButtonDown = false;
         }
 
         /// <summary>
@@ -230,6 +231,7 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void OnMouseLeave(EventArgs e)
         {
+            IsMouseLeftButtonDown = false;
         }
 
         /// <summary>
@@ -238,6 +240,19 @@ namespace Alternet.UI
         /// <param name="e">An <see cref="EventArgs"/> that contains the
         /// event data.</param>
         protected virtual void OnHandlerDetaching(EventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// Paints the background of the control.
+        /// </summary>
+        /// <param name="e">A <see cref="PaintEventArgs" /> that contains information
+        /// about the control to paint.</param>
+        /// <remarks>
+        /// Currently this method is provided for the compatibility and is not called.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        protected virtual void OnPaintBackground(PaintEventArgs e)
         {
         }
 

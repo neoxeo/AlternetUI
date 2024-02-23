@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -17,7 +18,7 @@ namespace Alternet.UI
     /// and properties to get information about an application.
     /// </summary>
     [System.ComponentModel.DesignerCategory("Code")]
-    public partial class Application : IDisposable
+    public partial class Application : BaseObject, IDisposable
     {
         /// <summary>
         /// Returns true if operating system is Windows.
@@ -67,7 +68,7 @@ namespace Alternet.UI
         internal const int BuildCounter = 6;
         internal static readonly Destructor MyDestructor = new();
 
-        private static readonly Queue<(Action<object?>, object?)> IdleTasks = new();
+        private static readonly ConcurrentQueue<(Action<object?>, object?)> IdleTasks = new();
         private static Queue<string>? logQueue;
         private static bool terminating = false;
         private static bool logFileIsEnabled;
@@ -325,6 +326,11 @@ namespace Alternet.UI
         public static bool Terminating { get => terminating; }
 
         /// <summary>
+        /// Gets whether execution is inside the <see cref="Run"/> method.
+        /// </summary>
+        public static bool IsRunning { get; internal set; }
+
+        /// <summary>
         /// Gets the <see cref="Application"/> object for the currently
         /// runnning application.
         /// </summary>
@@ -332,8 +338,8 @@ namespace Alternet.UI
         {
             get
             {
-                // todo: maybe make it thread static?
-                // todo: maybe move this to native?
+                // maybe make it thread static?
+                // maybe move this to native?
                 return current ?? throw new InvalidOperationException(
                     ErrorMessages.Default.CurrentApplicationIsNotSet);
             }
@@ -615,7 +621,7 @@ namespace Alternet.UI
                 runAction();
             }
 
-            if(runAction is not null)
+            if (runAction is not null)
                 AddIdleTask(Task);
 
             application.Run(window);
@@ -678,6 +684,22 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Calls <see cref="Log"/> method with <paramref name="obj"/> parameter
+        /// when application becomes idle.
+        /// </summary>
+        /// <param name="obj">Message text or object to log.</param>
+        /// <remarks>
+        /// This method is thread safe and can be called from non-ui threads.
+        /// </remarks>
+        public static void IdleLog(object? obj)
+        {
+            AddIdleTask(() =>
+            {
+                Log(obj);
+            });
+        }
+
+        /// <summary>
         /// Calls <see cref="LogMessage"/> event.
         /// </summary>
         /// <param name="obj">Message text or object to log.</param>
@@ -717,7 +739,7 @@ namespace Alternet.UI
                 return;
             }
 
-            if(logQueue is not null)
+            if (logQueue is not null)
             {
                 while (logQueue.Count > 0)
                 {
@@ -950,14 +972,24 @@ namespace Alternet.UI
         /// method and passes to it the main window of the application.</remarks>
         public void Run(Window window)
         {
-            this.window = window ?? throw new ArgumentNullException(nameof(window));
-            CheckDisposed();
-            window.Show();
-            nativeApplication.Run(
-                ((WindowHandler)window.Handler).NativeControl);
-            SynchronizationContext.Uninstall();
-            this.window = null;
-            terminating = true;
+            IsRunning = true;
+
+            try
+            {
+                this.window = window ?? throw new ArgumentNullException(nameof(window));
+                CheckDisposed();
+                window.Show();
+
+                nativeApplication.Run(
+                    ((WindowHandler)window.Handler).NativeControl);
+                SynchronizationContext.Uninstall();
+                this.window = null;
+            }
+            finally
+            {
+                terminating = true;
+                IsRunning = false;
+            }
         }
 
         /// <summary>
@@ -1159,10 +1191,10 @@ namespace Alternet.UI
 
         private void NativeApplication_Idle()
         {
-            if (IdleTasks.Count > 0 && Application.current?.Windows.Count > 0)
+            if (!IdleTasks.IsEmpty && Application.current?.Windows.Count > 0)
             {
-                var task = IdleTasks.Dequeue();
-                task.Item1(task.Item2);
+                if (IdleTasks.TryDequeue(out var task))
+                    task.Item1(task.Item2);
             }
 
             Idle?.Invoke(this, EventArgs.Empty);
@@ -1178,7 +1210,7 @@ namespace Alternet.UI
         {
             var s = this.EventArgString;
 
-            if(BeforeNativeLogMessage is not null)
+            if (BeforeNativeLogMessage is not null)
             {
                 LogMessageEventArgs e = new(s);
                 BeforeNativeLogMessage(Application.Current, e);

@@ -23,26 +23,32 @@ namespace ControlsSample
         internal static readonly string AnimationAlternet = $"{ResPrefix}Alternet.gif";
         internal static readonly string AnimationCustom = "Open animation file (*.gif; *.ani)...";
 
-        private readonly AnimationPlayer animation = new();            
+        private readonly AnimationPlayer animation = new();
+        private readonly Button showFrameButton = new();
+        private readonly PopupPictureBox popup = new();
         
         private readonly ComboBox selectComboBox = new()
         {
             Margin = 5,
         };
 
+        static AnimationPage()
+        {
+            AnimationPlayer.DefaultDriver = AnimationPlayer.KnownDriver.Generic;
+        }
+
         public AnimationPage()
         {
             Padding = 10;
-            var defaultAnimationUrl = AnimationPlant;
+            var defaultAnimationUrl = AnimationHourGlass;;
 
             animation.Parent = this;
-            animation.UseGeneric = true;
             animation.LoadFromUrl(defaultAnimationUrl, AnimationType.Gif);
             animation.Play();
 
             selectComboBox.IsEditable = false;
-            selectComboBox.Add(AnimationPlant);
             selectComboBox.Add(AnimationHourGlass);
+            selectComboBox.Add(AnimationPlant);
             selectComboBox.Add(AnimationSpinner);
             selectComboBox.Add(AnimationAlternet);
             selectComboBox.Add(AnimationCustom);
@@ -52,9 +58,25 @@ namespace ControlsSample
             selectComboBox.SelectedItemChanged += SelectComboBox_SelectedItemChanged;
 
             var buttonPanel = AddHorizontalStackPanel();
-            buttonPanel.AddButton("Play", animation.Play);
+            buttonPanel.AddButton("Play", () => { animation.Play(); });
             buttonPanel.AddButton("Stop", animation.Stop);
+            buttonPanel.AddButton("Info", ShowInfo);
+            showFrameButton = buttonPanel.AddButton("Show frame 0", ShowFrame);
             buttonPanel.ChildrenSet.Margin(5).SuggestedWidthToMax();
+        }
+
+        private void ShowFrame()
+        {
+            var image = animation.GetFrame(0);
+            popup.MainControl.Image = (Image)image;
+            popup.ShowPopup(showFrameButton);
+        }
+
+        private void ShowInfo()
+        {
+            Application.Log($"Animation.IsOk: {animation.IsOk}");
+            Application.Log($"Animation.FrameCount: {animation.FrameCount}");
+            Application.Log($"Animation.FrameDelay[0]: {animation.GetDelay(0)}");
         }
 
         private void SelectComboBox_SelectedItemChanged(object? sender, EventArgs e)

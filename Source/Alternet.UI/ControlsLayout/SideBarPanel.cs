@@ -14,15 +14,13 @@ namespace Alternet.UI
     /// This control can be used in <see cref="SplittedPanel"/> side bars
     /// or any other places.
     /// </remarks>
-    public partial class SideBarPanel : GenericTabControl
+    public partial class SideBarPanel : TabControl
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SideBarPanel"/> class.
         /// </summary>
         public SideBarPanel()
         {
-            Header.Padding = (0, 5, 0, 0);
-            Header.BorderWidth = 0;
             BackgroundColor = SystemColors.Window;
             Header.BackgroundColor = SystemColors.ButtonFace;
         }

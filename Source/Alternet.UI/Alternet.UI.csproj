@@ -50,18 +50,20 @@
 
   <ItemGroup>
     <Compile Remove="build\**" />
+    <Compile Remove="Controls\BrowsableProps\**" />
     <Compile Remove="Drawing.System.Imported\**" />
     <Compile Remove="System\**" />
     <EmbeddedResource Remove="build\**" />
+    <EmbeddedResource Remove="Controls\BrowsableProps\**" />
     <EmbeddedResource Remove="Drawing.System.Imported\**" />
     <EmbeddedResource Remove="System\**" />
     <None Remove="build\**" />
+    <None Remove="Controls\BrowsableProps\**" />
     <None Remove="Drawing.System.Imported\**" />
     <None Remove="System\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Base\ThreadException\Resources\ErrorImage.png" />
     <None Remove="Build.Result.Log" />
     <None Remove="Find.Not.Documented.log" />
     <None Remove="Resources\Svg\alternet-add-child.svg" />
@@ -127,6 +129,7 @@
     <None Remove="Resources\Svg\circle-info.svg" />
     <None Remove="Resources\Svg\circle-question.svg" />
     <None Remove="Resources\Svg\circle-xmark.svg" />
+    <None Remove="Resources\Svg\circle.svg" />
     <None Remove="Resources\Svg\copy.svg" />
     <None Remove="Resources\Svg\exclamation.svg" />
     <None Remove="Resources\Svg\folder.svg" />
@@ -136,6 +139,7 @@
     <None Remove="Resources\Svg\grip-lines.svg" />
     <None Remove="Resources\Svg\grip-vertical.svg" />
     <None Remove="Resources\Svg\grip.svg" />
+    <None Remove="Resources\Svg\image.svg" />
     <None Remove="Resources\Svg\indent.svg" />
     <None Remove="Resources\Svg\info.svg" />
     <None Remove="Resources\Svg\list-check.svg" />
@@ -144,12 +148,16 @@
     <None Remove="Resources\Svg\list.svg" />
     <None Remove="Resources\Svg\neuter.svg" />
     <None Remove="Resources\Svg\outdent.svg" />
+    <None Remove="Resources\Svg\paintbrush.svg" />
     <None Remove="Resources\Svg\paste.svg" />
     <None Remove="Resources\Svg\print.svg" />
     <None Remove="Resources\Svg\question.svg" />
     <None Remove="Resources\Svg\rotate-left.svg" />
     <None Remove="Resources\Svg\rotate.svg" />
     <None Remove="Resources\Svg\scissors.svg" />
+    <None Remove="Resources\Svg\strikethrough.svg" />
+    <None Remove="Resources\Svg\subscript.svg" />
+    <None Remove="Resources\Svg\superscript.svg" />
     <None Remove="Resources\Svg\terminal.svg" />
     <None Remove="Resources\Svg\text-height.svg" />
     <None Remove="Resources\Svg\toggle-off.svg" />
@@ -160,7 +168,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Base\ThreadException\Resources\ErrorImage.png" />
+    <EmbeddedResource Include="Resources\Png\ErrorImage.png" />
     <EmbeddedResource Include="Resources\Svg\alternet-align-center.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-align-justify.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-align-left.svg" />
@@ -208,6 +216,7 @@
     <EmbeddedResource Include="Resources\Svg\alternet-check.svg" />
     <EmbeddedResource Include="Resources\Svg\circle-check.svg" />
     <EmbeddedResource Include="Resources\Svg\circle-question.svg" />
+    <EmbeddedResource Include="Resources\Svg\circle.svg" />
     <EmbeddedResource Include="Resources\Svg\copy.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-ellipsis-vertical.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-ellipsis.svg" />
@@ -223,6 +232,7 @@
     <EmbeddedResource Include="Resources\Svg\grip-vertical.svg" />
     <EmbeddedResource Include="Resources\Svg\grip.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-house.svg" />
+    <EmbeddedResource Include="Resources\Svg\image.svg" />
     <EmbeddedResource Include="Resources\Svg\indent.svg" />
     <EmbeddedResource Include="Resources\Svg\info.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-italic.svg" />
@@ -233,6 +243,7 @@
     <EmbeddedResource Include="Resources\Svg\alternet-minus.svg" />
     <EmbeddedResource Include="Resources\Svg\neuter.svg" />
     <EmbeddedResource Include="Resources\Svg\outdent.svg" />
+    <EmbeddedResource Include="Resources\Svg\paintbrush.svg" />
     <EmbeddedResource Include="Resources\Svg\paste.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-plus.svg" />
     <EmbeddedResource Include="Resources\Svg\print.svg" />
@@ -242,6 +253,9 @@
     <EmbeddedResource Include="Resources\Svg\rotate.svg" />
     <EmbeddedResource Include="Resources\Svg\scissors.svg" />
     <EmbeddedResource Include="Resources\Svg\alternet-square-check.svg" />
+    <EmbeddedResource Include="Resources\Svg\strikethrough.svg" />
+    <EmbeddedResource Include="Resources\Svg\subscript.svg" />
+    <EmbeddedResource Include="Resources\Svg\superscript.svg" />
     <EmbeddedResource Include="Resources\Svg\terminal.svg" />
     <EmbeddedResource Include="Resources\Svg\text-height.svg" />
     <EmbeddedResource Include="Resources\Svg\toggle-off.svg" />
@@ -331,10 +345,6 @@
 
   <ItemGroup>
     <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controls\BrowsableProps\" />
   </ItemGroup>
 
   <!-- ================================================= -->

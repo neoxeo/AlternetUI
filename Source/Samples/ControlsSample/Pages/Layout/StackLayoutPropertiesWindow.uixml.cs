@@ -6,7 +6,6 @@ namespace LayoutSample
 {
     public partial class StackLayoutPropertiesWindow : Window
     {
-        private readonly CardPanelHeader panelHeader = new();
         private readonly AlignmentControl containerAlignmentControl;
         private readonly VerticalStackPanel dockedSettings = new();
         private readonly ListBox dockedControl = new()
@@ -46,13 +45,9 @@ namespace LayoutSample
             dockedEdit.SelectedItem = DockStyle.Left;
             dockedEdit.SelectedItemChanged += DockedEdit_SelectedItemChanged;
 
-            panelHeader.BackColor = SystemColors.Window;
-            panelHeader.Add("Container", containerStackPanel);
-            panelHeader.Add("Button", buttonPanel);
-            panelHeader.Add("Docked", dockedSettings);
-            panelHeader.Margin = (0, 0, 0, 10);
-            tabControlPanel.Children.Prepend(panelHeader);
-            panelHeader.SelectFirstTab();
+            tabControlPanel.Add("Container", containerStackPanel);
+            tabControlPanel.Add("Button", buttonPanel);
+            tabControlPanel.Add("Docked", dockedSettings);
 
             containerAlignmentControl = new AlignmentControl();
             containerStackPanel.Children.Add(containerAlignmentControl);
@@ -63,7 +58,7 @@ namespace LayoutSample
             buttonAlignmentControl.Control = subjectButton;
         }
 
-        private void DockedEdit_SelectedItemChanged(object sender, EventArgs e)
+        private void DockedEdit_SelectedItemChanged(object? sender, EventArgs e)
         {
             if (dockedEdit.SelectedItem is not DockStyle dockStyle)
                 return;

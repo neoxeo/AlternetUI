@@ -8,15 +8,15 @@ namespace Alternet.UI
     /// Draws a border, background, or both around another control.
     /// </summary>
     [ControlCategory("Containers")]
-    public partial class Border : UserPaintControl
+    public partial class Border : UserControl
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Border"/> class.
         /// </summary>
         public Border()
         {
-            BehaviorOptions = ControlOptions.DrawDefaultBackground | ControlOptions.DrawDefaultBorder
-                | ControlOptions.RefreshOnCurrentState;
+            RefreshOptions = ControlRefreshOptions.RefreshOnBorder
+                | ControlRefreshOptions.RefreshOnBackground;
             Borders ??= new();
             Borders.Normal = CreateBorderSettings(BorderSettings.Default);
             UpdatePadding();
@@ -62,6 +62,8 @@ namespace Alternet.UI
                 var bounds = base.ChildrenLayoutBounds;
                 bounds.X += BorderWidth.Left;
                 bounds.Y += BorderWidth.Top;
+                if (bounds.Size == 0)
+                    return bounds;
                 bounds.Width -= BorderWidth.Horizontal;
                 bounds.Height -= BorderWidth.Vertical;
                 return bounds;
@@ -128,7 +130,8 @@ namespace Alternet.UI
         /// Gets or sets the uniform border width for the <see cref="Border"/> control.
         /// </summary>
         /// <remarks>
-        /// This value is applied to all the sides. If returned value is not null, all border sides
+        /// This value is applied to all the sides. If returned value is not null,
+        /// all border sides
         /// have the same settings.
         /// </remarks>
 #if DEBUG
@@ -241,11 +244,9 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        protected override void DefaultPaint(Graphics dc, RectD rect)
+        public override void DefaultPaint(Graphics dc, RectD rect)
         {
-            BeforePaint(dc, rect);
             DrawDefaultBackground(dc, rect);
-            AfterPaint(dc, rect);
         }
 
         /// <summary>
@@ -255,14 +256,6 @@ namespace Alternet.UI
         protected virtual BorderSettings CreateBorderSettings(BorderSettings defaultSettings)
         {
             return new(defaultSettings);
-        }
-
-        /// <inheritdoc/>
-        protected override void OnCurrentStateChanged(EventArgs e)
-        {
-            base.OnCurrentStateChanged(e);
-            if ((Borders?.HasOtherStates ?? false) || (Backgrounds?.HasOtherStates ?? false))
-                Refresh();
         }
 
         private void UpdatePadding()

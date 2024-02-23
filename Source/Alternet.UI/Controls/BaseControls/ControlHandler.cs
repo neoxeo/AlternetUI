@@ -14,8 +14,6 @@ namespace Alternet.UI
     {
         private Control? control;
         private Native.Control? nativeControl;
-        /*private bool isVisualChild;
-        private Collection<Control>? visualChildren;*/
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Control"/> class.
@@ -254,9 +252,6 @@ namespace Alternet.UI
         }
 
         internal bool NativeControlCreated => nativeControl != null;
-
-        private protected virtual bool NeedRelayoutParentOnVisibleChanged =>
-            Control.Parent is not TabControl; // todo
 
         /// <summary>
         /// Returns the currently focused control, or <see langword="null"/> if
@@ -536,8 +531,7 @@ namespace Alternet.UI
         internal void Control_VisibleChanged()
         {
             ApplyVisible();
-            if (NeedRelayoutParentOnVisibleChanged)
-                Control.Parent?.PerformLayout();
+            Control.Parent?.PerformLayout();
         }
 
         internal void Control_EnabledChanged()
@@ -579,9 +573,6 @@ namespace Alternet.UI
         internal void Control_FontChanged()
         {
             ApplyFont();
-            Control.RaiseLayoutChanged();
-            Control.PerformLayout();
-            Control.Refresh();
         }
 
         internal IntPtr GetHandle()
@@ -1161,8 +1152,7 @@ namespace Alternet.UI
             using var dc =
                 new Graphics(NativeControl.OpenPaintDrawingContext());
 
-            if (Control.UserPaint)
-                Control.RaisePaint(new PaintEventArgs(dc, Control.ClientRectangle));
+            Control.RaisePaint(new PaintEventArgs(dc, Control.ClientRectangle));
         }
     }
 }

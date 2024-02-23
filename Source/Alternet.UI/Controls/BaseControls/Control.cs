@@ -26,6 +26,7 @@ namespace Alternet.UI
         internal int columnIndex;
         internal int columnSpan = 1;
         internal int rowSpan = 1;
+        internal bool enabled = true;
 
         private static readonly SizeD DefaultControlSize = SizeD.NaN;
         private static int groupIndexCounter;
@@ -38,7 +39,6 @@ namespace Alternet.UI
 
         private ISite? site;
         private bool isMouseLeftButtonDown;
-        private bool enabled = true;
         private int layoutSuspendCount;
         private IFlagsAndAttributes? flagsAndAttributes;
         private MouseEventArgs? dragEventArgs;
@@ -46,6 +46,9 @@ namespace Alternet.UI
         private IComponentDesigner? designer;
         private Color? backgroundColor;
         private Color? foregroundColor;
+        private bool parentBackgroundColor;
+        private bool parentForegroundColor;
+        private bool parentFont;
         private ControlCollection? children;
         private SizeD suggestedSize = DefaultControlSize;
         private Thickness margin;
@@ -698,12 +701,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets different behavior and visualization options.
-        /// </summary>
-        [Browsable(false)]
-        public virtual ControlOptions BehaviorOptions { get; set; }
-
-        /// <summary>
         /// Gets or sets the cursor that the control should normally display.
         /// </summary>
         /// <remarks>
@@ -793,6 +790,26 @@ namespace Alternet.UI
         /// </summary>
         [Browsable(false)]
         public ICustomFlags CustomFlags => FlagsAndAttributes.Flags;
+
+        /// <summary>
+        /// Gets or sets cached data for the layout engine.
+        /// </summary>
+        [Browsable(false)]
+        public virtual object? LayoutData
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets or sets additional properties which are layout specific.
+        /// </summary>
+        [Browsable(false)]
+        public virtual object? LayoutProps
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Gets custom attributes provider associated with the control.
@@ -1278,6 +1295,12 @@ namespace Alternet.UI
                 return children;
             }
         }
+
+        /// <summary>
+        /// Same as <see cref="Children"/>.
+        /// </summary>
+        [Browsable(false)]
+        public ControlCollection Controls => Children;
 
         /// <summary>
         /// Gets whether there are any items in the <see cref="Children"/> list.
@@ -1785,6 +1808,63 @@ namespace Alternet.UI
                         NativeControl.BackgroundColor = backgroundColor;
                     Refresh();
                 }
+
+                foreach(var child in Children)
+                {
+                    if (child.ParentBackColor)
+                        child.BackgroundColor = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="BackgroundColor"/> is automatically
+        /// updated when parent's <see cref="BackgroundColor"/> is changed.
+        /// </summary>
+        public virtual bool ParentBackColor
+        {
+            get => parentBackgroundColor;
+            set
+            {
+                if (parentBackgroundColor == value)
+                    return;
+                parentBackgroundColor = value;
+                if (value && Parent is not null)
+                    BackgroundColor = Parent.BackgroundColor;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="ForegroundColor"/> is automatically
+        /// updated when parent's <see cref="ForegroundColor"/> is changed.
+        /// </summary>
+        public virtual bool ParentForeColor
+        {
+            get => parentForegroundColor;
+            set
+            {
+                if (parentForegroundColor == value)
+                    return;
+                parentForegroundColor = value;
+                if (value && Parent is not null)
+                    ForegroundColor = Parent.ForegroundColor;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="Font"/> is automatically
+        /// updated when parent's <see cref="Font"/> is changed.
+        /// </summary>
+        public virtual bool ParentFont
+        {
+            get => parentFont;
+            set
+            {
+                if (parentFont == value)
+                    return;
+                parentFont = value;
+                if (value && Parent is not null)
+                    Font = Parent.Font;
             }
         }
 
@@ -1896,6 +1976,12 @@ namespace Alternet.UI
                     else
                         NativeControl.ForegroundColor = foregroundColor;
                     Invalidate();
+                }
+
+                foreach (var child in Children)
+                {
+                    if (child.ParentForeColor)
+                        child.ForegroundColor = value;
                 }
             }
         }
@@ -2089,10 +2175,21 @@ namespace Alternet.UI
                 if (font == value)
                     return;
 
-                font = value;
-                OnFontChanged(EventArgs.Empty);
-                FontChanged?.Invoke(this, EventArgs.Empty);
-                Handler.Control_FontChanged();
+                DoInsideLayout(() =>
+                {
+                    font = value;
+                    OnFontChanged(EventArgs.Empty);
+                    FontChanged?.Invoke(this, EventArgs.Empty);
+                    Handler.Control_FontChanged();
+
+                    foreach (var child in Children)
+                    {
+                        if (child.ParentFont)
+                            child.Font = value;
+                    }
+                });
+                RaiseLayoutChanged();
+                Invalidate();
             }
         }
 
@@ -2119,9 +2216,12 @@ namespace Alternet.UI
             {
                 if (IsBold == value)
                     return;
-                NativeControl.IsBold = value;
-                RaiseLayoutChanged();
-                PerformLayout();
+                DoInsideLayout(() =>
+                {
+                    NativeControl.IsBold = value;
+                    RaiseLayoutChanged();
+                    PerformLayout();
+                });
                 Invalidate();
             }
         }

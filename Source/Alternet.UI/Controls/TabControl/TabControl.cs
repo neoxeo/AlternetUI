@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alternet.Base.Collections;
 using Alternet.Drawing;
 
 namespace Alternet.UI
@@ -16,13 +17,16 @@ namespace Alternet.UI
     /// use native tab control.
     /// </remarks>
     [ControlCategory("Containers")]
+    [DefaultProperty("Pages")]
+    [DefaultEvent("SelectedIndexChanged")]
     public partial class TabControl : Control
     {
-        private readonly CardPanel cardPanel = new();
+        private readonly TabControlCardPanel cardPanel = new();
         private readonly CardPanelHeader cardPanelHeader = new();
         private bool hasInteriorBorder = true;
         private TabSizeMode sizeMode = TabSizeMode.Normal;
         private TabAppearance tabAppearance = TabAppearance.Normal;
+        private Collection<Control>? pages;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TabControl"/> class.
@@ -56,6 +60,39 @@ namespace Alternet.UI
         public event EventHandler? SelectedIndexChanged;
 
         /// <summary>
+        /// Occurs when the selected page has changed.
+        /// </summary>
+        [Category("Behavior")]
+        public event EventHandler? SelectedPageChanged;
+
+        /// <inheritdoc/>
+        public override ControlTypeId ControlKind => ControlTypeId.TabControl;
+
+        /// <summary>
+        /// Gets the collection of tab pages in this tab control.
+        /// </summary>
+        /// <value>A <see cref="Collection{Control}"/> that contains pages
+        /// in this <see cref="TabControl"/>.</value>
+        [Content]
+        public Collection<Control> Pages
+        {
+            get
+            {
+                if(pages is null)
+                {
+                    pages = new();
+                    pages.ItemInserted += Pages_ItemInserted;
+                    pages.ItemRemoved += Pages_ItemRemoved;
+                }
+
+                return pages;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override IReadOnlyList<FrameworkElement> ContentElements => Pages;
+
+        /// <summary>
         /// Gets or sets the index of the currently selected tab page.
         /// </summary>
         /// <returns>
@@ -79,7 +116,36 @@ namespace Alternet.UI
             {
                 Header.SelectedTabIndex = value;
                 Invalidate();
-                SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
+                RaiseSelectedIndexChanged();
+            }
+        }
+
+        /// <summary>
+        ///  Gets or sets the currently selected tab page.
+        /// </summary>
+        [Bindable(true)]
+        [Category("Appearance")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        [Browsable(false)]
+        public Control? SelectedPage
+        {
+            get
+            {
+                var pageIndex = Header.SelectedTabIndex;
+                if (pageIndex is null)
+                    return null;
+                return Pages[pageIndex.Value];
+            }
+
+            set
+            {
+                if (TabCount == 0)
+                    return;
+                var selectedPage = SelectedPage;
+                if (selectedPage == value)
+                    return;
+                var index = GetTabIndex(value);
+                SelectedIndex = index ?? 0;
             }
         }
 
@@ -312,6 +378,9 @@ namespace Alternet.UI
         [Browsable(false)]
         internal CardPanelHeader Header => cardPanelHeader;
 
+        /// <inheritdoc />
+        protected override IEnumerable<FrameworkElement> LogicalChildrenCollection => Pages;
+
         /// <summary>
         /// Adds new page.
         /// </summary>
@@ -422,6 +491,31 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Adds new page.
+        /// </summary>
+        /// <param name="control">Control.</param>
+        /// <returns>
+        /// Created page index.
+        /// </returns>
+        public virtual int Add(Control control)
+        {
+            return Add(control.Title, control);
+        }
+
+        /// <summary>
+        /// Inserts new page at the specified index.
+        /// </summary>
+        /// <param name="index">The position at which to insert the tab.</param>
+        /// <param name="control">Control.</param>
+        /// <returns>
+        /// Created page index.
+        /// </returns>
+        public virtual int Insert(int? index, Control control)
+        {
+            return Insert(index, control.Title, control);
+        }
+
+        /// <summary>
         /// Inserts new page at the specified index.
         /// </summary>
         /// <param name="index">The position at which to insert the tab.</param>
@@ -512,6 +606,41 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets index of the tab page or <c>null</c> if control is not found in tabs.
+        /// </summary>
+        /// <param name="control"></param>
+        /// <returns></returns>
+        public virtual int? GetTabIndex(Control? control)
+        {
+            if (control is null)
+                return null;
+
+            var tabs = Header.Tabs;
+
+            for(int i = 0; i < tabs.Count; i++)
+            {
+                if (tabs[i].CardControl == control)
+                    return i;
+                var card = cardPanel.Find(tabs[i].CardUniqueId);
+                if (card?.Control == control)
+                    return i;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Removes tab page from the control.
+        /// </summary>
+        /// <param name="control">Control to remove</param>
+        /// <returns></returns>
+        public virtual bool Remove(Control control)
+        {
+            var index = GetTabIndex(control);
+            return RemoveAt(index);
+        }
+
+        /// <summary>
         /// Sets images for the tab.
         /// </summary>
         /// <param name="index">The index of the tab page.</param>
@@ -562,6 +691,21 @@ namespace Alternet.UI
             }
 
             return tabPage;
+        }
+
+        /// <inheritdoc/>
+        public override void OnChildPropertyChanged(
+            Control child,
+            string propName,
+            bool directChild = true)
+        {
+            if (propName == nameof(Title))
+            {
+                var index = GetTabIndex(child);
+                if (index is null)
+                    return;
+                Header.Tabs[index.Value].HeaderButton.Text = child.Title;
+            }
         }
 
         /// <summary>
@@ -616,7 +760,23 @@ namespace Alternet.UI
 
         private void CardPanelHeader_TabClick(object? sender, EventArgs e)
         {
+            RaiseSelectedIndexChanged();
+        }
+
+        private void RaiseSelectedIndexChanged()
+        {
             SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
+            SelectedPageChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void Pages_ItemRemoved(object? sender, int index, Control item)
+        {
+            Remove(item);
+        }
+
+        private void Pages_ItemInserted(object? sender, int index, Control item)
+        {
+            Add(item);
         }
 
         private void Header_Paint(object? sender, PaintEventArgs e)
@@ -635,6 +795,18 @@ namespace Alternet.UI
                 r,
                 GetInteriorBorderColor(),
                 TabAlignment);
+        }
+
+        private class TabControlCardPanel : CardPanel
+        {
+            /// <inheritdoc/>
+            public override void OnChildPropertyChanged(
+                Control child,
+                string propName,
+                bool directChild = true)
+            {
+                Parent?.OnChildPropertyChanged(child, propName, false);
+            }
         }
     }
 }

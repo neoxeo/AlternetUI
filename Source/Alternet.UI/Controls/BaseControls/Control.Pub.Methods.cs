@@ -1672,6 +1672,48 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Adds multiple buttons.
+        /// </summary>
+        /// <param name="buttons">Array of title and action.</param>
+        /// <returns><see cref="ControlSet"/> with list of created buttons.</returns>
+        public virtual ControlSet AddButtons(params (string, Action?)[] buttons)
+        {
+            List<Control> result = new();
+
+            DoInsideLayout(() =>
+            {
+                foreach(var item in buttons)
+                {
+                    var button = AddButton(item.Item1, item.Item2);
+                    result.Add(button);
+                }
+            });
+
+            return new(result);
+        }
+
+        /// <summary>
+        /// Adds multiple labels.
+        /// </summary>
+        /// <param name="text">Array of label text.</param>
+        /// <returns><see cref="ControlSet"/> with list of created labels.</returns>
+        public virtual ControlSet AddLabels(params string[] text)
+        {
+            List<Control> result = new();
+
+            DoInsideLayout(() =>
+            {
+                foreach (var item in text)
+                {
+                    var label = AddLabel(item);
+                    result.Add(label);
+                }
+            });
+
+            return new(result);
+        }
+
+        /// <summary>
         /// Creates new <see cref="CheckBox"/> and adds it to the <see cref="Children"/>.
         /// </summary>
         public virtual CheckBox AddCheckBox(string text, Action? action = null)

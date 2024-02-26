@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Alternet.Drawing;
 using Alternet.Drawing;
 using ApiCommon;
+using NativeApi.Api.ManagedServers;
 
 namespace NativeApi.Api
 {
@@ -630,9 +631,131 @@ dest
 
         // ===================
 
+        public static IntPtr SoundCreate() => default;
+
+        // Constructs a wave object from a file or, under Windows, from a Windows resource.
+        // Call IsOk() to determine whether this succeeded.
+        // fileName    - The filename or Windows resource.
+        // isResource  - true if fileName is a resource, false if it is a filename.
+        public static IntPtr SoundCreate2(string fileName, bool isResource = false ) => default;
+
+        // Constructs a wave object from in-memory data.
+        // size	- Size of the buffer pointer to by data.
+        // data - The buffer containing the sound data in WAV format.
+        public static IntPtr SoundCreate4(ulong size, IntPtr data) => default;
+
+        public static void SoundDelete(IntPtr handle) { }
+
+        // #define 	wxSOUND_SYNC   0
+        // #define wxSOUND_ASYNC   1
+        // #define wxSOUND_LOOP   2
+        // Plays the sound file.
+        // If another sound is playing, it will be interrupted.
+        // Returns true on success, false otherwise.Note that in general it
+        // is possible to delete the object which is being asynchronously played
+        // any time after calling this function and the sound would continue playing,
+        // however this currently doesn't work under Windows for sound objects loaded
+        // from memory data.
+        // The possible values for flags are:
+        // wxSOUND_SYNC: Play will block and wait until the sound is replayed.
+        // wxSOUND_ASYNC: Sound is played asynchronously, Play returns immediately.
+        // wxSOUND_ASYNC|wxSOUND_LOOP: Sound is played asynchronously and loops until another
+        // sound is played, Stop() is called or the program terminates.
+        public static bool SoundPlay2(string filename, uint flags /*= wxSOUND_ASYNC*/) => default;
+
+        public static bool SoundPlay(IntPtr handle, uint flags /*= wxSOUND_ASYNC*/) => default;
+
+        public static void SoundStop() { }
+
+        // Returns true if the object contains a successfully loaded file or
+        // resource, false otherwise.
+        public static bool SoundIsOk(IntPtr handle) => default;
+
+        // ===================
+
+        public static void UIActionSimulatorDelete(IntPtr handle) { }
+
+        public static IntPtr UIActionSimulatorCreate() => default;
+
+        // Press and release a key.
+        // keycode - Key to operate on, as an integer. It is interpreted as a wxKeyCode.
+        // modifiers - A combination of wxKeyModifier flags to be pressed with the given keycode.
+        public static bool UIActionSimulatorChar(IntPtr handle, int keycode,
+            int modifiers/* = wxMOD_NONE*/) => default;
+
+        // Press a key.
+        // If you are using modifiers then it needs to
+        // be paired with an identical KeyUp or the modifiers will not be released (MSW and macOS).
+        // keycode	- Key to operate on, as an integer. It is interpreted as a wxKeyCode.
+        // modifiers - A combination of wxKeyModifier flags to be pressed with the given keycode.
+        public static bool UIActionSimulatorKeyDown(IntPtr handle, int keycode,
+            int modifiers/* = wxMOD_NONE*/) => default;
+
+        // Release a key.
+        // keycode - Key to operate on, as an integer. It is interpreted as a wxKeyCode.
+        // modifiers - A combination of wxKeyModifier flags to be pressed with the given keycode.
+        public static bool UIActionSimulatorKeyUp(IntPtr handle, int keycode,
+            int modifiers/* = wxMOD_NONE*/) => default;
+
+        // Click a mouse button.
+        // button - Button to press.
+        public static bool UIActionSimulatorMouseClick(IntPtr handle,
+            int button/* = wxMOUSE_BTN_LEFT*/) => default;
+
+        // Double-click a mouse button.
+        // button - Button to press.
+        public static bool UIActionSimulatorMouseDblClick(IntPtr handle,
+            int button/* = wxMOUSE_BTN_LEFT*/) => default;
+
+        // Press a mouse button.
+        // button - Button to press. Valid constants are wxMOUSE_BTN_LEFT, wxMOUSE_BTN_MIDDLE, and wxMOUSE_BTN_RIGHT.
+        public static bool UIActionSimulatorMouseDown(IntPtr handle,
+            int button/* = wxMOUSE_BTN_LEFT*/) => default;
+
+        // Perform a drag and drop operation.
+        // x1 - x start coordinate, in screen coordinates.
+        // y1 - y start coordinate, in screen coordinates.
+        // x2 - x destination coordinate, in screen coordinates.
+        // y2 - y destination coordinate, in screen coordinates.
+        // button - Button to press.
+        public static bool UIActionSimulatorMouseDragDrop(IntPtr handle, long x1,
+            long y1, long x2, long y2, int button /*= wxMOUSE_BTN_LEFT*/) => default;
+
+        // Move the mouse to the specified coordinates.
+        // point - Point to move to, in screen coordinates.
+        public static bool UIActionSimulatorMouseMove(IntPtr handle, PointI point) => default;
+
+        // Release a mouse button.
+        // button - Button to press. 
+        public static bool UIActionSimulatorMouseUp(IntPtr handle,
+            int button /*= wxMOUSE_BTN_LEFT*/) => default;
+
+        // Simulate selection of an item with the given text.
+        // This method selects an item in the currently focused
+        // ComboBox, ListBox and similar controls.
+        // It does it by simulating keyboard events, so the behaviour
+        // should be the same as if the item was really selected by the user.
+        // Notice that the implementation of this method uses wxYield() and
+        // so events can be dispatched from it.
+        // text - The text of the item to select.
+        // Returns true if the item text was successfully selected or false if
+        // the currently focused window is not one of the controls allowing
+        // item selection or if the item with the given text was not found in it.
+        public static bool UIActionSimulatorSelect(IntPtr handle, string text) => default;
+
+        // Emulate typing in the keys representing the given string.
+        // Currently only the ASCII letters are universally supported.
+        // Digits and punctuation characters can be used with the standard QWERTY (US) keyboard
+        // layout but may not work with other layouts.
+        // text - The string, containing only US ASCII characters, to type.
+        public static bool UIActionSimulatorText(IntPtr handle, string text) => default;
+
+        public static void UIActionSimulatorYield() { }
+
+        // ===================
     }
 }
 
 /*
 
- */
+*/

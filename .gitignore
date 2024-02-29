@@ -48,3 +48,4 @@ Install.Scripts/MinMasterTemplateNew.zip
 *.nupkg
 *.snupkg
 node_modules
+External/Svg/

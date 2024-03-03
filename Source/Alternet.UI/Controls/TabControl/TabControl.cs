@@ -135,6 +135,22 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether tab titles are visible.
+        /// </summary>
+        public virtual bool TabsVisible
+        {
+            get
+            {
+                return Header.Visible;
+            }
+
+            set
+            {
+                Header.Visible = value;
+            }
+        }
+
+        /// <summary>
         /// Gets selected tab page.
         /// </summary>
         [Browsable(false)]
@@ -773,7 +789,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnPaint(PaintEventArgs e)
         {
-            if (!hasInteriorBorder || TabCount == 0)
+            if (!hasInteriorBorder || TabCount == 0 || !TabsVisible)
                 return;
             var r = Header.Bounds;
             r.Size += Header.Margin.Size;
@@ -817,9 +833,9 @@ namespace Alternet.UI
 
         private void Header_Paint(object? sender, PaintEventArgs e)
         {
-            if (!hasInteriorBorder || TabCount == 0)
+            if (!hasInteriorBorder || TabCount == 0 || !TabsVisible)
                 return;
-            var r = e.Bounds;
+            var r = e.ClipRectangle;
             if(r.Width > ClientSize.Width)
                 r.Width = ClientSize.Width;
             if (r.Height > ClientSize.Height)
@@ -827,7 +843,7 @@ namespace Alternet.UI
 
             DrawTabsInterior(
                 Header,
-                e.DrawingContext,
+                e.Graphics,
                 r,
                 GetInteriorBorderColor(),
                 TabAlignment);

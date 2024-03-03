@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Alternet.Drawing;
 
 namespace Alternet.UI
@@ -73,7 +74,7 @@ namespace Alternet.UI
         /// a rectangle, in device-independent units (1/96th inch per unit).</returns>
         /// <remarks>
         /// This is a default implementation which is called from
-        /// <see cref="Control.GetPreferredSize"/>.
+        /// <see cref="Control.GetPreferredSize(SizeD)"/>.
         /// </remarks>
         /// <param name="container">Container control which childs will be processed.</param>
         /// <param name="layout">Layout style to use.</param>
@@ -626,6 +627,12 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="controls">Controls.</param>
         public virtual ControlSet Group(params Control[] controls) => new(controls);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ControlSet"/> class.
+        /// </summary>
+        /// <param name="controls">Controls.</param>
+        public virtual ControlSet Group(IReadOnlyList<Control> controls) => new(controls);
 
         /// <summary>
         /// Gets <see cref="ControlSet"/> with all controls which are members of the
@@ -1604,6 +1611,14 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Calls <see cref="GetPreferredSize(SizeD)"/> with <see cref="SizeD.PositiveInfinity"/>
+        /// as a parameter value.
+        /// </summary>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeD GetPreferredSize() => GetPreferredSize(SizeD.PositiveInfinity);
+
+        /// <summary>
         /// Call this function to force one or both scrollbars to be always shown, even if
         /// the control is big enough to show its entire contents without scrolling.
         /// </summary>
@@ -1644,6 +1659,18 @@ namespace Alternet.UI
         public virtual HorizontalStackPanel AddHorizontalStackPanel()
         {
             var result = new HorizontalStackPanel
+            {
+                Parent = this,
+            };
+            return result;
+        }
+
+        /// <summary>
+        /// Creates new <see cref="TabControl"/> and adds it to the <see cref="Children"/>.
+        /// </summary>
+        public virtual TabControl AddTabControl()
+        {
+            var result = new TabControl
             {
                 Parent = this,
             };
@@ -1783,6 +1810,40 @@ namespace Alternet.UI
         {
             var result = new GroupBox
             {
+                Parent = this,
+            };
+
+            if (title is not null)
+                result.Title = title;
+            return result;
+        }
+
+        /// <summary>
+        /// Creates new <see cref="GroupBox"/> with vertical layout and adds
+        /// it to the <see cref="Children"/>.
+        /// </summary>
+        public virtual GroupBox AddVerticalGroupBox(string? title = default)
+        {
+            var result = new GroupBox
+            {
+                Layout = LayoutStyle.Vertical,
+                Parent = this,
+            };
+
+            if (title is not null)
+                result.Title = title;
+            return result;
+        }
+
+        /// <summary>
+        /// Creates new <see cref="GroupBox"/> with horizontal layout and adds
+        /// it to the <see cref="Children"/>.
+        /// </summary>
+        public virtual GroupBox AddHorizontalGroupBox(string? title = default)
+        {
+            var result = new GroupBox
+            {
+                Layout = LayoutStyle.Horizontal,
                 Parent = this,
             };
 

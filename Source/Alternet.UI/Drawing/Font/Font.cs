@@ -405,6 +405,12 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets whether object is disposed.
+        /// </summary>
+        [Browsable(false)]
+        public bool IsDisposed => isDisposed;
+
+        /// <summary>
         /// Gets a byte value that specifies the character set that this <see cref="Font" /> uses.
         /// </summary>
         /// <returns>
@@ -980,9 +986,12 @@ namespace Alternet.Drawing
         {
             if (unit != GraphicsUnit.Point)
             {
-                Application.LogError("Invalid font unit, using default font size");
+                emSize = GraphicsUnitConverter.Convert(
+                    unit,
+                    GraphicsUnit.Point,
+                    Display.Primary.DPI.Height,
+                    emSize);
                 unit = GraphicsUnit.Point;
-                emSize = Font.Default.Size;
             }
 
             if (family == null)

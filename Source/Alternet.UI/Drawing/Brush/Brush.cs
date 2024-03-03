@@ -15,8 +15,13 @@ namespace Alternet.Drawing
     /// <see cref="HatchBrush" />.
     /// </remarks>
     [TypeConverter(typeof(BrushConverter))]
-    public abstract class Brush : IDisposable, IEquatable<Brush>
+    public class Brush : IDisposable, IEquatable<Brush>
     {
+        /// <summary>
+        /// Gets transparent brush.
+        /// </summary>
+        public static readonly Brush Transparent = new();
+
         private static Brush? defaultBrush;
         private readonly bool immutable;
         private bool isDisposed;
@@ -26,6 +31,11 @@ namespace Alternet.Drawing
         {
             NativeBrush = nativeBrush;
             this.immutable = immutable;
+        }
+
+        internal Brush()
+            : this(new UI.Native.Brush(), true)
+        {
         }
 
         /// <summary>
@@ -41,6 +51,12 @@ namespace Alternet.Drawing
         /// </summary>
         [Browsable(false)]
         public bool Immutable => immutable;
+
+        /// <summary>
+        /// Gets whether object is disposed.
+        /// </summary>
+        [Browsable(false)]
+        public bool IsDisposed => isDisposed;
 
         /// <summary>
         /// Creates <see cref="Pen"/> with this brush as a parameter.
@@ -184,10 +200,10 @@ namespace Alternet.Drawing
             }
         }
 
-        private protected abstract int GetHashCodeCore();
+        private protected virtual int GetHashCodeCore() => base.GetHashCode();
 
-        private protected abstract bool EqualsCore(Brush other);
+        private protected virtual bool EqualsCore(Brush other) => other == this;
 
-        private protected abstract string ToStringCore();
+        private protected virtual string ToStringCore() => "Transparent";
     }
 }

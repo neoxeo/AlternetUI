@@ -305,8 +305,8 @@ namespace Alternet.UI
 
             if (sender is not BorderSettings border)
                 return;
-            var dc = args.DrawingContext;
-            var rect = args.Bounds;
+            var dc = args.Graphics;
+            var rect = args.ClipRectangle;
             var defaultColor = GetDefaultBorderColor(null);
 
             if (border.Top.Width > 0)
@@ -426,7 +426,10 @@ namespace Alternet.UI
 
             if (radius != null)
             {
-                dc.DrawRoundedRectangle(Top.GetPen(defaultColor), rect.InflatedBy(-1, -1), radius.Value);
+                dc.DrawRoundedRectangle(
+                    Top.GetPen(defaultColor),
+                    rect.InflatedBy(-1, -1),
+                    radius.Value);
                 return;
             }
 

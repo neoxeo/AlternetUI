@@ -64,6 +64,21 @@ namespace Alternet.UI
                         true, // IsAnimationProhibited
                         UpdateSourceTrigger.PropertyChanged));
 
+        /// <summary>
+        /// Gets or sets default vertical offset of the item's image for the items with images.
+        /// </summary>
+        public static double DefaultImageVerticalOffset = 3;
+
+        /// <summary>
+        /// Gets or sets default distance between image and text in the item.
+        /// </summary>
+        public static double DefaultImageTextDistance = 3;
+
+        /// <summary>
+        /// Gets or sets default color of the image border.
+        /// </summary>
+        public static Color DefaultImageBorderColor = SystemColors.GrayText;
+
         private string text = string.Empty;
         private int? selectedIndex;
         private bool isEditable = true;
@@ -99,6 +114,13 @@ namespace Alternet.UI
         /// Occurs when the <see cref="IsEditable"/> property value changes.
         /// </summary>
         public event EventHandler? IsEditableChanged;
+
+        [Flags]
+        internal enum OwnerDrawFlags
+        {
+            ItemBackground = 1,
+            Item = 2,
+        }
 
         /// <summary>
         /// Gets the starting index of text selected in the combo box.
@@ -303,6 +325,71 @@ namespace Alternet.UI
             }
         }
 
+        /// <summary>
+        /// Gets text margin. It is the empty space between borders
+        /// of control and the text itself.
+        /// </summary>
+        [Browsable(false)]
+        public virtual PointD TextMargin
+        {
+            get
+            {
+                var margins = NativeControl.TextMargins;
+                var result = PixelToDip(margins);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether background of the item is owner drawn.
+        /// </summary>
+        [Browsable(false)]
+        public bool OwnerDrawItemBackground
+        {
+            get
+            {
+                return OwnerDrawStyle.HasFlag(OwnerDrawFlags.ItemBackground);
+            }
+
+            set
+            {
+                OwnerDrawStyle |= OwnerDrawFlags.ItemBackground;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether item is owner drawn.
+        /// </summary>
+        [Browsable(false)]
+        public bool OwnerDrawItem
+        {
+            get
+            {
+                return OwnerDrawStyle.HasFlag(OwnerDrawFlags.Item);
+            }
+
+            set
+            {
+                OwnerDrawStyle |= OwnerDrawFlags.Item;
+            }
+        }
+
+        internal OwnerDrawFlags OwnerDrawStyle
+        {
+            get
+            {
+                return (OwnerDrawFlags)NativeControl.OwnerDrawStyle;
+            }
+
+            set
+            {
+                if (OwnerDrawStyle == value)
+                    return;
+                NativeControl.OwnerDrawStyle = (int)value;
+                Invalidate();
+            }
+        }
+
         internal new Native.ComboBox NativeControl => (Native.ComboBox)base.NativeControl;
 
         internal new ComboBoxHandler Handler
@@ -420,6 +507,98 @@ namespace Alternet.UI
                     value = item;
                 propInfo?.SetValue(instance, value);
             }
+        }
+
+        /// <summary>
+        /// Default item paint method.
+        /// </summary>
+        /// <param name="e">Paint arguments.</param>
+        public virtual void DefaultItemPaint(ComboBoxItemPaintEventArgs e)
+        {
+            if (e.IsPaintingBackground || ShouldPaintHintText())
+            {
+                e.DefaultPaint();
+                return;
+            }
+
+            var font = Font ?? Control.DefaultFont;
+            Color color;
+            color = ForegroundColor ?? SystemColors.WindowText;
+
+            if (e.IsPaintingControl)
+            {
+                var s = Text;
+                if (Enabled)
+                {
+                }
+                else
+                {
+                    color = SystemColors.GrayText;
+                }
+
+                var size = e.Graphics.MeasureText(s, font);
+
+                var offsetX = TextMargin.X;
+                var offsetY = (e.ClipRectangle.Height - size.Height) / 2;
+                var rect = e.ClipRectangle;
+                rect.Inflate(-offsetX, -offsetY);
+
+                e.Graphics.DrawText(
+                    s,
+                    font,
+                    color.AsBrush,
+                    rect);
+            }
+            else
+            {
+                if (e.IsSelected)
+                    color = SystemColors.HighlightText;
+
+                var s = Items[e.ItemIndex].ToString() ?? string.Empty;
+                e.Graphics.DrawText(
+                    s,
+                    font,
+                    color,
+                    (e.ClipRectangle.X + 2, e.ClipRectangle.Y));
+            }
+        }
+
+        /// <summary>
+        /// Gets suggested rectangles of the item's image and text.
+        /// </summary>
+        /// <param name="e">Item painting paramaters.</param>
+        /// <returns></returns>
+        public virtual (RectD ImageRect, RectD TextRect) GetItemImageRect(
+            ComboBoxItemPaintEventArgs e)
+        {
+            var offset = DefaultImageVerticalOffset;
+            if (e.IsPaintingControl)
+                offset++;
+
+            var size = e.ClipRectangle.Height - (TextMargin.Y * 2) - (offset * 2);
+            var imageRect = new RectD(
+                e.ClipRectangle.X + TextMargin.X,
+                e.ClipRectangle.Y + TextMargin.Y + offset,
+                size,
+                size);
+
+            var itemRect = e.ClipRectangle;
+            itemRect.X += imageRect.Width + DefaultImageTextDistance;
+            itemRect.Width -= imageRect.Width + DefaultImageTextDistance;
+
+            return (imageRect, itemRect);
+        }
+
+        /// <summary>
+        /// Gets whether hint text should be painted.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool ShouldPaintHintText()
+        {
+            bool noHintText = string.IsNullOrEmpty(EmptyTextHint);
+            bool noText = string.IsNullOrEmpty(Text);
+
+            return !Focused && noText && !noHintText;
         }
 
         /// <inheritdoc/>

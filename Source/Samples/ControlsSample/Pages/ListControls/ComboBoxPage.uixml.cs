@@ -94,10 +94,16 @@ namespace ControlsSample
 
         private void OwnerDrawCheckBox_CheckedChanged(object? sender, EventArgs e)
         {
-            if(ownerDrawCheckBox.IsChecked)
+            if (ownerDrawCheckBox.IsChecked)
+            {
                 comboBox.ItemPainter = this;
+                comboBox.OwnerDrawItem = true;
+            }
             else
+            {
                 comboBox.ItemPainter = null;
+                comboBox.OwnerDrawItem = false;
+            }
         }
 
         private void AllowTextEditingCheckBox_CheckedChanged(object? sender, EventArgs e)
@@ -171,18 +177,18 @@ namespace ControlsSample
 
         void IComboBoxItemPainter.Paint(ComboBox sender, ComboBoxItemPaintEventArgs e)
         {
-            e.DefaultDraw();
+            e.DefaultPaint();
             if(e.IsPaintingControl)
-                e.Graphics.FillRectangle(Color.Red, (e.Bounds.Location, (5, 5)));
+                e.Graphics.FillRectangle(Color.Red, (e.ClipRectangle.Location, (5, 5)));
             else
             {
-                var point = e.Bounds.TopRight;
+                var point = e.ClipRectangle.TopRight;
                 point.Offset(-5, 0);
 
                 if (e.IsSelected)
-                    e.Graphics.FillRectangle(Color.Yellow, (point, (10, e.Bounds.Height)));
+                    e.Graphics.FillRectangle(Color.Yellow, (point, (10, e.ClipRectangle.Height)));
                 else
-                    e.Graphics.FillRectangle(Color.Green, (point, (10, e.Bounds.Height)));
+                    e.Graphics.FillRectangle(Color.Green, (point, (10, e.ClipRectangle.Height)));
             }
         }
 

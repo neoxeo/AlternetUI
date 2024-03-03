@@ -184,6 +184,26 @@ namespace Alternet.Drawing
             imageSet.NativeImageSet.InitImage(nativeImage, size.Width, size.Height);
         }
 
+        internal Image(string url)
+        {
+            nativeImage = new UI.Native.Image();
+            using var stream = ResourceLoader.StreamFromUrl(url);
+            if (stream is null)
+            {
+                Application.LogError($"Image not loaded from: {url}");
+                return;
+            }
+
+            using var inputStream = new UI.Native.InputStream(stream);
+            if (inputStream is null)
+            {
+                Application.LogError($"Image not loaded from: {url}");
+                return;
+            }
+
+            NativeImage.LoadFromStream(inputStream);
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
@@ -225,6 +245,18 @@ namespace Alternet.Drawing
         /// Gets whether image is ok (is not disposed and has non-zero width and height).
         /// </summary>
         public bool IsOk => !IsEmpty;
+
+        /// <summary>
+        /// Gets whether image is disposed.
+        /// </summary>
+        [Browsable(false)]
+        public bool IsDisposed => isDisposed;
+
+        /// <summary>
+        /// Creates texture brush with this image.
+        /// </summary>
+        [Browsable(false)]
+        public TextureBrush AsBrush => new TextureBrush(this);
 
         /// <summary>
         /// Gets whether image is empty (is disposed or has an empty width or height).

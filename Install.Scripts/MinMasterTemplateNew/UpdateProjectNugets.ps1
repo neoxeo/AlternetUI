@@ -15,7 +15,10 @@ if (!(Test-Path $projectPath)) {
 
 $projectName=Get-ChildItem -Path $projectPath -Filter *.csproj 
 
-Remove-Item -LiteralPath "$projectPath\LocalPackages\$zipDestDir" -Force -Recurse 
+Remove-Item "$projectPath\LocalPackages\Alternet.UI.*.nupkg"
+
+Remove-Item "$SourceDir\Alternet.UI\bin\Debug\*.nupkg"
+Remove-Item "$SourceDir\Build\Alternet.UI.Pal\NuGet\*.nupkg"
 
 Write-Host " "
 Write-Host "################################################################################"
@@ -114,7 +117,14 @@ Copy-Item -Path "$templateDir\LocalPackages\*" -Destination "$projectPath\LocalP
 # In .csproj file replace old version by new $anuiVersion
 #$pattern = '`" Version="[^"]*"'
 $pattern = '" Version="[^"]*"'
-(Get-Content "$projectPath\$projectName") | Foreach-Object {$_ -replace $pattern,"`" Version=`"$anuiVersion`""} | Set-Content "$projectPath\$projectName"
+#(Get-Content "$projectPath\$projectName") | Foreach-Object {$_ -replace $pattern,"`" Version=`"$anuiVersion`""} | Set-Content "$projectPath\$projectName"
+(Get-Content "$projectPath\$projectName") | Foreach-Object {
+    if ($_ -match "Alternet") {
+        $_ -replace $pattern,"`" Version=`"$anuiVersion`""
+    } else {
+        $_
+    }
+} | Set-Content "$projectPath\$projectName"
 
 Write-Host " "
 Write-Host " "

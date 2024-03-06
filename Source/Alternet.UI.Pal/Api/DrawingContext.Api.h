@@ -15,6 +15,11 @@
 
 using namespace Alternet::UI;
 
+ALTERNET_UI_API void* DrawingContext_GetWxWidgetDC_(DrawingContext* obj)
+{
+    return obj->GetWxWidgetDC();
+}
+
 ALTERNET_UI_API TransformMatrix* DrawingContext_GetTransform_(DrawingContext* obj)
 {
     return obj->GetTransform();
@@ -43,6 +48,26 @@ ALTERNET_UI_API InterpolationMode DrawingContext_GetInterpolationMode_(DrawingCo
 ALTERNET_UI_API void DrawingContext_SetInterpolationMode_(DrawingContext* obj, InterpolationMode value)
 {
     obj->SetInterpolationMode(value);
+}
+
+ALTERNET_UI_API void DrawingContext_DrawRotatedTextI_(DrawingContext* obj, const char16_t* text, PointI location, Font* font, Color foreColor, Color backColor, double angle)
+{
+    obj->DrawRotatedTextI(text, location, font, foreColor, backColor, angle);
+}
+
+ALTERNET_UI_API Image* DrawingContext_GetAsBitmapI_(DrawingContext* obj, RectI subrect)
+{
+    return obj->GetAsBitmapI(subrect);
+}
+
+ALTERNET_UI_API c_bool DrawingContext_BlitI_(DrawingContext* obj, PointI destPt, SizeI sz, DrawingContext* source, PointI srcPt, int rop, c_bool useMask, PointI srcPtMask)
+{
+    return obj->BlitI(destPt, sz, source, srcPt, rop, useMask, srcPtMask);
+}
+
+ALTERNET_UI_API c_bool DrawingContext_StretchBlitI_(DrawingContext* obj, PointI dstPt, SizeI dstSize, DrawingContext* source, PointI srcPt, SizeI srcSize, int rop, c_bool useMask, PointI srcMaskPt)
+{
+    return obj->StretchBlitI(dstPt, dstSize, source, srcPt, srcSize, rop, useMask, srcMaskPt);
 }
 
 ALTERNET_UI_API RectD_C DrawingContext_DrawLabel_(DrawingContext* obj, const char16_t* text, Font* font, Color foreColor, Color backColor, Image* image, RectD rect, int alignment, int indexAccel)
@@ -110,6 +135,11 @@ ALTERNET_UI_API DrawingContext* DrawingContext_FromImage_(Image* image)
     return DrawingContext::FromImage(image);
 }
 
+ALTERNET_UI_API DrawingContext* DrawingContext_FromScreen_()
+{
+    return DrawingContext::FromScreen();
+}
+
 ALTERNET_UI_API void DrawingContext_RoundedRectangle_(DrawingContext* obj, Pen* pen, Brush* brush, RectD rectangle, double cornerRadius)
 {
     obj->RoundedRectangle(pen, brush, rectangle, cornerRadius);
@@ -143,6 +173,11 @@ ALTERNET_UI_API void DrawingContext_Circle_(DrawingContext* obj, Pen* pen, Brush
 ALTERNET_UI_API void DrawingContext_Polygon_(DrawingContext* obj, Pen* pen, Brush* brush, PointD* points, int pointsCount, FillMode fillMode)
 {
     obj->Polygon(pen, brush, points, pointsCount, fillMode);
+}
+
+ALTERNET_UI_API void DrawingContext_FillRectangleI_(DrawingContext* obj, Brush* brush, RectI rectangle)
+{
+    obj->FillRectangleI(brush, rectangle);
 }
 
 ALTERNET_UI_API void DrawingContext_FillRectangle_(DrawingContext* obj, Brush* brush, RectD rectangle)
@@ -190,14 +225,14 @@ ALTERNET_UI_API void DrawingContext_DrawTextAtRect_(DrawingContext* obj, const c
     obj->DrawTextAtRect(text, bounds, font, brush, horizontalAlignment, verticalAlignment, trimming, wrapping);
 }
 
-ALTERNET_UI_API void DrawingContext_DrawImageAtPoint_(DrawingContext* obj, Image* image, PointD origin)
+ALTERNET_UI_API void DrawingContext_DrawImageAtPoint_(DrawingContext* obj, Image* image, PointD origin, c_bool useMask)
 {
-    obj->DrawImageAtPoint(image, origin);
+    obj->DrawImageAtPoint(image, origin, useMask);
 }
 
-ALTERNET_UI_API void DrawingContext_DrawImageAtRect_(DrawingContext* obj, Image* image, RectD destinationRect)
+ALTERNET_UI_API void DrawingContext_DrawImageAtRect_(DrawingContext* obj, Image* image, RectD destinationRect, c_bool useMask)
 {
-    obj->DrawImageAtRect(image, destinationRect);
+    obj->DrawImageAtRect(image, destinationRect, useMask);
 }
 
 ALTERNET_UI_API void DrawingContext_DrawImagePortionAtRect_(DrawingContext* obj, Image* image, RectD destinationRect, RectD sourceRect)

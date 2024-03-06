@@ -12,6 +12,94 @@ namespace Alternet::UI
         return _dc->GetPPI();
     }
 
+    void* DrawingContext::GetWxWidgetDC()
+    {
+        return _dc;
+    }
+
+    void DrawingContext::DrawRotatedTextI(const string& text, const PointI& location, Font* font,
+        const Color& foreColor, const Color& backColor, double angle)
+    {
+        bool useBackColor = !backColor.IsEmpty();
+
+        UseDC();
+
+        auto window = DrawingContext::GetWindow(_dc);
+
+        auto backMode = _dc->GetBackgroundMode();
+
+        if (useBackColor)
+        {
+            _dc->SetBackgroundMode(wxBRUSHSTYLE_SOLID);
+        }
+        else
+        {
+            _dc->SetBackgroundMode(wxBRUSHSTYLE_TRANSPARENT);
+        }
+
+        auto& oldTextForeground = _dc->GetTextForeground();
+        _dc->SetTextForeground(foreColor);
+
+        auto& oldFont = _dc->GetFont();
+        _dc->SetFont(font->GetWxFont());
+
+        wxPoint point = location;
+
+        if (useBackColor)
+        {
+            auto& oldTextBackground = _dc->GetTextBackground();
+            _dc->SetTextBackground(backColor);
+            _dc->DrawRotatedText(wxStr(text), point, angle);
+            _dc->SetTextBackground(oldTextBackground);
+        }
+        else
+            _dc->DrawRotatedText(wxStr(text), point, angle);
+
+        _dc->SetTextForeground(oldTextForeground);
+        _dc->SetFont(oldFont);
+
+        _dc->SetBackgroundMode(backMode);
+    }
+
+    Image* DrawingContext::GetAsBitmapI(const RectI& subrect)
+    {
+        UseDC();
+
+        if (subrect.IsZero())
+        {
+            auto bitmap = _dc->GetAsBitmap();
+            auto result = new Image();
+            result->_bitmap = bitmap;
+            return result;
+        }
+        else
+        {
+            wxRect wxr = subrect;
+            auto bitmap = _dc->GetAsBitmap(&wxr);
+            auto result = new Image();
+            result->_bitmap = bitmap;
+            return result;
+        }
+    }
+
+    bool DrawingContext::BlitI(const PointI& destPt, const SizeI& sz,
+        DrawingContext* source, const PointI& srcPt, int rop,
+        bool useMask, const PointI& srcPtMask)
+    {
+        UseDC();
+        return _dc->Blit(destPt, sz, source->GetDC(), srcPt, (wxRasterOperationMode)rop,
+            useMask, srcPtMask);
+    }
+
+    bool DrawingContext::StretchBlitI(const PointI& dstPt, const SizeI& dstSize,
+        DrawingContext* source, const PointI& srcPt, const SizeI& srcSize,
+        int rop, bool useMask, const PointI& srcMaskPt)
+    {
+        UseDC();
+        return _dc->StretchBlit(dstPt, dstSize, source->GetDC(), srcPt, srcSize,
+            (wxRasterOperationMode)rop, useMask, srcMaskPt);
+    }
+
     void DrawingContext::ImageFromDrawingContext(Image * image,
         int width, int height, DrawingContext* dc)
     {
@@ -365,7 +453,12 @@ namespace Alternet::UI
         return new DrawingContext(dc);
     }
 
-    void DrawingContext::DrawImageAtPoint(Image* image, const Point& origin)
+    /*static*/ DrawingContext* DrawingContext::FromScreen()
+    {
+        return new DrawingContext(new wxScreenDC());
+    }
+
+    void DrawingContext::DrawImageAtPoint(Image* image, const Point& origin, bool useMask)
     {
         wxBitmap bitmap = image->GetBitmap();
         auto window = _dc->GetWindow();
@@ -375,7 +468,7 @@ namespace Alternet::UI
         if (NeedToUseDC())
         {
             UseDC();
-            _dc->DrawBitmap(bitmap, pt);
+            _dc->DrawBitmap(bitmap, pt, useMask);
         }
         else
         {
@@ -385,7 +478,7 @@ namespace Alternet::UI
         }
     }
 
-    void DrawingContext::DrawImageAtRect(Image* image, const Rect& destinationRect)
+    void DrawingContext::DrawImageAtRect(Image* image, const Rect& destinationRect, bool useMask)
     {
         UseGC();
 
@@ -422,9 +515,22 @@ namespace Alternet::UI
         wxBitmap bitmap = image->GetBitmap();
 
         wxMemoryDC sourceBitmapDC(bitmap);
+
+        if (wxSourceRect.GetSize() == wxDestinationRect.GetSize())
+        {
+            UseDC();
+            _dc->Blit(
+                wxDestinationRect.GetLeftTop(),
+                wxDestinationRect.GetSize(),
+                &sourceBitmapDC,
+                wxSourceRect.GetLeftTop());
+            return;
+        }
+
         if (_interpolationMode == InterpolationMode::None)
         {
             UseDC();
+
             _dc->StretchBlit(
                 wxDestinationRect.GetLeftTop(),
                 wxDestinationRect.GetSize(),
@@ -651,6 +757,18 @@ namespace Alternet::UI
 
     void DrawingContext::FillRectangle(Brush* brush, const Rect& rectangle)
     {
+        auto r = fromDip(
+            Rect(
+                rectangle.X,
+                rectangle.Y,
+                rectangle.Width,
+                rectangle.Height),
+            _dc->GetWindow());
+        FillRectangleI(brush, r);
+    }
+
+    void DrawingContext::FillRectangleI(Brush* brush, const RectI& rectangle)
+    {
         if (NeedToUseDC())
         {
             UseDC();
@@ -661,14 +779,7 @@ namespace Alternet::UI
             _dc->SetPen(*wxTRANSPARENT_PEN);
             _dc->SetBrush(brush->GetWxBrush());
 
-            _dc->DrawRectangle(
-                fromDip(
-                    Rect(
-                        rectangle.X,
-                        rectangle.Y,
-                        rectangle.Width,
-                        rectangle.Height),
-                    _dc->GetWindow()));
+            _dc->DrawRectangle(rectangle);
 
             _dc->SetPen(oldPen);
             _dc->SetBrush(oldBrush);
@@ -677,12 +788,9 @@ namespace Alternet::UI
         {
             UseGC();
 
-            auto rect = fromDipF(rectangle, _dc->GetWindow());
-
             _graphicsContext->SetPen(*wxTRANSPARENT_PEN);
-            _graphicsContext->SetBrush(GetGraphicsBrush(brush, wxPoint2DDouble(rect.X, rect.Y)));
-
-            _graphicsContext->DrawRectangle(rect.X, rect.Y, rect.Width, rect.Height);
+            _graphicsContext->SetBrush(GetGraphicsBrush(brush, wxPoint2DDouble(rectangle.X, rectangle.Y)));
+            _graphicsContext->DrawRectangle(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
         }
     }
 

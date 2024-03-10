@@ -43,13 +43,15 @@ namespace Alternet.UI
         private Color? selectedItemBackColor;
         private bool selectedIsBold;
         private Color? disabledItemTextColor;
+        private IListBoxItemPainter? painter;
+        private ListBoxItemPaintEventArgs? itemPaintArgs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VListBox"/> class.
         /// </summary>
         public VListBox()
         {
-            Handler.NativeControl.SetSelectionBackground(DefaultSelectedItemBackColor);
+            UserPaint = true;
             SuggestedSize = 200;
         }
 
@@ -68,6 +70,26 @@ namespace Alternet.UI
                 if (disabledItemTextColor == value)
                     return;
                 disabledItemTextColor = value;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets item painter associated with the control.
+        /// </summary>
+        [Browsable(false)]
+        public virtual IListBoxItemPainter? ItemPainter
+        {
+            get
+            {
+                return painter;
+            }
+
+            set
+            {
+                if (painter == value)
+                    return;
+                painter = value;
                 Invalidate();
             }
         }
@@ -125,7 +147,6 @@ namespace Alternet.UI
                 if (selectedItemBackColor == value)
                     return;
                 selectedItemBackColor = value;
-                Handler.NativeControl.SetSelectionBackground(value ?? DefaultSelectedItemBackColor);
                 Invalidate();
             }
         }
@@ -154,17 +175,36 @@ namespace Alternet.UI
         {
             get
             {
-                var result = Handler.NativeControl.GetSelection();
-                if (result < 0)
-                    return null;
-                return result;
+                if (SelectionMode == ListBoxSelectionMode.Single)
+                {
+                    var result = NativeControl.GetSelection();
+                    if (result < 0)
+                        return null;
+                    return result;
+                }
+                else
+                {
+                    var result = NativeControl.GetFirstSelected();
+                    if (result < 0)
+                        return null;
+                    return result;
+                }
             }
 
             set
             {
                 if (SelectedIndex == value)
                     return;
-                Handler.NativeControl.SetSelection(value ?? -1);
+                if (SelectionMode == ListBoxSelectionMode.Single)
+                {
+                    NativeControl.SetSelection(value ?? -1);
+                }
+                else
+                {
+                    NativeControl.ClearSelected();
+                    if (value is not null && value >= 0)
+                        NativeControl.SetSelected(value.Value, true);
+                }
             }
         }
 
@@ -188,26 +228,17 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        [Browsable(false)]
-        public override bool CanUserPaint
-        {
-            get => false;
-        }
-
-        /// <summary>
-        /// Gets or sets number of items in the control.
-        /// </summary>
-        [Browsable(false)]
-        public new int Count
+        public override int Count
         {
             get
             {
-                return base.Count;
+                var result = NativeControl.ItemsCount;
+                return result;
             }
 
             set
             {
-                ((VListBoxHandler)Handler).NativeControl.ItemsCount = value;
+                NativeControl.ItemsCount = value;
             }
         }
 
@@ -224,6 +255,11 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets <see cref="NativeControl"/> attached to this control.
+        /// </summary>
+        internal new Native.VListBox NativeControl => (Native.VListBox)base.NativeControl;
+
+        /// <summary>
         /// Gets item font. It must not be <c>null</c>.
         /// </summary>
         /// <returns></returns>
@@ -236,16 +272,29 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Measures item size.
+        /// Measures item size. If <see cref="ItemPainter"/> is assigned, uses
+        /// <see cref="IListBoxItemPainter.GetSize"/>, otherwise calls
+        /// <see cref="DefaultMeasureItemSize"/>.
         /// </summary>
         /// <param name="itemIndex">Index of the item.</param>
         public virtual SizeD MeasureItemSize(int itemIndex)
         {
-            string s;
+            if (painter is null)
+                return DefaultMeasureItemSize(itemIndex);
+            var result = painter.GetSize(this, itemIndex);
+            if(result == SizeD.MinusOne)
+                return DefaultMeasureItemSize(itemIndex);
+            return result;
+        }
 
-            if (itemIndex < Items.Count)
-                s = GetItemText(itemIndex);
-            else
+        /// <summary>
+        /// Default method which measures item size. Called from <see cref="MeasureItemSize"/>.
+        /// </summary>
+        /// <param name="itemIndex">Index of the item.</param>
+        public virtual SizeD DefaultMeasureItemSize(int itemIndex)
+        {
+            var s = GetItemText(itemIndex);
+            if(string.IsNullOrEmpty(s))
                 s = "Wy";
 
             var font = GetItemFont().AsBold;
@@ -255,37 +304,154 @@ namespace Alternet.UI
             return size;
         }
 
+        /*public virtual bool IsSelected(int index)
+        {
+            if (SelectionMode == ListBoxSelectionMode.Single)
+                return NativeControl.GetSelection() == index;
+
+            var selCount = NativeControl.GetSelectedCount();
+
+            if (selCount == 0)
+                return false;
+
+            var firstSelected = NativeControl.GetFirstSelected();
+            if (firstSelected == index)
+                return true;
+
+            while (true)
+            {
+                var selected = NativeControl.GetNextSelected();
+                if (selected == index)
+                    return true;
+                if (selected < 0)
+                    return false;
+            }
+        }*/
+
         /// <summary>
-        /// Draws item with the specified index.
+        /// Gets whether item with the specified index is selected.
+        /// </summary>
+        /// <param name="index">Item index.</param>
+        /// <returns></returns>
+        public virtual bool IsSelected(int index)
+        {
+            return NativeControl.IsSelected(index);
+        }
+
+        /// <summary>
+        /// Gets whether item with the specified index is current.
+        /// </summary>
+        /// <param name="index">Item index.</param>
+        /// <returns></returns>
+        public virtual bool IsCurrent(int index)
+        {
+            return NativeControl.IsCurrent(index);
+        }
+
+        /// <summary>
+        /// Draws background for the item with the specified index.
+        /// </summary>
+        /// <param name="dc">The <see cref="Graphics" /> surface on which to draw.</param>
+        /// <param name="rect">Rectangle in which to draw the item.</param>
+        /// <param name="itemIndex">Index of the item.</param>
+        public virtual void DrawItemBackground(Graphics dc, RectD rect, int itemIndex)
+        {
+            var isSelected = IsSelected(itemIndex);
+            var isCurrent = IsCurrent(itemIndex);
+
+            if (Enabled)
+            {
+                if (isSelected)
+                    dc.FillRectangle(GetSelectedItemBackColor(), rect);
+                if (isCurrent && Focused)
+                    dc.FillRectangleBorder(Color.Black, rect);
+            }
+        }
+
+        /// <summary>
+        /// Draws item with the specified index.  If <see cref="ItemPainter"/> is assigned, uses
+        /// <see cref="IListBoxItemPainter.Paint"/>, otherwise calls
+        /// <see cref="DefaultDrawItem"/>.
         /// </summary>
         /// <param name="dc">The <see cref="Graphics" /> surface on which to draw.</param>
         /// <param name="rect">Rectangle in which to draw the item.</param>
         /// <param name="itemIndex">Index of the item.</param>
         public virtual void DrawItem(Graphics dc, RectD rect, int itemIndex)
         {
-            var s = GetItemText(itemIndex);
-            var font = GetItemFont();
-
-            Color textColor;
-
-            if (SelectedIndex == itemIndex)
-            {
-                if (SelectedItemIsBold)
-                    font = font.AsBold;
-                textColor = GetSelectedItemTextColor();
-            }
-            else
-            {
-                textColor = GetItemTextColor();
-            }
-
             rect.ApplyMargin(ItemMargin);
 
-            dc.DrawText(
-                s,
-                font,
-                textColor.AsBrush,
-                rect);
+            if (itemPaintArgs is null)
+                itemPaintArgs = new(this, dc, rect, itemIndex);
+            else
+            {
+                itemPaintArgs.Graphics = dc;
+                itemPaintArgs.ClipRectangle = rect;
+                itemPaintArgs.ItemIndex = itemIndex;
+            }
+
+            if (painter is null)
+            {
+                DefaultDrawItem(itemPaintArgs);
+                return;
+            }
+
+            painter.Paint(this, itemPaintArgs);
+        }
+
+        /// <summary>
+        /// Gets index of the first visible item.
+        /// </summary>
+        /// <returns></returns>
+        public virtual int GetVisibleBegin()
+        {
+            return NativeControl.GetVisibleBegin();
+        }
+
+        /// <summary>
+        /// Gets index of the last visible item.
+        /// </summary>
+        /// <returns></returns>
+        public virtual int GetVisibleEnd()
+        {
+            return NativeControl.GetVisibleEnd();
+        }
+
+        /// <summary>
+        /// Gets suggested rectangles of the item's image and text.
+        /// </summary>
+        /// <param name="e">Item painting paramaters.</param>
+        /// <returns></returns>
+        public virtual (RectD ImageRect, RectD TextRect) GetItemImageRect(
+            ListBoxItemPaintEventArgs e)
+        {
+            Thickness textMargin = Thickness.Empty;
+
+            var offset = ComboBox.DefaultImageVerticalOffset;
+
+            var size = e.ClipRectangle.Height - textMargin.Vertical - (offset * 2);
+            var imageRect = new RectD(
+                e.ClipRectangle.X + textMargin.Left,
+                e.ClipRectangle.Y + textMargin.Top + offset,
+                size,
+                size);
+
+            var itemRect = e.ClipRectangle;
+            itemRect.X += imageRect.Width + ComboBox.DefaultImageTextDistance;
+            itemRect.Width -= imageRect.Width + ComboBox.DefaultImageTextDistance;
+
+            return (imageRect, itemRect);
+        }
+
+        /// <summary>
+        /// Default method which draws items. Called from <see cref="DrawItem"/>.
+        /// </summary>
+        public virtual void DefaultDrawItem(ListBoxItemPaintEventArgs e)
+        {
+            e.Graphics.DrawText(
+                e.ItemText,
+                e.ItemFont,
+                e.TextColor.AsBrush,
+                e.ClipRectangle);
         }
 
         /// <summary>
@@ -315,6 +481,19 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets selected item back color. Default is <see cref="SelectedItemBackColor"/>
+        /// (if it is not <c>null</c>) or <see cref="DefaultSelectedItemBackColor"/>.
+        /// </summary>
+        /// <returns></returns>
+        public virtual Color GetSelectedItemBackColor()
+        {
+            if (Enabled)
+                return selectedItemBackColor ?? DefaultSelectedItemBackColor;
+            else
+                return GetDisabledItemTextColor();
+        }
+
+        /// <summary>
         /// Gets disabled item text color.
         /// </summary>
         /// <returns></returns>
@@ -327,6 +506,53 @@ namespace Alternet.UI
         internal override ControlHandler CreateHandler()
         {
             return new VListBoxHandler();
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var clientSize = ClientSize;
+
+            var dc = e.Graphics;
+
+            var rectUpdate = e.ClipRectangle; // GetUpdateClientRect();
+
+            dc.FillRectangle(RealBackgroundColor.AsBrush, rectUpdate);
+
+            // the bounding rectangle of the current line
+            RectD rectRow = RectD.Empty;
+            rectRow.Width = clientSize.Width;
+
+            // iterate over all visible lines
+            int lineMax = NativeControl.GetVisibleEnd();
+            for (int line = NativeControl.GetVisibleBegin(); line < lineMax; line++)
+            {
+                var hRow = MeasureItemSize(line).Height;
+
+                rectRow.Height = hRow;
+
+                if (rectRow.IntersectsWith(rectUpdate))
+                {
+                    /*don't allow drawing outside of the lines rectangle
+                    wxDCClipper clip(*dc, rectRow);*/
+
+                    DrawItemBackground(dc, rectRow, line);
+                    DrawItem(dc, rectRow, line);
+                }
+                else
+                {
+                    if (rectRow.Top > rectUpdate.Bottom)
+                        break;
+                }
+
+                rectRow.Top += hRow;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
         }
     }
 }

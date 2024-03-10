@@ -10,9 +10,16 @@ namespace NativeApi.Api
 {
     public class VListBox : Control
     {
+        public int GetVisibleEnd() => default;
+        public int GetVisibleBegin() => default;
+        public int GetRowHeight(int line) => default;
+
+        public bool IsSelected(int line) => default;
+
         public static IntPtr CreateEx(long styles) => default;
 
-        public IntPtr EventDc { get; }
+        public IntPtr EventDcHandle { get; }
+        public DrawingContext EventDc { get; }
         public RectI EventRect { get; }
         public int EventItem { get; }
         public int EventHeight { get; set; }
@@ -38,5 +45,8 @@ namespace NativeApi.Api
         public int ItemHitTest(PointD position) => default;
         public void SetSelection(int selection) { }
         public void SetSelectionBackground(Color color) { }
+        public bool IsCurrent(int current) => default;
+
+        public bool DoSetCurrent(int current) => default;
     }
 }

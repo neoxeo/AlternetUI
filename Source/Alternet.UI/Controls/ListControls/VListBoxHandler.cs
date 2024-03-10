@@ -9,7 +9,6 @@ namespace Alternet.UI
     {
         private bool receivingSelection;
         private bool applyingSelection;
-        private Graphics? drawItemCanvas;
 
         /// <summary>
         /// Gets a <see cref="VListBox"/> this handler provides the
@@ -69,8 +68,6 @@ namespace Alternet.UI
             Control.SelectionChanged += Control_SelectionChanged;
 
             NativeControl.SelectionChanged = NativeControl_SelectionChanged;
-            NativeControl.HandleCreated = NativeControl_HandleCreated;
-            NativeControl.DrawItem = NativeControl_DrawItem;
             NativeControl.MeasureItem = NativeControl_MeasureItem;
         }
 
@@ -81,41 +78,10 @@ namespace Alternet.UI
             Control.SelectionModeChanged -= Control_SelectionModeChanged;
             Control.Items.CollectionChanged -= Items_CollectionChanged;
             Control.SelectionChanged -= Control_SelectionChanged;
-
-            NativeControl.SelectionChanged = null;
-            NativeControl.HandleCreated = null;
-            NativeControl.DrawItem = null;
             NativeControl.MeasureItem = null;
+            NativeControl.SelectionChanged = null;
 
             base.OnDetach();
-        }
-
-        protected Graphics GetDrawItemCanvas()
-        {
-            var drawItemDC = NativeControl.EventDc;
-
-            if (drawItemCanvas is not null
-                && drawItemDC != drawItemCanvas.NativeDrawingContext.WxWidgetDC)
-            {
-                drawItemCanvas.Dispose();
-                drawItemCanvas = null;
-            }
-
-            if (drawItemCanvas is null)
-            {
-                var ptr = Native.Control.OpenDrawingContextForDC(drawItemDC, false);
-                drawItemCanvas = new Graphics(ptr);
-            }
-
-            return drawItemCanvas;
-        }
-
-        private void NativeControl_DrawItem()
-        {
-            var dc = GetDrawItemCanvas();
-            var rect = Control.PixelToDip(NativeControl.EventRect);
-            var itemIndex = NativeControl.EventItem;
-            Control.DrawItem(dc, rect, itemIndex);
         }
 
         private void NativeControl_MeasureItem()
@@ -124,11 +90,6 @@ namespace Alternet.UI
             var heightDip = Control.MeasureItemSize(itemIndex).Height;
             var height = Control.PixelFromDip(heightDip);
             NativeControl.EventHeight = height;
-        }
-
-        private void NativeControl_HandleCreated()
-        {
-            NativeControl.ItemsCount = Control.Count;
         }
 
         private void NativeControl_SelectionChanged()
@@ -160,17 +121,21 @@ namespace Alternet.UI
         private void ApplySelection()
         {
             if (Control.SelectionMode == ListBoxSelectionMode.Single)
-                return;
+            {
+                var indices = Control.SelectedIndices;
+                if(indices.Count > 0)
+                    NativeControl.SetSelection(indices[0]);
+                else
+                    NativeControl.SetSelection(-1);
+            }
 
             applyingSelection = true;
 
             try
             {
-                var nativeControl = NativeControl;
-                nativeControl.ClearSelected();
+                NativeControl.ClearSelected();
 
-                var control = Control;
-                var indices = control.SelectedIndices;
+                var indices = Control.SelectedIndices;
 
                 for (var i = 0; i < indices.Count; i++)
                     NativeControl.SetSelected(indices[i], true);

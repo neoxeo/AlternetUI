@@ -11,7 +11,7 @@ namespace ControlsSample
 {
     internal partial class InternalSamplesPage : Control
     {
-        private readonly ListBox view = new()
+        private readonly VListBox view = new()
         {
             SuggestedWidth = 350,
             SuggestedHeight = 400,
@@ -40,6 +40,7 @@ namespace ControlsSample
             Padding = 10;
             AddDefaultItems();
             view.SelectFirstItem();
+            view.EnsureVisible(0);
         }
 
         private void AddDefaultItems()
@@ -69,11 +70,11 @@ namespace ControlsSample
             Add("Mouse Input", () => new InputSample.MouseInputWindow());
             Add("Menu Sample", () => new MenuSample.MainWindow());
             Add("Printing Sample", () => new PrintingSample.MainWindow());
+            Add("Preview Uixml and other files", () => new PreviewSampleWindow());
             Add("Explorer UI Sample", () => new ExplorerUISample.MainWindow());
             Add("Threading Sample", () => new ThreadingSample.MainWindow());
             Add("Action Simulator Sample", () => new ActionSimulatorPage());
             Add("NinePatch Drawing Sample", () => new NinePatchDrawingWindow());
-            Add("Virtual ListBox Sample (experimental)", () => new VListBoxSampleWindow());
         }
 
         private void RunButton_Click(object? sender, EventArgs e)

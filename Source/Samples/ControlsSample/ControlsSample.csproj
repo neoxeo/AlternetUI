@@ -4,6 +4,7 @@
     <PropertyGroup>
       <OutputType>WinExe</OutputType>
       <Platforms>AnyCPU;x64;x86</Platforms>
+      <ApplicationIcon>../CommonData/Sample.ico</ApplicationIcon>
       <ApplicationManifest>app.manifest</ApplicationManifest>
       <LangVersion>11.0</LangVersion>
       <Nullable>enable</Nullable>
@@ -15,10 +16,6 @@
       <Compile Remove="build\**" />
       <EmbeddedResource Remove="build\**" />
       <None Remove="build\**" />
-    </ItemGroup>
-
-    <ItemGroup Condition="$(DefineConstants.Contains(';NETFRAMEWORK'))">
-        <Reference Include="Microsoft.CSharp" />
     </ItemGroup>
 
     <ItemGroup>
@@ -337,6 +334,7 @@
   </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\Alternet.UI.Common\Alternet.UI.Common.csproj" />
         <ProjectReference Include="..\..\Alternet.UI\Alternet.UI.csproj" />
     </ItemGroup>
 

@@ -519,10 +519,10 @@ namespace Alternet.UI
         /// <returns>An <see cref="object"/> that contains the return value
         /// from the delegate being invoked, or <c>null</c> if the delegate has
         /// no return value.</returns>
-        public virtual object? Invoke(Delegate method, object?[] args)
+        public virtual object? Invoke(Delegate? method, object?[] args)
         {
             if (method == null)
-                throw new ArgumentNullException(nameof(method));
+                return null;
             return SynchronizationService.Invoke(method, args);
         }
 
@@ -534,10 +534,10 @@ namespace Alternet.UI
         /// <returns>An <see cref="object"/> that contains the return value from
         /// the delegate being invoked, or <c>null</c> if the delegate has no
         /// return value.</returns>
-        public virtual object? Invoke(Delegate method)
+        public virtual object? Invoke(Delegate? method)
         {
             if (method == null)
-                throw new ArgumentNullException(nameof(method));
+                return null;
             return Invoke(method, Array.Empty<object?>());
         }
 
@@ -546,10 +546,10 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="action">An action to be called in the control's
         /// thread context.</param>
-        public virtual void Invoke(Action action)
+        public virtual void Invoke(Action? action)
         {
             if (action == null)
-                throw new ArgumentNullException(nameof(action));
+                return;
             Invoke(action, Array.Empty<object?>());
         }
 
@@ -578,7 +578,9 @@ namespace Alternet.UI
         /// data.</param>
         public virtual void RaiseClick(EventArgs e)
         {
+            /*Application.Log("RaiseClick");*/
             OnClick(e);
+            /*Application.Log("RaiseClick2");*/
             Click?.Invoke(this, e);
         }
 
@@ -747,24 +749,6 @@ namespace Alternet.UI
             if (indexes is null)
                 return false;
             return Array.IndexOf<int>(indexes, groupIndex) >= 0;
-        }
-
-        /// <summary>
-        /// Executes <paramref name="action"/> between calls to <see cref="BeginUpdate"/>
-        /// and <see cref="EndUpdate"/>.
-        /// </summary>
-        /// <param name="action">Action that will be executed.</param>
-        public virtual void DoInsideUpdate(Action action)
-        {
-            BeginUpdate();
-            try
-            {
-                action();
-            }
-            finally
-            {
-                EndUpdate();
-            }
         }
 
         /// <summary>
@@ -1123,10 +1107,38 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Executes <paramref name="action"/> between calls to <see cref="BeginUpdate"/>
+        /// and <see cref="EndUpdate"/>.
+        /// </summary>
+        /// <param name="action">Action that will be executed.</param>
+        /// <remarks>
+        /// Do not recreate control (or its child controls), add or remove child controls between
+        /// <see cref="BeginUpdate"/> and <see cref="EndUpdate"/> calls.
+        /// This method is mainly for multiple add or remove of the items in list like controls.
+        /// </remarks>
+        public virtual void DoInsideUpdate(Action action)
+        {
+            BeginUpdate();
+            try
+            {
+                action();
+            }
+            finally
+            {
+                EndUpdate();
+            }
+        }
+
+        /// <summary>
         /// Maintains performance while performing slow operations on a control
         /// by preventing the control from
         /// drawing until the <see cref="EndUpdate"/> method is called.
         /// </summary>
+        /// <remarks>
+        /// Do not recreate control (or its child controls), add or remove child controls between
+        /// <see cref="BeginUpdate"/> and <see cref="EndUpdate"/> calls.
+        /// This method is mainly for multiple add or remove of the items in list like controls.
+        /// </remarks>
         public virtual int BeginUpdate()
         {
             updateCount++;
@@ -1188,10 +1200,7 @@ namespace Alternet.UI
         /// <see cref="PerformLayout"/>. Optional. By default is <c>true</c>.</param>
         public virtual void PerformLayout(bool layoutParent = true)
         {
-            if (IsLayoutSuspended || IsDisposed)
-                return;
-
-            if (inLayout)
+            if (IsLayoutSuspended || IsDisposed || inLayout)
                 return;
 
             inLayout = true;
@@ -1972,6 +1981,28 @@ namespace Alternet.UI
         public PointD PixelToDip(PointI value)
         {
             return new(PixelToDip(value.X), PixelToDip(value.Y));
+        }
+
+        /// <summary>
+        /// Gets the update rectangle region bounding box in client coords. This method
+        /// can be used in paint events. Returns rectangle in pixels.
+        /// </summary>
+        /// <returns></returns>
+        public RectI GetUpdateClientRectI()
+        {
+            return NativeControl.GetUpdateClientRect();
+        }
+
+        /// <summary>
+        /// Gets the update rectangle region bounding box in client coords. This method
+        /// can be used in paint events. Returns rectangle in dips (1/96 inch).
+        /// </summary>
+        /// <returns></returns>
+        public RectD GetUpdateClientRect()
+        {
+            var resultI = NativeControl.GetUpdateClientRect();
+            var resultD = PixelToDip(resultI);
+            return resultD;
         }
 
         /// <summary>

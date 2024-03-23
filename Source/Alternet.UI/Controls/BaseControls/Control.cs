@@ -578,6 +578,20 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets <see cref="Graphics"/> which can be used to measure text size
+        /// and for other measure purposes.
+        /// </summary>
+        [Browsable(false)]
+        public virtual Graphics MeasureCanvas
+        {
+            get
+            {
+                measureCanvas ??= CreateDrawingContext();
+                return measureCanvas;
+            }
+        }
+
+        /// <summary>
         /// Gets border for all states of the control.
         /// </summary>
         [Browsable(false)]
@@ -1334,6 +1348,11 @@ namespace Alternet.UI
                 return children;
             }
         }
+
+        /// <summary>
+        /// Gets last time when mouse double click was done.
+        /// </summary>
+        public long? LastDoubleClickTimestamp { get; set; }
 
         /// <summary>
         /// Same as <see cref="Children"/>.
@@ -2302,6 +2321,9 @@ namespace Alternet.UI
                 var foregroundColor = RealForegroundColor;
                 var backgroundColor = RealBackgroundColor;
 
+                if (backgroundColor.IsBlack)
+                    return true;
+
                 if (foregroundColor.IsEmpty || backgroundColor.IsEmpty)
                     return SystemSettings.IsUsingDarkBackground;
 
@@ -2689,6 +2711,22 @@ namespace Alternet.UI
             {
                 var modifiers = Keyboard.Modifiers;
                 return modifiers.ToKeys();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether scroll events are binded and recveived in the control.
+        /// </summary>
+        protected virtual bool BindScrollEvents
+        {
+            get
+            {
+                return NativeControl.BindScrollEvents;
+            }
+
+            set
+            {
+                NativeControl.BindScrollEvents = value;
             }
         }
 

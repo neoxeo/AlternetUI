@@ -9,6 +9,7 @@ namespace MenuSample
     public partial class MainWindow : Window
     {
         private const string ResPrefix = "embres:ControlsSample.Resources.ToolBarPng.Small.";
+        private readonly string Calendar16Url = $"{ResPrefix}Calendar16.png";
         private readonly int dynamicToolbarItemsSeparatorIndex;
         private int newItemIndex = 0;
         ToolBar? toolbar;
@@ -72,14 +73,8 @@ namespace MenuSample
 
             eventsListBox.ContextMenu.Required();
 
-            var images = KnownSvgImages.GetForSize(GetSvgColor(KnownSvgColor.Normal), 16);
-            var imagesDisabled = KnownSvgImages.GetForSize(GetSvgColor(KnownSvgColor.Disabled), 16);
-
-            openMenuItem.Image = images.ImgFileOpen;
-            openMenuItem.Image = imagesDisabled.ImgFileOpen;
-
-            saveMenuItem.Image = images.ImgFileSave;
-            saveMenuItem.Image = imagesDisabled.ImgFileSave;
+            openMenuItem.Image = KnownSvgImages.ImgFileOpen.AsNormal(16, IsDarkBackground);
+            saveMenuItem.Image = KnownSvgImages.ImgFileSave.AsNormal(16, IsDarkBackground);
 
             eventsListBox.BindApplicationLog();
         }
@@ -150,7 +145,7 @@ namespace MenuSample
             var calendarToolbarItem = new ToolBarItem("Calendar", ToolbarItem_Click)
             {
                 ToolTip = "Calendar Toolbar Item",
-                Image = ImageSet.FromUrl($"{ResPrefix}Calendar16.png")
+                Image = ImageSet.FromUrl(Calendar16Url)
             };
 
             var photoToolbarItem = new ToolBarItem("Photo", ToolbarItem_Click)

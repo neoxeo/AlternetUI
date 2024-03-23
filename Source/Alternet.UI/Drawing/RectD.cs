@@ -1,6 +1,3 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -782,6 +779,20 @@ namespace Alternet.Drawing
             y += margin.Top;
             width -= margin.Horizontal;
             height -= margin.Vertical;
+        }
+
+        /// <summary>
+        /// Gets this rectangle with applied margin. Uses <see cref="ApplyMargin"/>, see it
+        /// for details.
+        /// </summary>
+        /// <param name="margin">Margin to apply</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectD WithMargin(Thickness margin)
+        {
+            RectD result = this;
+            result.ApplyMargin(margin);
+            return result;
         }
 
         /// <summary>

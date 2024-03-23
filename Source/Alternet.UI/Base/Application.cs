@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Alternet.Drawing;
 using Alternet.UI.Localization;
@@ -51,7 +52,8 @@ namespace Alternet.UI
         public static readonly bool IsIOS;
 
         /// <summary>
-        /// Gets a value that indicates whether the current operating system is a 64-bit operating system.
+        /// Gets a value that indicates whether the current operating system is
+        /// a 64-bit operating system.
         /// </summary>
         public static readonly bool Is64BitOS;
 
@@ -65,26 +67,50 @@ namespace Alternet.UI
         /// </summary>
         public static readonly OperatingSystems BackendOS;
 
+        /// <summary>
+        /// Gets or sets application exit code used when application terminates
+        /// due to unhandled exception.
+        /// </summary>
+        public static int ThreadExceptionExitCode = 0;
+
+        /// <summary>
+        /// Gets or sets whether to log unhandled thread exception.
+        /// </summary>
+        public static bool LogUnhandledThreadException = true;
+
+        /// <summary>
+        /// Gets or sets whether calls to and from native code are wrapped in "try catch".
+        /// </summary>
+        /// <remarks>
+        /// Under Windows default value is <c>true</c> and such wrapping is not needed.
+        /// Under other systems default value is <c>false</c> and all calls are wrapped.
+        /// </remarks>
+        public static bool FastThreadExceptions;
+
         internal const int BuildCounter = 6;
         internal static readonly Destructor MyDestructor = new();
 
-        private static readonly ConcurrentQueue<(Action<object?>, object?)> IdleTasks = new();
-        private static Queue<string>? logQueue;
+        private static readonly ConcurrentQueue<(Action<object?> Action, object? Data)> IdleTasks = new();
+        private static readonly ConcurrentQueue<(string Msg, LogItemKind Kind)> LogQueue = new();
         private static bool terminating = false;
         private static bool logFileIsEnabled;
         private static Application? current;
         private static IconSet? icon;
+        private static bool inOnThreadException;
+        private static int logUpdateCount;
+
+        private static UnhandledExceptionMode unhandledExceptionMode
+            = UnhandledExceptionMode.CatchException;
+
+        private static UnhandledExceptionMode unhandledExceptionModeDebug
+            = UnhandledExceptionMode.ThrowException;
 
         private readonly List<Window> windows = new();
         private readonly KeyboardInputProvider keyboardInputProvider;
         private readonly MouseInputProvider mouseInputProvider;
-
-        private UnhandledExceptionMode unhandledExceptionMode;
         private volatile bool isDisposed;
         private Native.Application nativeApplication;
         private VisualTheme visualTheme = StockVisualThemes.Native;
-        private ThreadExceptionEventHandler? threadExceptionHandler;
-        private bool inOnThreadException;
         private Window? window;
 
         static Application()
@@ -98,6 +124,8 @@ namespace Alternet.UI
 
             if (IsWindowsOS)
             {
+                FastThreadExceptions = true;
+
                 BackendOS = OperatingSystems.Windows;
                 goto exit;
             }
@@ -178,6 +206,21 @@ namespace Alternet.UI
         public static event EventHandler<LogMessageEventArgs>? BeforeNativeLogMessage;
 
         /// <summary>
+        /// Occurs when controls which display log messages need to be refreshed.
+        /// </summary>
+        public static event EventHandler? LogRefresh;
+
+        /// <summary>
+        /// Occurs when the <see cref="VisualTheme"/> property changes.
+        /// </summary>
+        public static event EventHandler? VisualThemeChanged;
+
+        /// <summary>
+        /// Occurs when debug message needs to be displayed.
+        /// </summary>
+        public static event EventHandler<LogMessageEventArgs>? LogMessage;
+
+        /// <summary>
         ///  Occurs when an untrapped thread exception is thrown.
         /// </summary>
         /// <remarks>
@@ -191,23 +234,7 @@ namespace Alternet.UI
         /// is used for unhandled Windows Forms thread
         /// exceptions by setting <see cref="SetUnhandledExceptionMode"/>.
         /// </remarks>
-        public event ThreadExceptionEventHandler ThreadException
-        {
-            add
-            {
-                threadExceptionHandler = value;
-            }
-
-            remove
-            {
-                threadExceptionHandler -= value;
-            }
-        }
-
-        /// <summary>
-        /// Occurs when the <see cref="VisualTheme"/> property changes.
-        /// </summary>
-        public event EventHandler? VisualThemeChanged;
+        public static event ThreadExceptionEventHandler? ThreadException;
 
         /// <summary>
         /// Occurs when the application finishes processing events and is
@@ -216,15 +243,23 @@ namespace Alternet.UI
         public event EventHandler? Idle;
 
         /// <summary>
-        /// Occurs when debug message needs to be displayed.
-        /// </summary>
-        public event EventHandler<LogMessageEventArgs>? LogMessage;
-
-        /// <summary>
         /// Gets or sets whether to call <see cref="Debug.WriteLine(string)"/> when\
         /// <see cref="Application.Log"/> is called. Default is <c>false</c>.
         /// </summary>
         public static bool DebugWriteLine { get; set; } = false;
+
+        /// <summary>
+        /// Gets how the application responds to unhandled exceptions.
+        /// Use <see cref="SetUnhandledExceptionMode"/> to change this property.
+        /// </summary>
+        public static UnhandledExceptionMode UnhandledExceptionMode => unhandledExceptionMode;
+
+        /// <summary>
+        /// Gets how the application responds to unhandled exceptions (if debugger is attached).
+        /// Use <see cref="SetUnhandledExceptionModeIfDebugger"/> to change this property.
+        /// </summary>
+        public static UnhandledExceptionMode UnhandledExceptionModeIfDebugger
+            => unhandledExceptionModeDebug;
 
         /// <summary>
         /// Gets or sets default icon for the application.
@@ -248,6 +283,11 @@ namespace Alternet.UI
                 icon = value;
             }
         }
+
+        /// <summary>
+        /// Gets whether application has forms.
+        /// </summary>
+        public static bool HasForms => Application.current?.Windows.Count > 0;
 
         /// <summary>
         /// Gets whether application was initialized;
@@ -588,8 +628,10 @@ namespace Alternet.UI
         /// about to enter the idle state.
         /// </summary>
         /// <param name="task">Task action.</param>
-        public static void AddIdleTask(Action task)
+        public static void AddIdleTask(Action? task)
         {
+            if (task is null)
+                return;
             AddIdleTask((object? param) => task());
         }
 
@@ -636,9 +678,13 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="name">Name.</param>
         /// <param name="value">Value.</param>
-        public static void LogNameValue(string name, object? value)
+        /// <param name="kind">Item kind.</param>
+        public static void LogNameValue(
+            string name,
+            object? value,
+            LogItemKind kind = LogItemKind.Information)
         {
-            Application.Log($"{name} = {value}");
+            Application.Log($"{name} = {value}", kind);
         }
 
         /// <summary>
@@ -648,10 +694,15 @@ namespace Alternet.UI
         /// <param name="name">Name.</param>
         /// <param name="value">Value.</param>
         /// <param name="condition">Log if <c>true</c>.</param>
-        public static void LogNameValueIf(string name, object? value, bool condition)
+        /// <param name="kind">Item kind.</param>
+        public static void LogNameValueIf(
+            string name,
+            object? value,
+            bool condition,
+            LogItemKind kind = LogItemKind.Information)
         {
             if (condition)
-                LogNameValue(name, value);
+                LogNameValue(name, value, kind);
         }
 
         /// <summary>
@@ -660,28 +711,114 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="obj">Message text or object to log.</param>
         /// <param name="condition">Log if <c>true</c>.</param>
-        public static void LogIf(object? obj, bool condition)
+        /// <param name="kind">Item kind.</param>
+        public static void LogIf(
+            object? obj,
+            bool condition,
+            LogItemKind kind = LogItemKind.Information)
         {
             if (condition)
-                Log(obj);
+                Log(obj, kind);
         }
 
         /// <summary>
-        /// Logs message with 'Warning' prefix.
+        /// Logs warning message.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">Message text or object to log.</param>
         public static void LogWarning(object? obj)
         {
-            Log($"Warning: {obj}");
+            Log($"Warning: {obj}", LogItemKind.Warning);
         }
 
         /// <summary>
-        /// Logs message with 'Error' prefix.
+        /// Logs error message.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">Message text or object to log.</param>
         public static void LogError(object? obj)
         {
-            Log($"Error: {obj}");
+            Log($"Error: {obj}", LogItemKind.Error);
+        }
+
+        /// <summary>
+        /// Calls <see cref="LogMessage"/> event.
+        /// </summary>
+        /// <param name="obj">Message text or object to log.</param>
+        /// <param name="kind">Message kind.</param>
+        public static void Log(object? obj, LogItemKind kind = LogItemKind.Information)
+        {
+            IdleLog(obj, kind);
+
+            if (LogMessage is null || LogInUpdates())
+                return;
+            ProcessLogQueue(true);
+        }
+
+        /// <summary>
+        /// Executes the specified delegate on the thread that owns the application.
+        /// </summary>
+        /// <param name="method">A delegate that contains a method to be called
+        /// in the control's thread context.</param>
+        /// <returns>An <see cref="object"/> that contains the return value from
+        /// the delegate being invoked, or <c>null</c> if the delegate has no
+        /// return value.</returns>
+        public static object? Invoke(Delegate? method)
+        {
+            if (method == null)
+                return null;
+            return Invoke(method, Array.Empty<object?>());
+        }
+
+        /// <summary>
+        /// Executes the specified action on the thread that owns the application.
+        /// </summary>
+        /// <param name="action">An action to be called in the control's
+        /// thread context.</param>
+        public static void Invoke(Action? action)
+        {
+            if (action == null)
+                return;
+            Invoke(action, Array.Empty<object?>());
+        }
+
+        /// <summary>
+        /// Executes the specified delegate, on the thread that owns the application,
+        /// with the specified list of arguments.
+        /// </summary>
+        /// <param name="method">A delegate to a method that takes parameters of
+        /// the same number and type that are contained in the
+        /// <c>args</c> parameter.</param>
+        /// <param name="args">An array of objects to pass as arguments to
+        /// the specified method. This parameter can be <c>null</c> if the
+        /// method takes no arguments.</param>
+        /// <returns>An <see cref="object"/> that contains the return value
+        /// from the delegate being invoked, or <c>null</c> if the delegate has
+        /// no return value.</returns>
+        public static object? Invoke(Delegate method, object?[] args)
+            => SynchronizationService.Invoke(method, args);
+
+        /// <summary>
+        /// Executes <see cref="Application.IdleLog"/> using <see cref="Invoke(Action?)"/>.
+        /// </summary>
+        /// <param name="obj">Message text or object to log.</param>
+        /// <param name="kind">Message kind.</param>
+        public static void InvokeIdleLog(object? obj, LogItemKind kind = LogItemKind.Information)
+        {
+            Invoke(() =>
+            {
+                Application.IdleLog(obj, kind);
+            });
+        }
+
+        /// <summary>
+        /// Executes action in the application idle state using <see cref="Invoke(Action?)"/>.
+        /// </summary>
+        /// <param name="action">Action to execute.</param>
+        public static void InvokeIdle(Action? action)
+        {
+            Invoke(() =>
+            {
+                AddIdleTask(action);
+            });
         }
 
         /// <summary>
@@ -689,22 +826,11 @@ namespace Alternet.UI
         /// when application becomes idle.
         /// </summary>
         /// <param name="obj">Message text or object to log.</param>
+        /// <param name="kind">Message kind.</param>
         /// <remarks>
         /// This method is thread safe and can be called from non-ui threads.
         /// </remarks>
-        public static void IdleLog(object? obj)
-        {
-            AddIdleTask(() =>
-            {
-                Log(obj);
-            });
-        }
-
-        /// <summary>
-        /// Calls <see cref="LogMessage"/> event.
-        /// </summary>
-        /// <param name="obj">Message text or object to log.</param>
-        public static void Log(object? obj)
+        public static void IdleLog(object? obj, LogItemKind kind = LogItemKind.Information)
         {
             if (Application.Terminating)
                 return;
@@ -716,10 +842,11 @@ namespace Alternet.UI
 
             WriteToLogFileIfAllowed(msg);
 
-            string[] result = msg.Split(StringUtils.StringSplitToArrayChars, StringSplitOptions.RemoveEmptyEntries);
-            var evt = Current?.LogMessage;
+            string[] result = msg.Split(
+                StringUtils.StringSplitToArrayChars,
+                StringSplitOptions.RemoveEmptyEntries);
 
-            if (DebugWriteLine || evt is null)
+            if (DebugWriteLine || LogMessage is null)
             {
                 foreach (string s2 in result)
                 {
@@ -735,34 +862,8 @@ namespace Alternet.UI
                 }
             }
 
-            if (evt is null)
-            {
-                logQueue ??= new();
-                foreach (string s2 in result)
-                    logQueue.Enqueue(s2);
-                return;
-            }
-
-            if (logQueue is not null)
-            {
-                while (logQueue.Count > 0)
-                {
-                    LogToEvent(logQueue.Dequeue());
-                }
-            }
-
-            LogToEvent(result);
-
-            void LogToEvent(params string[] items)
-            {
-                LogMessageEventArgs? args = new();
-
-                foreach (string s2 in items)
-                {
-                    args.Message = s2;
-                    evt(Current, args);
-                }
-            }
+            foreach (string s2 in result)
+                LogQueue.Enqueue((s2, kind));
         }
 
         /// <summary>
@@ -862,33 +963,76 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Can be called before massive outputs to log. Pairs with <see cref="LogEndUpdate"/>.
+        /// </summary>
+        public static void LogBeginUpdate()
+        {
+            logUpdateCount++;
+        }
+
+        /// <summary>
+        /// Must be called after massive outputs to log,
+        /// if <see cref="LogBeginUpdate"/> was previously called.
+        /// </summary>
+        public static void LogEndUpdate()
+        {
+            logUpdateCount--;
+            if (logUpdateCount == 0)
+                OnLogRefresh();
+        }
+
+        /// <summary>
+        /// Gets whether massive log outputs are performed and controls attached to log
+        /// should not refresh.
+        /// </summary>
+        /// <returns></returns>
+        public static bool LogInUpdates()
+        {
+            return logUpdateCount > 0;
+        }
+
+        /// <summary>
+        /// Runs idle tasks if they are present.
+        /// </summary>
+        public static void ProcessIdleTasks()
+        {
+            while (true)
+            {
+                if (IdleTasks.TryDequeue(out var task))
+                    task.Action(task.Data);
+                else
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Begins log section.
         /// </summary>
-        public static void LogBeginSection(string? title = null)
+        public static void LogBeginSection(string? title = null, LogItemKind kind = LogItemKind.Information)
         {
-            Log(LogUtils.SectionSeparator);
+            Log(LogUtils.SectionSeparator, kind);
 
             if (title is not null)
             {
-                Log(title);
-                Log(LogUtils.SectionSeparator);
+                Log(title, kind);
+                Log(LogUtils.SectionSeparator, kind);
             }
         }
 
         /// <summary>
         /// Logs separator.
         /// </summary>
-        public static void LogSeparator()
+        public static void LogSeparator(LogItemKind kind = LogItemKind.Information)
         {
-            Log(LogUtils.SectionSeparator);
+            Log(LogUtils.SectionSeparator, kind);
         }
 
         /// <summary>
         /// Ends log section.
         /// </summary>
-        public static void LogEndSection()
+        public static void LogEndSection(LogItemKind kind = LogItemKind.Information)
         {
-            Log(LogUtils.SectionSeparator);
+            Log(LogUtils.SectionSeparator, kind);
         }
 
         /// <summary>
@@ -900,25 +1044,56 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Informs all message pumps that they must terminate, and then closes
+        /// all application windows after the messages have been processed.
+        /// </summary>
+        public static void Exit()
+        {
+            current?.nativeApplication.Exit();
+        }
+
+        /// <summary>
+        /// Calls <see cref="Exit"/> and after that terminates this process and returns an
+        /// exit code to the operating system.
+        /// </summary>
+        /// <param name="exitCode">
+        /// The exit code to return to the operating system. Use 0 (zero) to indicate that
+        /// the process completed successfully.
+        /// </param>
+        public static void ExitAndTerminate(int exitCode = 0)
+        {
+            Exit();
+            Environment.Exit(exitCode);
+        }
+
+        /// <summary>
         /// Calls <see cref="LogMessage"/> event to add or replace log message.
         /// </summary>
         /// <param name="obj">Message text.</param>
         /// <param name="prefix">Message text prefix.</param>
+        /// <param name="kind">Message kind.</param>
         /// <remarks>
         /// If last logged message
         /// contains <paramref name="prefix"/>, last log item is replaced with
         /// <paramref name="obj"/> instead of adding new log item.
         /// </remarks>
-        public static void LogReplace(object? obj, string? prefix = null)
+        public static void LogReplace(
+            object? obj,
+            string? prefix = null,
+            LogItemKind kind = LogItemKind.Information)
         {
             var msg = obj?.ToString();
-            if (string.IsNullOrEmpty(msg))
+            if (msg is null || msg.Length == 0)
                 return;
             WriteToLogFileIfAllowed(msg);
             if (DebugWriteLine)
                 Debug.WriteLine(msg);
             prefix ??= msg;
-            Current?.LogMessage?.Invoke(Current, new LogMessageEventArgs(msg!, prefix!, true));
+
+            var args = new LogMessageEventArgs(msg, prefix, true);
+            args.Kind = kind;
+
+            LogMessage?.Invoke(Current, args);
         }
 
         /// <summary>Processes all messages currently in the message queue.</summary>
@@ -957,12 +1132,14 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Informs all message pumps that they must terminate, and then closes
-        /// all application windows after the messages have been processed.
+        /// Instructs the application how to respond to unhandled exceptions in debug mode.
         /// </summary>
-        public virtual void Exit()
+        /// <param name="mode">An <see cref="UnhandledExceptionMode"/>
+        /// value describing how the application should
+        /// behave if an exception is thrown without being caught.</param>
+        public virtual void SetUnhandledExceptionModeIfDebugger(UnhandledExceptionMode mode)
         {
-            nativeApplication.Exit();
+            unhandledExceptionModeDebug = mode;
         }
 
         /// <summary>
@@ -984,8 +1161,20 @@ namespace Alternet.UI
                 CheckDisposed();
                 window.Show();
 
-                nativeApplication.Run(
-                    ((WindowHandler)window.Handler).NativeControl);
+                while (true)
+                {
+                    try
+                    {
+                        nativeApplication.Run(
+                            ((WindowHandler)window.Handler).NativeControl);
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        OnThreadException(e);
+                    }
+                }
+
                 SynchronizationContext.Uninstall();
                 this.window = null;
             }
@@ -1025,32 +1214,25 @@ namespace Alternet.UI
         }
 
         [return: MaybeNull]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static T HandleThreadExceptions<T>(Func<T> func)
         {
-            if (current == null)
+            if (FastThreadExceptions)
                 return func();
 
-            return current.HandleThreadExceptionsCore(func);
+            return HandleThreadExceptionsCore(func);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void HandleThreadExceptions(Action action)
         {
-            if (current == null)
+            if (FastThreadExceptions)
                 action();
             else
-                current.HandleThreadExceptionsCore(action);
+                HandleThreadExceptionsCore(action);
         }
 
-        /// <summary>
-        /// Sets the 'top' window.
-        /// </summary>
-        /// <param name="window">New 'top' window.</param>
-        internal virtual void SetTopWindow(Window window)
-        {
-            nativeApplication.SetTopWindow(window.WxWidget);
-        }
-
-        internal void OnThreadException(Exception exception)
+        internal static void OnThreadException(Exception exception)
         {
             if (inOnThreadException)
                 return;
@@ -1058,16 +1240,18 @@ namespace Alternet.UI
             inOnThreadException = true;
             try
             {
-                if (unhandledExceptionMode ==
-                    UnhandledExceptionMode.ThrowException
-                    || System.Diagnostics.Debugger.IsAttached)
+                if(LogUnhandledThreadException)
+                {
+                    LogUtils.LogException(exception, "Application.OnThreadException");
+                }
+
+                if (GetUnhandledExceptionMode() == UnhandledExceptionMode.ThrowException)
                     throw exception;
 
-                if (threadExceptionHandler is not null)
+                if (ThreadException is not null)
                 {
-                    threadExceptionHandler(
-                        Thread.CurrentThread,
-                        new ThreadExceptionEventArgs(exception));
+                    var args = new ThreadExceptionEventArgs(exception);
+                    ThreadException(Thread.CurrentThread, args);
                 }
                 else
                 {
@@ -1085,8 +1269,7 @@ namespace Alternet.UI
 
                     if (result == ModalResult.Canceled)
                     {
-                        Exit();
-                        Environment.Exit(0);
+                        ExitAndTerminate(ThreadExceptionExitCode);
                     }
                 }
             }
@@ -1094,6 +1277,15 @@ namespace Alternet.UI
             {
                 inOnThreadException = false;
             }
+        }
+
+        /// <summary>
+        /// Sets the 'top' window.
+        /// </summary>
+        /// <param name="window">New 'top' window.</param>
+        internal virtual void SetTopWindow(Window window)
+        {
+            nativeApplication.SetTopWindow(window.WxWidget);
         }
 
         internal void WakeUpIdle()
@@ -1116,6 +1308,18 @@ namespace Alternet.UI
         internal void BeginInvoke(Action action)
         {
             nativeApplication.BeginInvoke(action);
+        }
+
+        /// <summary>
+        /// Gets current unhandled exception mode.
+        /// </summary>
+        /// <returns></returns>
+        protected static UnhandledExceptionMode GetUnhandledExceptionMode()
+        {
+            if (Application.IsDebuggerAttached)
+                return unhandledExceptionModeDebug;
+            else
+                return unhandledExceptionMode;
         }
 
         /// <summary>
@@ -1145,6 +1349,48 @@ namespace Alternet.UI
             }
         }
 
+        private static void OnLogRefresh()
+        {
+            LogRefresh?.Invoke(Current, EventArgs.Empty);
+        }
+
+        private static void ProcessLogQueue(bool refresh)
+        {
+            if (LogQueue.IsEmpty || LogInUpdates())
+                return;
+
+            LogBeginUpdate();
+            try
+            {
+                while (true)
+                {
+                    if (LogQueue.TryDequeue(out var queueItem))
+                        LogToEvent(queueItem.Kind, queueItem.Msg);
+                    else
+                        break;
+                }
+            }
+            finally
+            {
+                LogEndUpdate();
+            }
+        }
+
+        private static void LogToEvent(LogItemKind kind, params string[] items)
+        {
+            if (LogMessage is null)
+                return;
+
+            LogMessageEventArgs? args = new();
+            args.Kind = kind;
+
+            foreach (string s2 in items)
+            {
+                args.Message = s2;
+                LogMessage(Current, args);
+            }
+        }
+
         private static void WriteToLogFileIfAllowed(string? msg)
         {
             if (!LogFileIsEnabled || msg is null)
@@ -1159,9 +1405,9 @@ namespace Alternet.UI
         }
 
         [return: MaybeNull]
-        private T HandleThreadExceptionsCore<T>(Func<T> func)
+        private static T HandleThreadExceptionsCore<T>(Func<T> func)
         {
-            if (unhandledExceptionMode == UnhandledExceptionMode.ThrowException)
+            if (GetUnhandledExceptionMode() == UnhandledExceptionMode.ThrowException)
                 return func();
 
             try
@@ -1175,9 +1421,9 @@ namespace Alternet.UI
             }
         }
 
-        private void HandleThreadExceptionsCore(Action action)
+        private static void HandleThreadExceptionsCore(Action action)
         {
-            if (unhandledExceptionMode == UnhandledExceptionMode.ThrowException)
+            if (GetUnhandledExceptionMode() == UnhandledExceptionMode.ThrowException)
             {
                 action();
                 return;
@@ -1195,10 +1441,10 @@ namespace Alternet.UI
 
         private void NativeApplication_Idle()
         {
-            if (!IdleTasks.IsEmpty && Application.current?.Windows.Count > 0)
+            if (HasForms)
             {
-                if (IdleTasks.TryDequeue(out var task))
-                    task.Item1(task.Item2);
+                ProcessLogQueue(true);
+                ProcessIdleTasks();
             }
 
             Idle?.Invoke(this, EventArgs.Empty);

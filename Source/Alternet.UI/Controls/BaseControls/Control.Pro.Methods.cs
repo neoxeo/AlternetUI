@@ -205,6 +205,8 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void OnMouseLeftButtonDown(MouseEventArgs e)
         {
+            /*Application.Log($"{GetType()}.OnMouseLeftButtonDown");*/
+
             IsMouseLeftButtonDown = true;
             RaiseCurrentStateChanged();
             Designer?.RaiseMouseLeftButtonDown(this, e);
@@ -494,6 +496,7 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void OnMouseDoubleClick(MouseEventArgs e)
         {
+            LastDoubleClickTimestamp = e.Timestamp;
             MouseDoubleClick?.Invoke(this, e);
         }
 

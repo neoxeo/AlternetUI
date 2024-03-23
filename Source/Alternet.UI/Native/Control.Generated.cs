@@ -24,6 +24,21 @@ namespace Alternet.UI.Native
         {
         }
         
+        public bool BindScrollEvents
+        {
+            get
+            {
+                CheckDisposed();
+                return NativeApi.Control_GetBindScrollEvents_(NativePointer);
+            }
+            
+            set
+            {
+                CheckDisposed();
+                NativeApi.Control_SetBindScrollEvents_(NativePointer, value);
+            }
+        }
+        
         public bool ProcessIdle
         {
             get
@@ -575,6 +590,36 @@ namespace Alternet.UI.Native
             }
         }
         
+        public void SaveScreenshot(string fileName)
+        {
+            CheckDisposed();
+            NativeApi.Control_SaveScreenshot_(NativePointer, fileName);
+        }
+        
+        public void SendSizeEvent()
+        {
+            CheckDisposed();
+            NativeApi.Control_SendSizeEvent_(NativePointer);
+        }
+        
+        public void SendMouseDownEvent(int x, int y)
+        {
+            CheckDisposed();
+            NativeApi.Control_SendMouseDownEvent_(NativePointer, x, y);
+        }
+        
+        public void SendMouseUpEvent(int x, int y)
+        {
+            CheckDisposed();
+            NativeApi.Control_SendMouseUpEvent_(NativePointer, x, y);
+        }
+        
+        public void SetBoundsEx(Alternet.Drawing.RectD rect, int flags)
+        {
+            CheckDisposed();
+            NativeApi.Control_SetBoundsEx_(NativePointer, rect, flags);
+        }
+        
         public System.IntPtr GetContainingSizer()
         {
             CheckDisposed();
@@ -842,34 +887,22 @@ namespace Alternet.UI.Native
             NativeApi.Control_Destroy_(NativePointer);
         }
         
-        public void SaveScreenshot(string fileName)
+        public bool BeginRepositioningChildren()
         {
             CheckDisposed();
-            NativeApi.Control_SaveScreenshot_(NativePointer, fileName);
+            return NativeApi.Control_BeginRepositioningChildren_(NativePointer);
         }
         
-        public void SendSizeEvent()
+        public void EndRepositioningChildren()
         {
             CheckDisposed();
-            NativeApi.Control_SendSizeEvent_(NativePointer);
+            NativeApi.Control_EndRepositioningChildren_(NativePointer);
         }
         
-        public void SendMouseDownEvent(int x, int y)
+        public Alternet.Drawing.RectI GetUpdateClientRect()
         {
             CheckDisposed();
-            NativeApi.Control_SendMouseDownEvent_(NativePointer, x, y);
-        }
-        
-        public void SendMouseUpEvent(int x, int y)
-        {
-            CheckDisposed();
-            NativeApi.Control_SendMouseUpEvent_(NativePointer, x, y);
-        }
-        
-        public void SetBoundsEx(Alternet.Drawing.RectD rect, int flags)
-        {
-            CheckDisposed();
-            NativeApi.Control_SetBoundsEx_(NativePointer, rect, flags);
+            return NativeApi.Control_GetUpdateClientRect_(NativePointer);
         }
         
         public static DrawingContext OpenClientDrawingContextForWindow(System.IntPtr window)
@@ -1034,11 +1067,13 @@ namespace Alternet.UI.Native
             if (!eventCallbackGCHandle.IsAllocated)
             {
                 var sink = new NativeApi.ControlEventCallbackType((obj, e, parameter) =>
-                {
-                    var w = NativeObject.GetFromNativePointer<Control>(obj, null);
-                    if (w == null) return IntPtr.Zero;
-                    return w.OnEvent(e, parameter);
-                }
+                    UI.Application.HandleThreadExceptions(() =>
+                    {
+                        var w = NativeObject.GetFromNativePointer<Control>(obj, null);
+                        if (w == null) return IntPtr.Zero;
+                        return w.OnEvent(e, parameter);
+                    }
+                    )
                 );
                 eventCallbackGCHandle = GCHandle.Alloc(sink);
                 NativeApi.Control_SetEventCallback_(sink);
@@ -1201,6 +1236,12 @@ namespace Alternet.UI.Native
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void Control_SetEventCallback_(ControlEventCallbackType callback);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern bool Control_GetBindScrollEvents_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SetBindScrollEvents_(IntPtr obj, bool value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern bool Control_GetProcessIdle_(IntPtr obj);
@@ -1407,6 +1448,21 @@ namespace Alternet.UI.Native
             public static extern void Control_SetMaximumSize_(IntPtr obj, Alternet.Drawing.SizeD value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SaveScreenshot_(IntPtr obj, string fileName);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SendSizeEvent_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SendMouseDownEvent_(IntPtr obj, int x, int y);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SendMouseUpEvent_(IntPtr obj, int x, int y);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SetBoundsEx_(IntPtr obj, Alternet.Drawing.RectD rect, int flags);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern System.IntPtr Control_GetContainingSizer_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -1536,19 +1592,13 @@ namespace Alternet.UI.Native
             public static extern void Control_Destroy_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SaveScreenshot_(IntPtr obj, string fileName);
+            public static extern bool Control_BeginRepositioningChildren_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SendSizeEvent_(IntPtr obj);
+            public static extern void Control_EndRepositioningChildren_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SendMouseDownEvent_(IntPtr obj, int x, int y);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SendMouseUpEvent_(IntPtr obj, int x, int y);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SetBoundsEx_(IntPtr obj, Alternet.Drawing.RectD rect, int flags);
+            public static extern Alternet.Drawing.RectI Control_GetUpdateClientRect_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern IntPtr Control_OpenClientDrawingContextForWindow_(System.IntPtr window);

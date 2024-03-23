@@ -2,6 +2,90 @@
 
 namespace Alternet::UI
 {
+    void VListBox::ProcessScrollEvent(wxScrollWinEvent& event)
+    {
+        wxEventType evType = event.GetEventType();
+
+        if (evType == wxEVT_SCROLLWIN_TOP)
+        {
+            OnScrollTop(event);
+            return;
+        }
+
+        if (evType == wxEVT_SCROLLWIN_BOTTOM)
+        {
+            OnScrollBottom(event);
+            return;
+        }
+
+        if (evType == wxEVT_SCROLLWIN_LINEUP)
+        {
+            OnScrollLineUp(event);
+            return;
+        }
+        
+        if (evType == wxEVT_SCROLLWIN_LINEDOWN)
+        {
+            OnScrollLineDown(event);
+            return;
+        }
+        
+        if (evType == wxEVT_SCROLLWIN_PAGEUP)
+        {
+            OnScrollPageUp(event);
+            return;
+        }
+        
+        if (evType == wxEVT_SCROLLWIN_PAGEDOWN)
+        {
+            OnScrollPageDown(event);
+            return;
+        }
+        
+        if (evType == wxEVT_SCROLLWIN_THUMBTRACK)
+        {
+            OnScrollThumbTrack(event);
+            return;
+        }
+        
+        if (evType == wxEVT_SCROLLWIN_THUMBRELEASE)
+        {
+            OnScrollThumbRelease(event);
+            return;
+        }     
+    }
+
+    bool VListBox::GetVScrollBarVisible()
+    {
+        return _vScrollBarVisible;
+    }
+
+    void VListBox::SetVScrollBarVisible(bool value)
+    {
+        if (_vScrollBarVisible == value)
+            return;
+        _vScrollBarVisible = value;
+        RecreateWindow();
+    }
+
+    bool VListBox::GetHScrollBarVisible()
+    {
+        return _hScrollBarVisible;
+    }
+
+    void VListBox::SetHScrollBarVisible(bool value)
+    {
+        if (_hScrollBarVisible == value)
+            return;
+        _hScrollBarVisible = value;
+        RecreateWindow();
+    }
+
+    RectI VListBox::GetItemRectI(int index)
+    {
+        return GetListBox()->GetItemRect(index);
+    }
+
     void* VListBox::CreateEx(int64_t styles)
     {
         return new VListBox(styles);
@@ -91,8 +175,9 @@ namespace Alternet::UI
     {
         long style = GetSelectionStyle() | GetBorderStyle();
 
-        if (!hasBorder)
-            style = style | wxBORDER_NONE;
+        style = BuildStyle(style, wxBORDER_NONE, !hasBorder);
+        style = BuildStyle(style, wxHSCROLL, _hScrollBarVisible);
+        style = BuildStyle(style, wxVSCROLL, _vScrollBarVisible);
 
         auto value = new wxVListBox2(
             parent,
@@ -206,7 +291,7 @@ namespace Alternet::UI
 
     void wxVListBox2::OnDrawBackground(wxDC& dc, const wxRect& rect, size_t n) const
     {
-        wxVListBox::OnDrawBackground(dc, rect, n);
+        /*wxVListBox::OnDrawBackground(dc, rect, n);*/
     }
 
     int VListBox::GetVisibleEnd()
@@ -246,6 +331,13 @@ namespace Alternet::UI
     wxCoord wxVListBox2::OnMeasureItem(size_t n) const
     {
         return ((VListBox*)_palControl)->OnMeasureItem(n);
+    }
+
+    void wxVListBox2::ProcessScrollEvent(wxScrollWinEvent& event)
+    {
+        if (event.GetOrientation() == wxVERTICAL)
+            return;
+        ((VListBox*)_palControl)->ProcessScrollEvent(event);
     }
 
     int VListBox::GetFirstSelected()
@@ -308,12 +400,41 @@ namespace Alternet::UI
         }
     }
 
+    bool VListBox::ScrollRows(int rows)
+    {
+        return GetListBox()->ScrollRows(rows);
+    }
+
+    bool VListBox::ScrollRowPages(int pages)
+    {
+        return GetListBox()->ScrollRowPages(pages);
+    }
+
+    void VListBox::RefreshRow(int row)
+    {
+        GetListBox()->RefreshRow(row);
+    }
+
+    void VListBox::RefreshRows(int from, int to)
+    {
+        GetListBox()->RefreshRows(from, to);
+    }
+
+    bool VListBox::IsVisible(int line)
+    {
+        return GetListBox()->IsRowVisible(line);
+    }
+
     void VListBox::EnsureVisible(int itemIndex)
     {
+        GetListBox()->ScrollToRow(itemIndex);
     }
 
     int VListBox::ItemHitTest(const PointD& position)
     {
-        return -1;
+        auto listBox = GetListBox();
+        auto y = fromDip(position.Y, listBox);
+        auto result = listBox->VirtualHitTest(y);
+        return result;
     }
 }

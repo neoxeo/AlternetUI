@@ -1,3 +1,78 @@
+# 0.9.523 (2024 March 21)
+
+- Speedup C++ from/to C# NativeObject conversion. This increases overall application performance.
+- Uixml preview sample. Discussion and screenshot is here: https://github.com/alternetsoft/AlternetUI/discussions/130
+- Updated documentation.
+- ListControltem: SvgImage, SvgImageSize, DoubleClickAction.
+- SvgImage: ImageWithColor, ImageSetWithColor, LoadImage.
+- FileListBox, PreviewUixml, HiddenWindow controls.
+- Application: new static Invoke* methods similar to Control.Invoke* methods.
+
+# 0.9.522 (2024 March 20)
+
+- VCheckListBox.
+- LightDarkColor and LightDarkColors.
+- Improved exception handling. Added exceptions catching on non-Windows machines.
+- Fixed ignored mouse events on Linux.
+- TabControl: changed default border color as it was bad on Macos.
+- TabControl: Increase default tab padding. This is done because on normal dpi display distance was too small.
+
+# 0.9.521 (2024 March 16)
+
+- Splitter: improved painting when resize is done.
+- Improved log handling. Now it works faster and is more thread safe.
+- Changed default color for disabled svg images for light theme.
+- Added SvgImage, MonoSvgImage, ColorSvgImage, TwoColorSvgImage.
+- TextBox changed default error state image/color. Now error back/fore color is not used by default.
+- Fixed uixml and cs in documentation samples.
+- Added Clone and NormalBorderAsHovered to all theme related classes.
+- SpeedButton: DefaultCustomTheme, CustomTheme, StaticBorderTheme
+- SpeedButton.KnownTheme.StaticBorder (new SpeedButton theme with border in the normal state).
+- LogUtils: Add optional Kind param to log methods.
+- ThreadExceptionWindow made public.
+- Application.Run now shows exception dialog when unhandled exception occurs where user can select 
+whether to continue or exit the app.
+- Application: ThreadExceptionExitCode, LogUnhandledThreadException, UnhandledExceptionMode, UnhandledExceptionModeIfDebugger, 
+SetUnhandledExceptionModeIfDebugger, ExitAndTerminate(int exitCode = 0).
+- Graphics.DrawText(string text, PointD origin). Uses Control.DefaultFont and Brush.Default for drawing the text.
+- Graphics.DrawCheckBox, DrawingUtils.GetCheckBoxSize.
+- CustomControlPainter: GetCheckBoxSize, DrawCheckBox, Current.
+- VListBox: implemented checkboxes.
+- VListBox: CheckOnClick, CheckedIndicesDescending, CheckedIndices, CheckedCount, RemoveCheckedItems, ClearChecked, CheckItems, 
+SetItemChecked, SetItemCheckState, CheckedChanged event.
+- Control.MeasureCanvas.
+- Improved Window resize behavior.
+- SplittedTreeAndCards: Now possible to specify kind of the left control (TreeView or VListBox). Added many new props and methods.
+- Control.BindScrollEvents.
+- VListBox.HScrollBarVisible (not finished).
+- Added FromSvgString to Image and ImageSet. These methods are faster than FromSvgStream.
+
+# 0.9.520 (2024 March 13)
+
+- VListBox: SelectionVisible, CurrentItemBorderVisible, TextVisible.
+- Added VListBox/ColorListBox samples to ListBoxes tabs in ControlsSample demo.
+- BorderSettings: ToGrayScale, ToColor(Color).
+- Border side is not painted if color is empty or transparent or not ok.
+- ListControlItem.Border.
+- VListBox: DefaultCurrentItemBorder, CurrentItemBorder, SelectionBorder.
+- DrawingUtils.FillBorderRectangle.
+- GenericLabel: Improved painting and layout.
+- PopupWindow{T}, PopupListBox{T}, PopupColorListBox.
+- SpeedColorButton: PopupWindow, ShowPopupWindow.
+- Improved Application.Log related code.
+
+# 0.9.519 (2024 March 11)
+
+- StringSearch.UseContains. So now it's possible to specify whether to use partial text compare during search operations 
+in any ListControl descendant (ListControl.Search.UseContains).
+- ColorListBox.
+- Control.GetUpdateClientRect.
+- Many bug fixes, new properties and methods in VListBox. This control is ready to use.
+- KnownColorSvgUrls and KnownColorSvgImages.
+- Meny new properties in ListControlItem. Now it allows to specify style of the item (font, color, height, etc.). This is used in VListBox.
+- Application.Log: Added LogItemKind param.
+- LogListBox: shows image near log item.
+
 # 0.9.518 (2024 March 9)
 
 - Image.FromScreen.

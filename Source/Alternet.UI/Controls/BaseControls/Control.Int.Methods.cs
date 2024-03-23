@@ -223,10 +223,13 @@ namespace Alternet.UI
 
         internal void RaiseMouseDown(MouseEventArgs e)
         {
+            /*Application.Log($"{GetType()}.RaiseMouseDown");*/
             OnMouseDown(e);
+            /*Application.Log($"{GetType()}.RaiseMouseDown 2: {e}");*/
 
             if (e.ChangedButton == MouseButton.Left)
             {
+                /*Application.Log($"{GetType()}.RaiseMouseDown 3");*/
                 OnMouseLeftButtonDown(e);
             }
             else if (e.ChangedButton == MouseButton.Right)
@@ -507,6 +510,34 @@ namespace Alternet.UI
                 nativeControl.SetSizer(IntPtr.Zero, deleteOld);
             else
                 nativeControl.SetSizer(sizer.Handle, deleteOld);
+        }
+
+        internal bool BeginRepositioningChildren()
+        {
+            return NativeControl.BeginRepositioningChildren();
+        }
+
+        internal void EndRepositioningChildren()
+        {
+            NativeControl.EndRepositioningChildren();
+        }
+
+        internal void DoInsideRepositioningChildren(Action action)
+        {
+            var repositioning = BeginRepositioningChildren();
+            if (repositioning)
+            {
+                try
+                {
+                    action();
+                }
+                finally
+                {
+                    EndRepositioningChildren();
+                }
+            }
+            else
+                action();
         }
     }
 }

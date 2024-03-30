@@ -1,3 +1,27 @@
+# 0.9.526 (2024 March 26)
+
+- FileListBox.Sorted.
+- PathUtils: PushDirectory, PopDirectory, GetFullPath.
+- Resourceloader: Fix relative to full path conversion.
+- AppUtils.SegmentCommandLine.
+- ListControlItem.CanRemove.
+- VListBox: Invalidated when item added or removed.
+- VListBox: SelectAll, UnselectAll, SetAllSelected.
+- Menu.ForEachItem, MenuItem.EnabledFunc.
+- ListBox: HasItems(), HasSelectedItems(), CanRemoveSelectedItem(), RemoveSelectedItem().
+
+# 0.9.525 (2024 March 25)
+
+- Added controls: PreviewFile, PreviewFileSplitted, PreviewInBrowser, PreviewTextFile, PreviewUixml, PreviewUixmlSplitted.
+- Added FileListBox control.
+- Control.LastDoubleClickTimestamp.
+
+# 0.9.524 (2024 March 22)
+
+- ListBox now calls ListControlItem.DoubleClickAction if it's specified.
+- Regress C++ from/to C# NativeObject conversion as did not work properly on Linux.
+- Different default Border control colors for dark/light themes.
+
 # 0.9.523 (2024 March 21)
 
 - Speedup C++ from/to C# NativeObject conversion. This increases overall application performance.

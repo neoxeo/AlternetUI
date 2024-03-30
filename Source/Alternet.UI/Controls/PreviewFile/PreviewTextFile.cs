@@ -63,6 +63,7 @@ namespace Alternet.UI
         private readonly MultilineTextBox textBox = new()
         {
             HasBorder = false,
+            ReadOnly = true,
         };
 
         private string? fileName;
@@ -129,12 +130,12 @@ namespace Alternet.UI
         {
             textBox.Text = string.Empty;
 
-            if (FileName is null || !File.Exists(FileName))
+            if (FileName is null || !GetFileSystem().FileExists(FileName))
             {
                 return;
             }
 
-            using var stream = File.OpenRead(FileName);
+            using var stream = GetFileSystem().OpenRead(FileName);
 
             Encoding? encoding;
 

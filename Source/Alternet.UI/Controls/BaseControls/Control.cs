@@ -555,7 +555,7 @@ namespace Alternet.UI
             set
             {
                 defaultFont = value;
-                Native.Window.SetParkingWindowFont(value?.NativeFont);
+                Native.Window.SetParkingWindowFont((UI.Native.Font?)value?.NativeObject);
             }
         }
 
@@ -2339,7 +2339,7 @@ namespace Alternet.UI
                 if (foregroundColor.IsEmpty || backgroundColor.IsEmpty)
                     return SystemSettings.IsUsingDarkBackground;
 
-                return ColorUtils.IsDarkBackground(foregroundColor, backgroundColor);
+                return SystemSettings.IsDarkBackground(foregroundColor, backgroundColor);
             }
         }
 

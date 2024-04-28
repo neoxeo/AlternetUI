@@ -7,7 +7,7 @@ using Alternet.UI.Native;
 namespace Alternet.Drawing
 {
     /// <summary>
-    /// Implements platform independant image.
+    /// Implements platform independent image.
     /// </summary>
     public class GenericImage : DisposableObject
     {
@@ -34,7 +34,7 @@ namespace Alternet.Drawing
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage()
-            : base(UI.Native.GenericImage.CreateImage(), true)
+            : this(NativeDrawing.Default.CreateGenericImage(), true)
         {
         }
 
@@ -48,7 +48,7 @@ namespace Alternet.Drawing
         /// <param name="clear">If true, initialize the image to black.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(int width, int height, bool clear = false)
-            : base(UI.Native.GenericImage.CreateImageWithSize(width, height, clear), true)
+            : this(NativeDrawing.Default.CreateGenericImage(width, height, clear), true)
         {
         }
 
@@ -61,7 +61,7 @@ namespace Alternet.Drawing
         /// <param name="clear">If true, initialize the image to black.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(SizeI size, bool clear = false)
-            : base(UI.Native.GenericImage.CreateImageWithSize(size.Width, size.Height, clear), true)
+            : this(NativeDrawing.Default.CreateGenericImage(size.Width, size.Height, clear), true)
         {
         }
 
@@ -81,10 +81,10 @@ namespace Alternet.Drawing
         /// TIFF handler and as the largest and most colorful one by the ICO handler.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(string fileName, BitmapType bitmapType = BitmapType.Any, int index = -1)
-            : base(
-                  UI.Native.GenericImage.CreateImageFromFileWithBitmapType(
+            : this(
+                  NativeDrawing.Default.CreateGenericImage(
                     fileName,
-                    (int)bitmapType,
+                    bitmapType,
                     index), true)
         {
         }
@@ -99,7 +99,7 @@ namespace Alternet.Drawing
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(string name, string mimetype, int index = -1)
-            : base(UI.Native.GenericImage.CreateImageFromFileWithMimeType(name, mimetype, index), true)
+            : this(NativeDrawing.Default.CreateGenericImage(name, mimetype, index), true)
         {
         }
 
@@ -115,7 +115,11 @@ namespace Alternet.Drawing
         /// <see cref="GenericImage(string, BitmapType, int)"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(Stream stream, BitmapType bitmapType = BitmapType.Any, int index = -1)
-            : this(new UI.Native.InputStream(stream), bitmapType, index)
+            : this(
+                  NativeDrawing.Default.CreateGenericImage(
+                      stream,
+                      bitmapType,
+                      index), true)
         {
         }
 
@@ -130,7 +134,11 @@ namespace Alternet.Drawing
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(Stream stream, string mimeType, int index = -1)
-            : this(new UI.Native.InputStream(stream), mimeType, index)
+            : this(
+                  NativeDrawing.Default.CreateGenericImage(
+                      stream,
+                      mimeType,
+                      index), true)
         {
         }
 
@@ -148,8 +156,8 @@ namespace Alternet.Drawing
         /// malloc.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(int width, int height, IntPtr data, bool staticData = false)
-            : base(
-                  UI.Native.GenericImage.CreateImageWithSizeAndData(width, height, data, staticData),
+            : this(
+                  NativeDrawing.Default.CreateGenericImage(width, height, data, staticData),
                   true)
         {
         }
@@ -169,8 +177,8 @@ namespace Alternet.Drawing
         /// malloc.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(int width, int height, IntPtr data, IntPtr alpha, bool staticData = false)
-            : base(
-                  UI.Native.GenericImage.CreateImageWithAlpha(width, height, data, alpha, staticData),
+            : this(
+                  NativeDrawing.Default.CreateGenericImage(width, height, data, alpha, staticData),
                   true)
         {
         }
@@ -179,8 +187,8 @@ namespace Alternet.Drawing
         /// Initializes a new instance of the <see cref="GenericImage"/> class.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal GenericImage(IntPtr handle, bool disposeHandle)
-            : base(handle, disposeHandle)
+        public GenericImage(object handle)
+            : this(handle, true)
         {
         }
 
@@ -188,43 +196,8 @@ namespace Alternet.Drawing
         /// Initializes a new instance of the <see cref="GenericImage"/> class.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal GenericImage(IntPtr handle)
-            : base(handle, true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GenericImage"/> class.
-        /// Creates an image from a stream.
-        /// </summary>
-        /// <param name="stream">Opened input stream from which to load the image.
-        /// Currently, the stream must support seeking.</param>
-        /// <param name="bitmapType">Type of the bitmap. Depending on how library and OS has
-        /// been configured and
-        /// by which handlers have been loaded, not all formats may be available. If value is
-        /// <see cref="BitmapType.Any"/>, function will try to autodetect the format.</param>
-        /// <param name="index"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal GenericImage(InputStream stream, BitmapType bitmapType = BitmapType.Any, int index = -1)
-            : base(
-                  UI.Native.GenericImage.CreateImageFromStreamWithBitmapData(
-                      stream,
-                      (int)bitmapType,
-                      index), true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GenericImage"/> class.
-        /// Creates an image from a stream using MIME-types to specify the type.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal GenericImage(InputStream stream, string mimeType, int index = -1)
-            : base(
-                  UI.Native.GenericImage.CreateImageFromStreamWithMimeType(
-                      stream,
-                      mimeType,
-                      index), true)
+        public GenericImage(object handle, bool disposeHandle)
+            : base((IntPtr)handle, disposeHandle)
         {
         }
 
@@ -233,7 +206,7 @@ namespace Alternet.Drawing
         /// </summary>
         public int Width
         {
-            get => UI.Native.GenericImage.GetWidth(Handle);
+            get => NativeDrawing.Default.GetGenericImageWidth(Handle);
         }
 
         /// <summary>
@@ -241,7 +214,7 @@ namespace Alternet.Drawing
         /// </summary>
         public int Height
         {
-            get => UI.Native.GenericImage.GetHeight(Handle);
+            get => NativeDrawing.Default.GetGenericImageHeight(Handle);
         }
 
         /// <summary>
@@ -249,7 +222,7 @@ namespace Alternet.Drawing
         /// </summary>
         public SizeI Size
         {
-            get => UI.Native.GenericImage.GetSize(Handle);
+            get => new(Width, Height);
         }
 
         /// <summary>
@@ -270,23 +243,8 @@ namespace Alternet.Drawing
         /// </summary>
         public bool IsOk
         {
-            get => UI.Native.GenericImage.IsOk(Handle);
+            get => NativeDrawing.Default.GetGenericImageIsOk(Handle);
         }
-
-        /// <summary>
-        /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
-        /// </summary>
-        public static explicit operator Image(GenericImage image) => new Bitmap(image);
-
-        /// <summary>
-        /// Converts the specified <see cref='GenericImage'/> to a <see cref='Bitmap'/>.
-        /// </summary>
-        public static explicit operator Bitmap(GenericImage image) => new(image);
-
-        /// <summary>
-        /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
-        /// </summary>
-        public static explicit operator GenericImage(Image image) => image.AsGeneric;
 
         /// <summary>
         /// Returns <c>true</c> if at least one of the available image handlers can read the file
@@ -297,7 +255,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool CanRead(string filename)
         {
-            return UI.Native.GenericImage.CanRead(filename);
+            return NativeDrawing.Default.GenericImageCanRead(filename);
         }
 
         /// <summary>
@@ -315,8 +273,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool CanRead(Stream stream)
         {
-            var inputStream = new UI.Native.InputStream(stream);
-            return UI.Native.GenericImage.CanReadStream(inputStream);
+            return NativeDrawing.Default.GenericImageCanRead(stream);
         }
 
         /// <summary>
@@ -330,7 +287,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string GetImageExtWildcard()
         {
-            return UI.Native.GenericImage.GetImageExtWildcard();
+            return NativeDrawing.Default.GetGenericImageExtWildcard();
         }
 
         /// <summary>
@@ -341,7 +298,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool RemoveHandler(string name)
         {
-            return UI.Native.GenericImage.RemoveHandler(name);
+            return NativeDrawing.Default.GenericImageRemoveHandler(name);
         }
 
         /// <summary>
@@ -361,7 +318,7 @@ namespace Alternet.Drawing
             string filename,
             BitmapType bitmapType = BitmapType.Any)
         {
-            return UI.Native.GenericImage.GetImageCountInFile(filename, (int)bitmapType);
+            return NativeDrawing.Default.GetGenericImageCount(filename, bitmapType);
         }
 
         /// <summary>
@@ -382,8 +339,7 @@ namespace Alternet.Drawing
             Stream stream,
             BitmapType bitmapType = BitmapType.Any)
         {
-            var inputStream = new UI.Native.InputStream(stream);
-            return UI.Native.GenericImage.GetImageCountInStream(inputStream, (int)bitmapType);
+            return NativeDrawing.Default.GetGenericImageCount(stream, bitmapType);
         }
 
         /// <summary>
@@ -392,7 +348,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CleanUpHandlers()
         {
-            UI.Native.GenericImage.CleanUpHandlers();
+            NativeDrawing.Default.GenericImageCleanUpHandlers();
         }
 
         /// <summary>
@@ -402,7 +358,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static GenericImageLoadFlags GetDefaultLoadFlags()
         {
-            return (GenericImageLoadFlags)UI.Native.GenericImage.GetDefaultLoadFlags();
+            return NativeDrawing.Default.GetGenericImageDefaultLoadFlags();
         }
 
         /// <summary>
@@ -412,7 +368,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetDefaultLoadFlags(GenericImageLoadFlags flags)
         {
-            UI.Native.GenericImage.SetDefaultLoadFlags((int)flags);
+            NativeDrawing.Default.SetGenericImageDefaultLoadFlags(flags);
         }
 
         /// <summary>
@@ -428,7 +384,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetAlpha(int x, int y, byte alpha)
         {
-            UI.Native.GenericImage.SetAlpha(Handle, x, y, alpha);
+            NativeDrawing.Default.GenericImageSetAlpha(Handle, x, y, alpha);
         }
 
         /// <summary>
@@ -441,7 +397,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearAlpha()
         {
-            UI.Native.GenericImage.ClearAlpha(Handle);
+            NativeDrawing.Default.GenericImageClearAlpha(Handle);
         }
 
         /// <summary>
@@ -451,7 +407,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetMask(bool hasMask = true)
         {
-            UI.Native.GenericImage.SetMask(Handle, hasMask);
+            NativeDrawing.Default.GenericImageSetMask(Handle, hasMask);
         }
 
         /// <summary>
@@ -461,7 +417,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetMaskColor(RGBValue rgb)
         {
-            UI.Native.GenericImage.SetMaskColor(Handle, rgb.R, rgb.G, rgb.B);
+            NativeDrawing.Default.GenericImageSetMaskColor(Handle, rgb);
         }
 
         /// <summary>
@@ -482,9 +438,11 @@ namespace Alternet.Drawing
         /// Executes specified <paramref name="action"/> for the each pixel of the image.
         /// </summary>
         /// <typeparam name="T">Type of the custom value.</typeparam>
-        /// <param name="action">Action to call for the each pixel. <see cref="RGBValue"/> is passed as the first
+        /// <param name="action">Action to call for the each pixel. <see cref="RGBValue"/>
+        /// is passed as the first
         /// parameter of the action.</param>
-        /// <param name="param">Custom value. It is passed to the <paramref name="action"/> as the second parameter.</param>
+        /// <param name="param">Custom value. It is passed to the <paramref name="action"/>
+        /// as the second parameter.</param>
         /// <remarks>
         /// For an example of the action implementation, see source code of the
         /// <see cref="Color.ChangeLightness(ref RGBValue, int)"/> method.
@@ -1651,7 +1609,7 @@ namespace Alternet.Drawing
             UI.Native.GenericImage.SetData(Handle, data, staticData);
         }
 
-        /// <summary>
+        /*/// <summary>
         /// Register an image handler.
         /// </summary>
         /// <param name="handler"></param>
@@ -1714,7 +1672,7 @@ namespace Alternet.Drawing
         internal static void InsertHandler(IntPtr handler)
         {
             UI.Native.GenericImage.InsertHandler(handler);
-        }
+        }*/
 
         /// <inheritdoc/>
         protected override void DisposeUnmanagedResources()

@@ -36,6 +36,8 @@ namespace Alternet.UI
         /// </remarks>
         public const int MouseWheelDeltaForOneLine = 120;
 
+        private static MouseDevice mouseDevice = MouseDevice.Empty;
+
         /// <summary>
         ///     The state of the left button.
         /// </summary>
@@ -65,11 +67,12 @@ namespace Alternet.UI
         {
             get
             {
-                MouseDevice mouseDevice;
-
-                // there is a link demand on the Current property
-                mouseDevice = InputManager.UnsecureCurrent.PrimaryMouseDevice;
                 return mouseDevice;
+            }
+
+            set
+            {
+                mouseDevice = value;
             }
         }
 
@@ -110,9 +113,11 @@ namespace Alternet.UI
         ///     Calculates the position of the mouse relative to
         ///     a particular element.
         /// </summary>
-        public static PointD GetPosition(Control relativeTo)
+        public static PointD GetPosition(Control? relativeTo)
         {
-            return Mouse.PrimaryDevice.GetPosition(relativeTo);
+            if (relativeTo is null)
+                return Mouse.PrimaryDevice.GetScreenPosition();
+            return relativeTo.ScreenToClient(Mouse.PrimaryDevice.GetScreenPosition());
         }
     }
 }

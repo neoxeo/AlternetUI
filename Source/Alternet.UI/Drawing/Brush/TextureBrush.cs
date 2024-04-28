@@ -4,7 +4,7 @@
     /// Defines a brush of a single color. Brushes are used to fill graphics shapes, such
     /// as rectangles, ellipses, pies, polygons, and paths.
     /// </summary>
-    public sealed class TextureBrush : Brush
+    public class TextureBrush : Brush
     {
         private Image image;
 
@@ -14,11 +14,9 @@
         /// <param name="image">An <see cref="Image"/> that represents the texture of
         /// this brush.</param>
         public TextureBrush(Image image)
-            : base(new UI.Native.TextureBrush(), false)
+            : base(false)
         {
             this.image = image;
-            if(image is not null)
-                Initialize(image);
         }
 
         /// <summary>
@@ -35,31 +33,47 @@
                 if (image == value || Immutable)
                     return;
                 image = value;
-                Initialize(image);
+                UpdateRequired = true;
             }
         }
 
         /// <inheritdoc/>
         public override BrushType BrushType => BrushType.Texture;
 
-        private protected override bool EqualsCore(Brush other)
-        {
-            var o = other as TextureBrush;
-            if (o == null)
-                return false;
-            return Image == o.Image;
-        }
-
-        private protected override int GetHashCodeCore() => Image.GetHashCode();
-
-        private protected override string ToStringCore()
+        /// <inheritdoc/>
+        public override string ToString()
         {
             return $"TextureBrush";
         }
 
-        private void Initialize(Image image)
+        /// <summary>
+        /// Serves as the default hash function.
+        /// </summary>
+        /// <returns>A hash code for the current object.</returns>
+        public override int GetHashCode() => Image.GetHashCode();
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        public override bool Equals(object? other)
         {
-            ((UI.Native.TextureBrush)NativeBrush).Initialize(image.NativeImage);
+            var o = other as TextureBrush;
+            if (o == null)
+                return false;
+            CheckDisposed();
+            return Image == o.Image;
+        }
+
+        /// <inheritdoc/>
+        protected override object CreateNativeObject()
+        {
+            return NativeDrawing.Default.CreateTextureBrush();
+        }
+
+        /// <inheritdoc/>
+        protected override void UpdateNativeObject()
+        {
+            ((WxDrawing)NativeDrawing.Default).UpdateTextureBrush(this);
         }
     }
 }

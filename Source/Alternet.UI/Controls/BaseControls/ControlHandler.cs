@@ -600,7 +600,7 @@ namespace Alternet.UI
                     throw new Exception(); // todo: maybe use parking window here?
             }
 
-            return new Graphics(nativeControl.OpenClientDrawingContext());
+            return new WxGraphics(nativeControl.OpenClientDrawingContext());
         }
 
         internal virtual Native.Control CreateNativeControl() =>
@@ -894,7 +894,7 @@ namespace Alternet.UI
         private void ApplyFont()
         {
             if (NativeControl != null)
-                NativeControl.Font = Control.Font?.NativeFont;
+                NativeControl.Font = (UI.Native.Font?)Control.Font?.NativeObject;
 
             Invalidate();
         }
@@ -1108,7 +1108,7 @@ namespace Alternet.UI
                 return;
 
             using var dc =
-                new Graphics(NativeControl.OpenPaintDrawingContext());
+                new WxGraphics(NativeControl.OpenPaintDrawingContext());
 
             Control.RaisePaint(new PaintEventArgs(dc, Control.ClientRectangle));
         }

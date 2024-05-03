@@ -870,13 +870,13 @@ namespace Alternet.UI
                 if (isCurrent && Focused && currentItemBorderVisible)
                 {
                     var border = CurrentItemBorder ?? DefaultCurrentItemBorder;
-                    border?.Draw(this, e.Graphics, rect);
+                    ControlUtils.DrawBorder(this, e.Graphics, rect, border);
                 }
             }
             else
             {
                 var border = item?.Border?.ToGrayScale();
-                border?.Draw(this, e.Graphics, rect);
+                ControlUtils.DrawBorder(this, e.Graphics, rect, border);
             }
         }
 
@@ -1562,7 +1562,7 @@ namespace Alternet.UI
             result.PartState = Enabled
                 ? GenericControlState.Normal : GenericControlState.Disabled;
             result.CheckState = GetItemCheckState(item);
-            result.CheckSize = DrawingUtils.GetCheckBoxSize(this, result.CheckState, result.PartState);
+            result.CheckSize = ControlUtils.GetCheckBoxSize(this, result.CheckState, result.PartState);
             var (checkRect, textRect) = GetItemImageRect(rect, result.CheckSize);
             result.CheckRect = checkRect;
             result.TextRect = textRect;

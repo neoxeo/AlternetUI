@@ -314,7 +314,7 @@ namespace Alternet.UI
         /// If provided, svg fill color is changed to the specified value.</param>
         public static ImageSet LoadSvgImage(string url, Control dpiControl, Color? color = null)
         {
-            return ImageSet.FromSvgUrlForToolbar(url, dpiControl, color);
+            return ControlUtils.FromSvgUrlForToolbar(url, dpiControl, color);
         }
 
         /// <summary>
@@ -362,8 +362,8 @@ namespace Alternet.UI
             NativeControl.AddTool2(
                 toolId,
                 label,
-                bitmap?.NativeImageSet,
-                disabledBitmap?.NativeImageSet,
+                (UI.Native.ImageSet?)bitmap?.NativeObject,
+                (UI.Native.ImageSet?)disabledBitmap?.NativeObject,
                 (int)itemKind.Value,
                 shortHelpString!,
                 longHelpString!,
@@ -811,7 +811,7 @@ namespace Alternet.UI
         {
             if (toolId <= 0)
                 return;
-            NativeControl.SetToolBitmap(toolId, bitmap?.NativeImageSet);
+            NativeControl.SetToolBitmap(toolId, (UI.Native.ImageSet?)bitmap?.NativeObject);
         }
 
         /// <summary>

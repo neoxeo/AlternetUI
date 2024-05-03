@@ -14,7 +14,7 @@ namespace Alternet.UI
     /// your application.</remarks>
     [DesignerCategory("Code")]
     [ControlCategory("Hidden")]
-    public partial class Window : Control
+    public partial class Window : Control, IWindow
     {
         private static RectD defaultBounds = new(100, 100, 400, 400);
         private static int incFontSizeHighDpi = 2;
@@ -515,6 +515,12 @@ namespace Alternet.UI
             }
         }
 
+        IWindow? IWindow.Owner
+        {
+            get => Owner;
+            set => Owner = value as Window;
+        }
+
         /// <summary>
         /// Gets or sets the position of the window when first shown.
         /// </summary>
@@ -922,9 +928,9 @@ namespace Alternet.UI
 
         internal void ApplyStartLocationOnce(Control? owner)
         {
-            if (!StateFlags.HasFlag(ControlFlags.StartLocationApplied))
+            if (!StateFlags.HasFlag(IControl.ControlFlags.StartLocationApplied))
             {
-                StateFlags |= ControlFlags.StartLocationApplied;
+                StateFlags |= IControl.ControlFlags.StartLocationApplied;
                 ApplyStartLocation(owner);
             }
         }

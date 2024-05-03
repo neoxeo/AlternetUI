@@ -242,22 +242,22 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override object CreateImageFromImage(object original, SizeI newSize)
+        public override object CreateImageFromImage(Image original, SizeI newSize)
         {
             throw new NotImplementedException();
         }
 
-        public override object CreateImageFromGenericImage(object genericImage, int depth = -1)
+        public override object CreateImageFromGenericImage(GenericImage genericImage, int depth = -1)
         {
             throw new NotImplementedException();
         }
 
-        public override object CreateImageFromGraphics(int width, int height, object dc)
+        public override object CreateImageFromGraphics(int width, int height, Graphics dc)
         {
             throw new NotImplementedException();
         }
 
-        public override object CreateImageFromGraphicsAndGenericImage(object genericImage, object dc)
+        public override object CreateImageFromGraphicsAndGenericImage(GenericImage genericImage, Graphics dc)
         {
             throw new NotImplementedException();
         }
@@ -757,7 +757,12 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override int GenericImageGetImageType(object genericImage)
+        public override void DisposeGenericImage(object genericImage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override BitmapType GenericImageGetImageType(object genericImage)
         {
             throw new NotImplementedException();
         }
@@ -858,6 +863,506 @@ namespace Alternet.Drawing
         }
 
         public override void GenericImageSetNativeData(object genericImage, IntPtr data, bool staticData = false)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override FillMode GraphicsPathGetFillMode(object graphicsPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathSetFillMode(object graphicsPath, FillMode value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddLines(object graphicsPath, PointD[] points)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddLine(object graphicsPath, PointD pt1, PointD pt2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddLineTo(object graphicsPath, PointD pt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddEllipse(object graphicsPath, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddBezier(object graphicsPath, PointD startPoint, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddBezierTo(object graphicsPath, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddArc(object graphicsPath, PointD center, double radius, double startAngle, double sweepAngle)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddRectangle(object graphicsPath, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathAddRoundedRectangle(object graphicsPath, RectD rect, double cornerRadius)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RectD GraphicsPathGetBounds(object graphicsPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathStartFigure(object graphicsPath, PointD point)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void GraphicsPathCloseFigure(object graphicsPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateGraphicsPath()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateRegion()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateRegion(RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateRegion(object region)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateRegion(PointD[] points, FillMode fillMode = FillMode.Alternate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool RegionIsEmpty(object nativeRegion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool RegionIsOk(object nativeRegion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionClear(object nativeRegion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RegionContain RegionContains(object nativeRegion, PointD pt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RegionContain RegionContains(object nativeRegion, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionIntersect(object nativeRegion, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionIntersect(object nativeRegion1, object nativeRegion2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionUnion(object nativeRegion, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionUnion(object nativeRegion1, object nativeRegion2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionXor(object nativeRegion1, object nativeRegion2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionXor(object nativeRegion, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionSubtract(object nativeRegion, RectD rect)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionSubtract(object nativeRegion1, object nativeRegion2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RegionTranslate(object nativeRegion, double dx, double dy)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RectD RegionGetBounds(object nativeRegion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool RegionEquals(object nativeRegion1, object nativeRegion2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int RegionGetHashCode(object nativeRegion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object ImageConvertToGenericImage(Image image)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void UpdateTextureBrush(TextureBrush brush)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateGraphicsPath(object nativeGraphics)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI ImageListGetPixelImageSize(object imageList)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageListSetPixelImageSize(object imageList, SizeI value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeD ImageListGetImageSize(object imageList)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageListSetImageSize(object imageList, SizeD value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImageList()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageListAdd(object imageList, int index, Image item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageListRemove(object imageList, int index, Image item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void IconSetAdd(object iconSet, Image image)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void IconSetAdd(object iconSet, Stream stream)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void IconSetClear(object iconSet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateIconSet()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool IconSetIsOk(object iconSet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI ImageSetGetPreferredBitmapSizeAtScale(object imageSet, double scale)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageSetAddImage(object imageSet, int index, Image item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageSetRemoveImage(object imageSet, int index, Image item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImageSet()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImageSetFromSvgStream(Stream stream, int width, int height, Color? color = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImageSetFromSvgString(string s, int width, int height, Color? color = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI ImageSetGetDefaultSize(object imageSet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool ImageSetIsOk(object imageSet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool ImageSetIsReadOnly(object imageSet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void ImageSetLoadFromStream(object imageSet, Stream stream)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImage(ImageSet imageSet, SizeI size)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCaret()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCaret(IControl control, int width, int height)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int CaretGetBlinkTime()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CaretSetBlinkTime(int value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI CaretGetSize(object nativeCaret)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CaretSetSize(object nativeCaret, SizeI value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override PointI CaretGetPosition(object nativeCaret)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CaretSetPosition(object nativeCaret, PointI value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CaretIsOk(object nativeCaret)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CaretGetVisible(object nativeCaret)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CaretSetVisible(object nativeCaret, bool value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void DisposeCaret(object nativeCaret)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Graphics CreateGraphicsFromScreen()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Graphics CreateGraphicsFromImage(Image image)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCursor()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCursor(CursorType cursor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCursor(string cursorName, BitmapType type, int hotSpotX = 0, int hotSpotY = 0)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateCursor(Image image)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CursorIsOk(object nativeCursor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override PointI CursorGetHotSpot(object nativeCursor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CursorSetGlobal(object nativeCursor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void DisposeCursor(object nativeCursor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateDisplay()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateDisplay(int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int DisplayGetCount()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int DisplayGetDefaultDPIValue()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI DisplayGetDefaultDPI()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string DisplayGetName(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI DisplayGetDPI(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override double DisplayGetScaleFactor(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool DisplayGetIsPrimary(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RectI DisplayGetClientArea(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override RectI DisplayGetGeometry(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int DisplayGetFromPoint(PointI pt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void DisposeDisplay(object nativeDisplay)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int DisplayGetFromControl(IControl control)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImage(ImageSet imageSet, IControl control)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object CreateImageFromImage(Image image)
         {
             throw new NotImplementedException();
         }

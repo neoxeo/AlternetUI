@@ -202,10 +202,10 @@ namespace Alternet.Drawing
         public byte A => unchecked((byte)(Value >> ARGBAlphaShift));
 
         /// <summary>
-        /// Gets or sets reference to the SkiaSharp color.
+        /// Gets or sets reference to the saved native color.
         /// </summary>
         [Browsable(false)]
-        public object? SkiaColor { get; set; }
+        public object? NativeObject { get; set; }
 
         /// <summary>
         /// Returns <c>true</c> if color is opaque (<see cref="A"/> is 255).
@@ -1194,6 +1194,21 @@ namespace Alternet.Drawing
                 div = (byte.MaxValue * 2) - max - min;
 
             return (max - min) / (double)div;
+        }
+
+        /// <summary>
+        /// Creates <see cref="GenericImage"/> of the specified <paramref name="size"/>
+        /// filled with this color.
+        /// </summary>
+        /// <param name="size">Size of the created image.</param>
+        /// <param name="color">Color.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public GenericImage AsImage(SizeI size)
+        {
+            GenericImage image = new(size.Width, size.Height);
+            image.SetRGBRect(this);
+            return image;
         }
 
         /// <summary>

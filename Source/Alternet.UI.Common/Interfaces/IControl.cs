@@ -351,33 +351,6 @@ namespace Alternet.UI
         event EventHandler? DragLeave;
 
         /// <summary>
-        /// Internal control flags.
-        /// </summary>
-        [Flags]
-        public enum ControlFlags
-        {
-            /// <summary>
-            /// Indicates that <see cref="Parent"/> was already assigned.
-            /// </summary>
-            /// <remarks>
-            /// This flag is set after <see cref="Parent"/> was changed. It can be used
-            /// in the <see cref="ParentChanged"/> event. It allows
-            /// to determine whether <see cref="Parent"/> is changed for the first time.
-            /// </remarks>
-            ParentAssigned = 1,
-
-            /// <summary>
-            /// Indicates that start location was applied to the window.
-            /// </summary>
-            /// <remarks>
-            /// Start location is applied only once.
-            /// This flag is set after start location was applied.
-            /// This flag is used in <see cref="Window"/>.
-            /// </remarks>
-            StartLocationApplied = 2,
-        }
-
-        /// <summary>
         /// Gets <see cref="Graphics"/> which can be used to measure text size
         /// and for other measure purposes.
         /// </summary>
@@ -1003,6 +976,11 @@ namespace Alternet.UI
         Thickness IntrinsicPreferredSizePadding { get; }
 
         /// <summary>
+        /// Gets native control instance.
+        /// </summary>
+        object NativeControl { get; }
+
+        /// <summary>
         /// Gets or sets column index which is used in <see cref="GetColumnGroup"/> and
         /// by the <see cref="Grid"/> control.
         /// </summary>
@@ -1555,9 +1533,7 @@ namespace Alternet.UI
         /// <see cref="OnIdle(EventArgs)"/>.
         /// See <see cref="Idle"/> event description for more details.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        void RaiseIdle(EventArgs e);
+        void RaiseIdle();
 
         /// <summary>
         /// Displays the control to the user.
@@ -1683,11 +1659,6 @@ namespace Alternet.UI
         /// the control.
         /// </summary>
         void Invalidate();
-
-        /// <summary>
-        /// Causes the control to redraw the invalidated regions.
-        /// </summary>
-        void Update();
 
         /// <summary>
         /// Temporarily suspends the layout logic for the control.
@@ -1824,12 +1795,6 @@ namespace Alternet.UI
         /// <see cref="BeginUpdate"/> method.
         /// </summary>
         int EndUpdate();
-
-        /// <summary>
-        /// Initiates invocation of layout changed nethods for this and
-        /// all parent controls.
-        /// </summary>
-        void RaiseLayoutChanged();
 
         /// <summary>
         /// Forces the control to apply layout logic to child controls.
@@ -2201,5 +2166,23 @@ namespace Alternet.UI
         /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
         /// <returns></returns>
         int GetScrollBarMaximum(bool isVertical);
+
+        /// <summary>
+        /// Gets background color from the default attributes.
+        /// </summary>
+        /// <returns></returns>
+        Color? GetDefaultAttributesBgColor();
+
+        /// <summary>
+        /// Gets foreground color from the default attributes.
+        /// </summary>
+        /// <returns></returns>
+        Color? GetDefaultAttributesFgColor();
+
+        /// <summary>
+        /// Gets font from the default attributes.
+        /// </summary>
+        /// <returns></returns>
+        Font? GetDefaultAttributesFont();
     }
 }

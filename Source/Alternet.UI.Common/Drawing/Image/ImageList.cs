@@ -12,7 +12,7 @@ namespace Alternet.Drawing
     /// You can add images to the <see cref="ImageList"/>, and the controls are
     /// able to use the images as they require.
     /// </remarks>
-    public class ImageList : GraphicsObject
+    public class ImageList : HandledObject<object>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageList"/> with default values.
@@ -45,8 +45,8 @@ namespace Alternet.Drawing
         /// </remarks>
         public SizeI PixelImageSize
         {
-            get => NativeDrawing.Default.ImageListGetPixelImageSize(NativeObject);
-            set => NativeDrawing.Default.ImageListSetPixelImageSize(NativeObject, value);
+            get => NativeDrawing.Default.ImageListGetPixelImageSize(this);
+            set => NativeDrawing.Default.ImageListSetPixelImageSize(this, value);
         }
 
         /// <summary>
@@ -64,24 +64,24 @@ namespace Alternet.Drawing
         /// </remarks>
         public SizeD ImageSize
         {
-            get => NativeDrawing.Default.ImageListGetImageSize(NativeObject);
-            set => NativeDrawing.Default.ImageListSetImageSize(NativeObject, value);
+            get => NativeDrawing.Default.ImageListGetImageSize(this);
+            set => NativeDrawing.Default.ImageListSetImageSize(this, value);
         }
 
         /// <inheritdoc/>
-        protected override object CreateNativeObject()
+        protected override object CreateHandler()
         {
             return NativeDrawing.Default.CreateImageList();
         }
 
         private void Images_ItemInserted(object? sender, int index, Image item)
         {
-            NativeDrawing.Default.ImageListAdd(NativeObject, index, item);
+            NativeDrawing.Default.ImageListAdd(this, index, item);
         }
 
         private void Images_ItemRemoved(object? sender, int index, Image item)
         {
-            NativeDrawing.Default.ImageListRemove(NativeObject, index, item);
+            NativeDrawing.Default.ImageListRemove(this, index, item);
         }
     }
 }

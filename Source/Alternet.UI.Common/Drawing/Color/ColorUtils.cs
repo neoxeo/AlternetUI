@@ -303,6 +303,21 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets default border color if no colors are specified for the border.
+        /// </summary>
+        /// <param name="control">Control which background color is checked to get whether
+        /// it is dark.</param>
+        /// <returns></returns>
+        public static Color GetDefaultBorderColor(Control? control)
+        {
+            if (control is null)
+                return BorderSettings.DefaultCommonBorderColor;
+            var isDark = control.IsDarkBackground;
+            return BorderSettings.DefaultColor?.Get(isDark)
+                ?? ColorUtils.GetTabControlInteriorBorderColor(isDark);
+        }
+
+        /// <summary>
         /// Converts <see cref="KnownColor"/> to <see cref="SystemSettingsColor"/>.
         /// </summary>
         /// <param name="color">Color value.</param>
@@ -389,6 +404,75 @@ namespace Alternet.Drawing
                 color,
                 () => { return new KnownColorInfo(color); });
             return result;
+        }
+
+        /// <summary>
+        /// Gets default interior border color of the tab control.
+        /// </summary>
+        /// <returns></returns>
+        public static Color GetTabControlInteriorBorderColor(bool isDark)
+        {
+            if (isDark)
+            {
+                return Color.FromRgb(123, 123, 123);
+            }
+            else
+            {
+                // This is used to get default disabled svg image color for light theme.
+                // So please do not change this value unless you completely sure.
+                return Color.FromRgb(204, 206, 219);
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="IReadOnlyFontAndColor"/> instance for the specified
+        /// <paramref name="method"/>.
+        /// </summary>
+        /// <param name="method">Type of the colors to get.</param>
+        /// <param name="control">Control instance. Used when <paramref name="method"/>
+        /// is <see cref="ResetColorType.DefaultAttributes"/>.</param>
+        /// <param name="renderSize">Rendering size. Used when <paramref name="method"/>
+        /// is <see cref="ResetColorType.DefaultAttributesTextBox"/> or other similar values.
+        /// You can skip this parameter as on most os it is ignored.</param>
+        /// <returns></returns>
+        public static IReadOnlyFontAndColor GetResetColors(
+            ResetColorType method,
+            Control? control = null,
+            ControlRenderSizeVariant renderSize = ControlRenderSizeVariant.Normal)
+        {
+            switch (method)
+            {
+                case ResetColorType.Auto:
+                    return FontAndColor.Null;
+                case ResetColorType.NullColor:
+                    return FontAndColor.Null;
+                case ResetColorType.EmptyColor:
+                    return FontAndColor.Empty;
+                case ResetColorType.DefaultAttributes:
+                    return control?.GetDefaultFontAndColor() ?? FontAndColor.Null;
+                case ResetColorType.DefaultAttributesTextBox:
+                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.TextBox, renderSize);
+                case ResetColorType.DefaultAttributesListBox:
+                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.ListBox, renderSize);
+                case ResetColorType.DefaultAttributesButton:
+                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.Button, renderSize);
+                case ResetColorType.ColorMenu:
+                    return FontAndColor.SystemColorMenu;
+                case ResetColorType.ColorActiveCaption:
+                    return FontAndColor.SystemColorActiveCaption;
+                case ResetColorType.ColorInactiveCaption:
+                    return FontAndColor.SystemColorInactiveCaption;
+                case ResetColorType.ColorInfo:
+                    return FontAndColor.SystemColorInfo;
+                case ResetColorType.ColorWindow:
+                    return FontAndColor.SystemColorWindow;
+                case ResetColorType.ColorHighlight:
+                    return FontAndColor.SystemColorHighlight;
+                case ResetColorType.ColorButtonFace:
+                    return FontAndColor.SystemColorButtonFace;
+                default:
+                    return FontAndColor.Null;
+            }
         }
 
         private static void RegisterKnownColors()

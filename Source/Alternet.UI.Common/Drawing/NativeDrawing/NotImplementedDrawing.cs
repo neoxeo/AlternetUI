@@ -15,16 +15,6 @@ namespace Alternet.Drawing
     /// </summary>
     internal class NotImplementedDrawing : NativeDrawing
     {
-        public override object CreateFont() => NotImplemented();
-
-        public override object CreateDefaultFont() => NotImplemented();
-
-        public override Font CreateSystemFont(SystemSettingsFont systemFont) => NotImplemented<Font>();
-
-        public override object CreateFont(object font) => NotImplemented();
-
-        public override object CreateDefaultMonoFont() => NotImplemented();
-
         public override object CreatePen() => NotImplemented();
 
         public override object CreateTransparentBrush() => NotImplemented();
@@ -43,8 +33,6 @@ namespace Alternet.Drawing
 
         public override void UpdateSolidBrush(SolidBrush brush) => NotImplemented();
 
-        public override void UpdateFont(object font, FontParams prm) => NotImplemented();
-
         public override void UpdateHatchBrush(HatchBrush brush) => NotImplemented();
 
         public override void UpdateLinearGradientBrush(LinearGradientBrush brush) => NotImplemented();
@@ -53,161 +41,122 @@ namespace Alternet.Drawing
 
         public override Color GetColor(SystemSettingsColor index) => NotImplemented<Color>();
 
-        public override string[] GetFontFamiliesNames() => NotImplemented<string[]>();
-
-        public override bool IsFontFamilyValid(string name) => NotImplemented<bool>();
-
-        public override string GetFontFamilyName(GenericFontFamily genericFamily)
-             => NotImplemented<string>();
-
-        public override int GetDefaultFontEncoding() => NotImplemented<int>();
-
-        public override void SetDefaultFontEncoding(int value) => NotImplemented();
-
-        public override string GetFontName(object font) => NotImplemented<string>();
-
-        public override int GetFontEncoding(object font) => NotImplemented<int>();
-
-        public override SizeI GetFontSizeInPixels(object font) => NotImplemented<SizeI>();
-
-        public override bool GetFontIsUsingSizeInPixels(object font) => NotImplemented<bool>();
-
-        public override int GetFontNumericWeight(object font) => NotImplemented<int>();
-
-        public override bool GetFontIsFixedWidth(object font) => NotImplemented<bool>();
-
-        public override FontWeight GetFontWeight(object font) => NotImplemented<FontWeight>();
-
-        public override FontStyle GetFontStyle(object font) => NotImplemented<FontStyle>();
-
-        public override bool GetFontStrikethrough(object font) => NotImplemented<bool>();
-
-        public override bool GetFontUnderlined(object font) => NotImplemented<bool>();
-
-        public override double GetFontSizeInPoints(object font) => NotImplemented<double>();
-
-        public override string GetFontInfoDesc(object font) => NotImplemented<string>();
-
-        public override bool FontEquals(object font1, object font2) => NotImplemented<bool>();
-
-        public override string FontToString(object font) => NotImplemented<string>();
-
-        public override void UpdateTransformMatrix(object matrix, double m11, double m12, double m21, double m22, double dx, double dy)
+        public override void UpdateTransformMatrix(TransformMatrix mtrx, double m11, double m12, double m21, double m22, double dx, double dy)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixM11(object matrix)
+        public override double GetTransformMatrixM11(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixM12(object matrix)
+        public override double GetTransformMatrixM12(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixM21(object matrix)
+        public override double GetTransformMatrixM21(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixM22(object matrix)
+        public override double GetTransformMatrixM22(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixDX(object matrix)
+        public override double GetTransformMatrixDX(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetTransformMatrixDY(object matrix)
+        public override double GetTransformMatrixDY(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GetTransformMatrixIsIdentity(object matrix)
+        public override bool GetTransformMatrixIsIdentity(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override void ResetTransformMatrix(object matrix)
+        public override void ResetTransformMatrix(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override void MultiplyTransformMatrix(object matrix1, object matrix2)
+        public override void MultiplyTransformMatrix(TransformMatrix mtrx1, TransformMatrix mtrx2)
         {
             throw new NotImplementedException();
         }
 
-        public override void TranslateTransformMatrix(object matrix, double offsetX, double offsetY)
+        public override void TranslateTransformMatrix(TransformMatrix mtrx, double offsetX, double offsetY)
         {
             throw new NotImplementedException();
         }
 
-        public override void ScaleTransformMatrix(object matrix, double scaleX, double scaleY)
+        public override void ScaleTransformMatrix(TransformMatrix mtrx, double scaleX, double scaleY)
         {
             throw new NotImplementedException();
         }
 
-        public override void RotateTransformMatrix(object matrix, double angle)
+        public override void RotateTransformMatrix(TransformMatrix mtrx, double angle)
         {
             throw new NotImplementedException();
         }
 
-        public override void InvertTransformMatrix(object matrix)
+        public override void InvertTransformMatrix(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixM11(object matrix, double value)
+        public override void SetTransformMatrixM11(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixM12(object matrix, double value)
+        public override void SetTransformMatrixM12(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixM21(object matrix, double value)
+        public override void SetTransformMatrixM21(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixM22(object matrix, double value)
+        public override void SetTransformMatrixM22(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixDX(object matrix, double value)
+        public override void SetTransformMatrixDX(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetTransformMatrixDY(object matrix, double value)
+        public override void SetTransformMatrixDY(TransformMatrix mtrx, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override PointD TransformMatrixOnPoint(object matrix, PointD point)
+        public override PointD TransformMatrixOnPoint(TransformMatrix mtrx, PointD point)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeD TransformMatrixOnSize(object matrix, SizeD size)
+        public override SizeD TransformMatrixOnSize(TransformMatrix mtrx, SizeD size)
         {
             throw new NotImplementedException();
         }
 
-        public override bool TransformMatrixEquals(object matrix1, object matrix2)
+        public override bool TransformMatrixEquals(TransformMatrix mtrx1, TransformMatrix mtrx2)
         {
             throw new NotImplementedException();
         }
 
-        public override int TransformMatrixGetHashCode(object matrix)
+        public override int TransformMatrixGetHashCode(TransformMatrix mtrx)
         {
             throw new NotImplementedException();
         }
@@ -222,22 +171,22 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool ImageSave(object image, string fileName)
+        public override bool ImageSave(Image img, string fileName)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageSave(object image, Stream stream, ImageFormat format)
+        public override bool ImageSave(Image img, Stream stream, ImageFormat format)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI GetImagePixelSize(object image)
+        public override SizeI GetImagePixelSize(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageLoadFromStream(object image, Stream stream)
+        public override bool ImageLoadFromStream(Image img, Stream stream)
         {
             throw new NotImplementedException();
         }
@@ -272,47 +221,47 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool GetImageHasAlpha(object image)
+        public override bool GetImageHasAlpha(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetImageHasAlpha(object image, bool hasAlpha)
+        public override void SetImageHasAlpha(Image img, bool hasAlpha)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetImageScaleFactor(object image)
+        public override double GetImageScaleFactor(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override void SetImageScaleFactor(object image, double value)
+        public override void SetImageScaleFactor(Image img, double value)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI GetImageDipSize(object image)
+        public override SizeI GetImageDipSize(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetImageScaledHeight(object image)
+        public override double GetImageScaledHeight(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI GetImageScaledSize(object image)
+        public override SizeI GetImageScaledSize(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override double GetImageScaledWidth(object image)
+        public override double GetImageScaledWidth(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override int GetImageDepth(object image)
+        public override int GetImageDepth(Image img)
         {
             throw new NotImplementedException();
         }
@@ -332,47 +281,47 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool ImageLoad(object image, string name, BitmapType type)
+        public override bool ImageLoad(Image img, string name, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageSaveToFile(object image, string name, BitmapType type)
+        public override bool ImageSaveToFile(Image img, string name, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageSaveToStream(object image, Stream stream, BitmapType type)
+        public override bool ImageSaveToStream(Image img, Stream stream, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageLoadFromStream(object image, Stream stream, BitmapType type)
+        public override bool ImageLoadFromStream(Image img, Stream stream, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override object ImageGetSubBitmap(object image, RectI rect)
+        public override object ImageGetSubBitmap(Image img, RectI rect)
         {
             throw new NotImplementedException();
         }
 
-        public override object ImageConvertToDisabled(object image, byte brightness = 255)
+        public override object ImageConvertToDisabled(Image img, byte brightness = 255)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageRescale(object image, SizeI sizeNeeded)
+        public override void ImageRescale(Image img, SizeI sizeNeeded)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageResetAlpha(object image)
+        public override void ImageResetAlpha(Image img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GetImageIsOk(object image)
+        public override bool GetImageIsOk(Image img)
         {
             throw new NotImplementedException();
         }
@@ -422,17 +371,17 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override int GetGenericImageWidth(object genericImage)
+        public override int GetGenericImageWidth(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override int GetGenericImageHeight(object genericImage)
+        public override int GetGenericImageHeight(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GetGenericImageIsOk(object genericImage)
+        public override bool GetGenericImageIsOk(GenericImage img)
         {
             throw new NotImplementedException();
         }
@@ -482,457 +431,457 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetAlpha(object genericImage, int x, int y, byte alpha)
+        public override void GenericImageSetAlpha(GenericImage img, int x, int y, byte alpha)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageClearAlpha(object genericImage)
+        public override void GenericImageClearAlpha(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetMask(object genericImage, bool hasMask = true)
+        public override void GenericImageSetMask(GenericImage img, bool hasMask = true)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetMaskColor(object genericImage, RGBValue rgb)
+        public override void GenericImageSetMaskColor(GenericImage img, RGBValue rgb)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSetMaskFromImage(object image1, object image2, RGBValue mask)
+        public override bool GenericImageSetMaskFromImage(GenericImage img1, GenericImage img2, RGBValue mask)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetOptionAsString(object genericImage, string name, string value)
+        public override void GenericImageSetOptionAsString(GenericImage img, string name, string value)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetOptionAsInt(object genericImage, string name, int value)
+        public override void GenericImageSetOptionAsInt(GenericImage img, string name, int value)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetRGB(object genericImage, int x, int y, RGBValue rgb)
+        public override void GenericImageSetRGB(GenericImage img, int x, int y, RGBValue rgb)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetRGBRect(object genericImage, RGBValue rgb, RectI? rect = null)
+        public override void GenericImageSetRGBRect(GenericImage img, RGBValue rgb, RectI? rect = null)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetImageType(object genericImage, BitmapType type)
+        public override void GenericImageSetImageType(GenericImage img, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageCopy(object genericImage)
+        public override GenericImage GenericImageCopy(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageReset(object genericImage, int width, int height, bool clear = false)
+        public override bool GenericImageReset(GenericImage img, int width, int height, bool clear = false)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageClear(object genericImage, byte value = 0)
+        public override void GenericImageClear(GenericImage img, byte value = 0)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageReset(object genericImage)
+        public override void GenericImageReset(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override Color GenericImageFindFirstUnusedColor(object genericImage, RGBValue? startRGB = null)
+        public override Color GenericImageFindFirstUnusedColor(GenericImage img, RGBValue? startRGB = null)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageInitAlpha(object genericImage)
+        public override void GenericImageInitAlpha(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageBlur(object genericImage, int blurRadius)
+        public override GenericImage GenericImageBlur(GenericImage img, int blurRadius)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageBlurHorizontal(object genericImage, int blurRadius)
+        public override GenericImage GenericImageBlurHorizontal(GenericImage img, int blurRadius)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageBlurVertical(object genericImage, int blurRadius)
+        public override GenericImage GenericImageBlurVertical(GenericImage img, int blurRadius)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageMirror(object genericImage, bool horizontally = true)
+        public override GenericImage GenericImageMirror(GenericImage img, bool horizontally = true)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImagePaste(object genericImage1, object genericImage2, int x, int y, GenericImageAlphaBlendMode alphaBlend = GenericImageAlphaBlendMode.Overwrite)
+        public override void GenericImagePaste(GenericImage img1, GenericImage img2, int x, int y, GenericImageAlphaBlendMode alphaBlend = GenericImageAlphaBlendMode.Overwrite)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageReplace(object genericImage, RGBValue r1, RGBValue r2)
+        public override void GenericImageReplace(GenericImage img, RGBValue r1, RGBValue r2)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageRescale(object genericImage, int width, int height, GenericImageResizeQuality quality = GenericImageResizeQuality.Nearest)
+        public override void GenericImageRescale(GenericImage img, int width, int height, GenericImageResizeQuality quality = GenericImageResizeQuality.Nearest)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageResizeNoScale(object genericImage, SizeI size, PointI pos, RGBValue? color = null)
+        public override void GenericImageResizeNoScale(GenericImage img, SizeI size, PointI pos, RGBValue? color = null)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageSizeNoScale(object genericImage, SizeI size, PointI pos = default, RGBValue? color = null)
+        public override GenericImage GenericImageSizeNoScale(GenericImage img, SizeI size, PointI pos = default, RGBValue? color = null)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageRotate90(object genericImage, bool clockwise = true)
+        public override GenericImage GenericImageRotate90(GenericImage img, bool clockwise = true)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageRotate180(object genericImage)
+        public override GenericImage GenericImageRotate180(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageRotateHue(object genericImage, double angle)
+        public override void GenericImageRotateHue(GenericImage img, double angle)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageChangeSaturation(object genericImage, double factor)
+        public override void GenericImageChangeSaturation(GenericImage img, double factor)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageChangeBrightness(object genericImage, double factor)
+        public override void GenericImageChangeBrightness(GenericImage img, double factor)
         {
             throw new NotImplementedException();
         }
 
-        public override GenericImageLoadFlags GenericImageGetLoadFlags(object genericImage)
+        public override GenericImageLoadFlags GenericImageGetLoadFlags(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetLoadFlags(object genericImage, GenericImageLoadFlags flags)
+        public override void GenericImageSetLoadFlags(GenericImage img, GenericImageLoadFlags flags)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageChangeHSV(object genericImage, double angleH, double factorS, double factorV)
+        public override void GenericImageChangeHSV(GenericImage img, double angleH, double factorS, double factorV)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageScale(object genericImage, int width, int height, GenericImageResizeQuality quality = GenericImageResizeQuality.Nearest)
+        public override GenericImage GenericImageScale(GenericImage img, int width, int height, GenericImageResizeQuality quality = GenericImageResizeQuality.Nearest)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageConvertAlphaToMask(object genericImage, byte threshold)
+        public override bool GenericImageConvertAlphaToMask(GenericImage img, byte threshold)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageConvertAlphaToMask(object genericImage, RGBValue rgb, byte threshold)
+        public override bool GenericImageConvertAlphaToMask(GenericImage img, RGBValue rgb, byte threshold)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageConvertToGreyscale(object genericImage, double weightR, double weightG, double weightB)
+        public override GenericImage GenericImageConvertToGreyscale(GenericImage img, double weightR, double weightG, double weightB)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageConvertToGreyscale(object genericImage)
+        public override GenericImage GenericImageConvertToGreyscale(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageConvertToMono(object genericImage, RGBValue rgb)
+        public override GenericImage GenericImageConvertToMono(GenericImage img, RGBValue rgb)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageConvertToDisabled(object genericImage, byte brightness = 255)
+        public override GenericImage GenericImageConvertToDisabled(GenericImage img, byte brightness = 255)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageChangeLightness(object genericImage, int ialpha)
+        public override GenericImage GenericImageChangeLightness(GenericImage img, int ialpha)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetAlpha(object genericImage, int x, int y)
+        public override byte GenericImageGetAlpha(GenericImage img, int x, int y)
         {
             throw new NotImplementedException();
         }
 
-        public override RGBValue GenericImageGetRGB(object genericImage, int x, int y)
+        public override RGBValue GenericImageGetRGB(GenericImage img, int x, int y)
         {
             throw new NotImplementedException();
         }
 
-        public override Color GenericImageGetPixel(object genericImage, int x, int y, bool withAlpha = false)
+        public override Color GenericImageGetPixel(GenericImage img, int x, int y, bool withAlpha = false)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetPixel(object genericImage, int x, int y, Color color, bool withAlpha = false)
+        public override void GenericImageSetPixel(GenericImage img, int x, int y, Color color, bool withAlpha = false)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetRed(object genericImage, int x, int y)
+        public override byte GenericImageGetRed(GenericImage img, int x, int y)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetGreen(object genericImage, int x, int y)
+        public override byte GenericImageGetGreen(GenericImage img, int x, int y)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetBlue(object genericImage, int x, int y)
+        public override byte GenericImageGetBlue(GenericImage img, int x, int y)
         {
             throw new NotImplementedException();
         }
 
-        public override RGBValue GenericImageGetMaskRGB(object genericImage)
+        public override RGBValue GenericImageGetMaskRGB(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetMaskRed(object genericImage)
+        public override byte GenericImageGetMaskRed(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetMaskGreen(object genericImage)
+        public override byte GenericImageGetMaskGreen(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override byte GenericImageGetMaskBlue(object genericImage)
+        public override byte GenericImageGetMaskBlue(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override string GenericImageGetOptionAsString(object genericImage, string name)
+        public override string GenericImageGetOptionAsString(GenericImage img, string name)
         {
             throw new NotImplementedException();
         }
 
-        public override int GenericImageGetOptionAsInt(object genericImage, string name)
+        public override int GenericImageGetOptionAsInt(GenericImage img, string name)
         {
             throw new NotImplementedException();
         }
 
-        public override object GenericImageGetSubImage(object genericImage, RectI rect)
+        public override GenericImage GenericImageGetSubImage(GenericImage img, RectI rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void DisposeGenericImage(object genericImage)
+        public override void DisposeGenericImage(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override BitmapType GenericImageGetImageType(object genericImage)
+        public override BitmapType GenericImageGetImageType(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageHasAlpha(object genericImage)
+        public override bool GenericImageHasAlpha(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageHasMask(object genericImage)
+        public override bool GenericImageHasMask(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageHasOption(object genericImage, string name)
+        public override bool GenericImageHasOption(GenericImage img, string name)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageIsTransparent(object genericImage, int x, int y, byte threshold)
+        public override bool GenericImageIsTransparent(GenericImage img, int x, int y, byte threshold)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageLoadFromStream(object genericImage, Stream stream, BitmapType bitmapType = BitmapType.Any, int index = -1)
+        public override bool GenericImageLoadFromStream(GenericImage img, Stream stream, BitmapType bitmapType = BitmapType.Any, int index = -1)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageLoadFromFile(object genericImage, string filename, BitmapType bitmapType = BitmapType.Any, int index = -1)
+        public override bool GenericImageLoadFromFile(GenericImage img, string filename, BitmapType bitmapType = BitmapType.Any, int index = -1)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageLoadFromFile(object genericImage, string name, string mimetype, int index = -1)
+        public override bool GenericImageLoadFromFile(GenericImage img, string name, string mimetype, int index = -1)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageLoadFromStream(object genericImage, Stream stream, string mimetype, int index = -1)
+        public override bool GenericImageLoadFromStream(GenericImage img, Stream stream, string mimetype, int index = -1)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSaveToStream(object genericImage, Stream stream, string mimetype)
+        public override bool GenericImageSaveToStream(GenericImage img, Stream stream, string mimetype)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSaveToFile(object genericImage, string filename, BitmapType bitmapType)
+        public override bool GenericImageSaveToFile(GenericImage img, string filename, BitmapType bitmapType)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSaveToFile(object genericImage, string filename, string mimetype)
+        public override bool GenericImageSaveToFile(GenericImage img, string filename, string mimetype)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSaveToFile(object genericImage, string filename)
+        public override bool GenericImageSaveToFile(GenericImage img, string filename)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageSaveToStream(object genericImage, Stream stream, BitmapType type)
+        public override bool GenericImageSaveToStream(GenericImage img, Stream stream, BitmapType type)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetNativeData(object genericImage, IntPtr data, int new_width, int new_height, bool static_data = false)
+        public override void GenericImageSetNativeData(GenericImage img, IntPtr data, int new_width, int new_height, bool static_data = false)
         {
             throw new NotImplementedException();
         }
 
-        public override IntPtr GenericImageGetNativeAlphaData(object genericImage)
+        public override IntPtr GenericImageGetNativeAlphaData(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override IntPtr GenericImageGetNativeData(object genericImage)
+        public override IntPtr GenericImageGetNativeData(GenericImage img)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageCreateNativeData(object genericImage, int width, int height, IntPtr data, bool staticData = false)
+        public override bool GenericImageCreateNativeData(GenericImage img, int width, int height, IntPtr data, bool staticData = false)
         {
             throw new NotImplementedException();
         }
 
-        public override bool GenericImageCreateNativeData(object genericImage, int width, int height, IntPtr data, IntPtr alpha, bool staticData = false)
+        public override bool GenericImageCreateNativeData(GenericImage img, int width, int height, IntPtr data, IntPtr alpha, bool staticData = false)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetNativeAlphaData(object genericImage, IntPtr alpha = default, bool staticData = false)
+        public override void GenericImageSetNativeAlphaData(GenericImage img, IntPtr alpha = default, bool staticData = false)
         {
             throw new NotImplementedException();
         }
 
-        public override void GenericImageSetNativeData(object genericImage, IntPtr data, bool staticData = false)
+        public override void GenericImageSetNativeData(GenericImage img, IntPtr data, bool staticData = false)
         {
             throw new NotImplementedException();
         }
 
-        public override FillMode GraphicsPathGetFillMode(object graphicsPath)
+        public override FillMode GraphicsPathGetFillMode(GraphicsPath graphicsPath)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathSetFillMode(object graphicsPath, FillMode value)
+        public override void GraphicsPathSetFillMode(GraphicsPath graphicsPath, FillMode value)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddLines(object graphicsPath, PointD[] points)
+        public override void GraphicsPathAddLines(GraphicsPath graphicsPath, PointD[] points)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddLine(object graphicsPath, PointD pt1, PointD pt2)
+        public override void GraphicsPathAddLine(GraphicsPath graphicsPath, PointD pt1, PointD pt2)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddLineTo(object graphicsPath, PointD pt)
+        public override void GraphicsPathAddLineTo(GraphicsPath graphicsPath, PointD pt)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddEllipse(object graphicsPath, RectD rect)
+        public override void GraphicsPathAddEllipse(GraphicsPath graphicsPath, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddBezier(object graphicsPath, PointD startPoint, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
+        public override void GraphicsPathAddBezier(GraphicsPath graphicsPath, PointD startPoint, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddBezierTo(object graphicsPath, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
+        public override void GraphicsPathAddBezierTo(GraphicsPath graphicsPath, PointD controlPoint1, PointD controlPoint2, PointD endPoint)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddArc(object graphicsPath, PointD center, double radius, double startAngle, double sweepAngle)
+        public override void GraphicsPathAddArc(GraphicsPath graphicsPath, PointD center, double radius, double startAngle, double sweepAngle)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddRectangle(object graphicsPath, RectD rect)
+        public override void GraphicsPathAddRectangle(GraphicsPath graphicsPath, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathAddRoundedRectangle(object graphicsPath, RectD rect, double cornerRadius)
+        public override void GraphicsPathAddRoundedRectangle(GraphicsPath graphicsPath, RectD rect, double cornerRadius)
         {
             throw new NotImplementedException();
         }
 
-        public override RectD GraphicsPathGetBounds(object graphicsPath)
+        public override RectD GraphicsPathGetBounds(GraphicsPath graphicsPath)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathStartFigure(object graphicsPath, PointD point)
+        public override void GraphicsPathStartFigure(GraphicsPath graphicsPath, PointD point)
         {
             throw new NotImplementedException();
         }
 
-        public override void GraphicsPathCloseFigure(object graphicsPath)
+        public override void GraphicsPathCloseFigure(GraphicsPath graphicsPath)
         {
             throw new NotImplementedException();
         }
@@ -952,7 +901,7 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override object CreateRegion(object region)
+        public override object CreateRegion(Region region)
         {
             throw new NotImplementedException();
         }
@@ -962,87 +911,87 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool RegionIsEmpty(object nativeRegion)
+        public override bool RegionIsEmpty(Region region)
         {
             throw new NotImplementedException();
         }
 
-        public override bool RegionIsOk(object nativeRegion)
+        public override bool RegionIsOk(Region region)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionClear(object nativeRegion)
+        public override void RegionClear(Region region)
         {
             throw new NotImplementedException();
         }
 
-        public override RegionContain RegionContains(object nativeRegion, PointD pt)
+        public override RegionContain RegionContains(Region region, PointD pt)
         {
             throw new NotImplementedException();
         }
 
-        public override RegionContain RegionContains(object nativeRegion, RectD rect)
+        public override RegionContain RegionContains(Region region, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionIntersect(object nativeRegion, RectD rect)
+        public override void RegionIntersect(Region region, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionIntersect(object nativeRegion1, object nativeRegion2)
+        public override void RegionIntersect(Region region1, Region region2)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionUnion(object nativeRegion, RectD rect)
+        public override void RegionUnion(Region region, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionUnion(object nativeRegion1, object nativeRegion2)
+        public override void RegionUnion(Region region1, Region region2)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionXor(object nativeRegion1, object nativeRegion2)
+        public override void RegionXor(Region region1, Region region2)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionXor(object nativeRegion, RectD rect)
+        public override void RegionXor(Region region, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionSubtract(object nativeRegion, RectD rect)
+        public override void RegionSubtract(Region region, RectD rect)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionSubtract(object nativeRegion1, object nativeRegion2)
+        public override void RegionSubtract(Region region1, Region region2)
         {
             throw new NotImplementedException();
         }
 
-        public override void RegionTranslate(object nativeRegion, double dx, double dy)
+        public override void RegionTranslate(Region region, double dx, double dy)
         {
             throw new NotImplementedException();
         }
 
-        public override RectD RegionGetBounds(object nativeRegion)
+        public override RectD RegionGetBounds(Region region)
         {
             throw new NotImplementedException();
         }
 
-        public override bool RegionEquals(object nativeRegion1, object nativeRegion2)
+        public override bool RegionEquals(Region region1, Region region2)
         {
             throw new NotImplementedException();
         }
 
-        public override int RegionGetHashCode(object nativeRegion)
+        public override int RegionGetHashCode(Region region)
         {
             throw new NotImplementedException();
         }
@@ -1057,27 +1006,27 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override object CreateGraphicsPath(object nativeGraphics)
+        public override object CreateGraphicsPath(Graphics graphics)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI ImageListGetPixelImageSize(object imageList)
+        public override SizeI ImageListGetPixelImageSize(ImageList imageList)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageListSetPixelImageSize(object imageList, SizeI value)
+        public override void ImageListSetPixelImageSize(ImageList imageList, SizeI value)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeD ImageListGetImageSize(object imageList)
+        public override SizeD ImageListGetImageSize(ImageList imageList)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageListSetImageSize(object imageList, SizeD value)
+        public override void ImageListSetImageSize(ImageList imageList, SizeD value)
         {
             throw new NotImplementedException();
         }
@@ -1087,27 +1036,27 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override void ImageListAdd(object imageList, int index, Image item)
+        public override void ImageListAdd(ImageList imageList, int index, Image item)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageListRemove(object imageList, int index, Image item)
+        public override void ImageListRemove(ImageList imageList, int index, Image item)
         {
             throw new NotImplementedException();
         }
 
-        public override void IconSetAdd(object iconSet, Image image)
+        public override void IconSetAdd(IconSet iconSet, Image image)
         {
             throw new NotImplementedException();
         }
 
-        public override void IconSetAdd(object iconSet, Stream stream)
+        public override void IconSetAdd(IconSet iconSet, Stream stream)
         {
             throw new NotImplementedException();
         }
 
-        public override void IconSetClear(object iconSet)
+        public override void IconSetClear(IconSet iconSet)
         {
             throw new NotImplementedException();
         }
@@ -1117,22 +1066,22 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool IconSetIsOk(object iconSet)
+        public override bool IconSetIsOk(IconSet iconSet)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI ImageSetGetPreferredBitmapSizeAtScale(object imageSet, double scale)
+        public override SizeI ImageSetGetPreferredBitmapSizeAtScale(ImageSet imageSet, double scale)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageSetAddImage(object imageSet, int index, Image item)
+        public override void ImageSetAddImage(ImageSet imageSet, int index, Image item)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageSetRemoveImage(object imageSet, int index, Image item)
+        public override void ImageSetRemoveImage(ImageSet imageSet, int index, Image item)
         {
             throw new NotImplementedException();
         }
@@ -1152,22 +1101,22 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override SizeI ImageSetGetDefaultSize(object imageSet)
+        public override SizeI ImageSetGetDefaultSize(ImageSet imageSet)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageSetIsOk(object imageSet)
+        public override bool ImageSetIsOk(ImageSet imageSet)
         {
             throw new NotImplementedException();
         }
 
-        public override bool ImageSetIsReadOnly(object imageSet)
+        public override bool ImageSetIsReadOnly(ImageSet imageSet)
         {
             throw new NotImplementedException();
         }
 
-        public override void ImageSetLoadFromStream(object imageSet, Stream stream)
+        public override void ImageSetLoadFromStream(ImageSet imageSet, Stream stream)
         {
             throw new NotImplementedException();
         }
@@ -1197,42 +1146,42 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override SizeI CaretGetSize(object nativeCaret)
+        public override SizeI CaretGetSize(Caret caret)
         {
             throw new NotImplementedException();
         }
 
-        public override void CaretSetSize(object nativeCaret, SizeI value)
+        public override void CaretSetSize(Caret caret, SizeI value)
         {
             throw new NotImplementedException();
         }
 
-        public override PointI CaretGetPosition(object nativeCaret)
+        public override PointI CaretGetPosition(Caret caret)
         {
             throw new NotImplementedException();
         }
 
-        public override void CaretSetPosition(object nativeCaret, PointI value)
+        public override void CaretSetPosition(Caret caret, PointI value)
         {
             throw new NotImplementedException();
         }
 
-        public override bool CaretIsOk(object nativeCaret)
+        public override bool CaretIsOk(Caret caret)
         {
             throw new NotImplementedException();
         }
 
-        public override bool CaretGetVisible(object nativeCaret)
+        public override bool CaretGetVisible(Caret caret)
         {
             throw new NotImplementedException();
         }
 
-        public override void CaretSetVisible(object nativeCaret, bool value)
+        public override void CaretSetVisible(Caret caret, bool value)
         {
             throw new NotImplementedException();
         }
 
-        public override void DisposeCaret(object nativeCaret)
+        public override void DisposeCaret(Caret caret)
         {
             throw new NotImplementedException();
         }
@@ -1267,22 +1216,22 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override bool CursorIsOk(object nativeCursor)
+        public override bool CursorIsOk(Cursor cursor)
         {
             throw new NotImplementedException();
         }
 
-        public override PointI CursorGetHotSpot(object nativeCursor)
+        public override PointI CursorGetHotSpot(Cursor cursor)
         {
             throw new NotImplementedException();
         }
 
-        public override void CursorSetGlobal(object nativeCursor)
+        public override void CursorSetGlobal(Cursor? cursor)
         {
             throw new NotImplementedException();
         }
 
-        public override void DisposeCursor(object nativeCursor)
+        public override void DisposeCursor(Cursor cursor)
         {
             throw new NotImplementedException();
         }
@@ -1312,32 +1261,32 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override string DisplayGetName(object nativeDisplay)
+        public override string DisplayGetName(Display display)
         {
             throw new NotImplementedException();
         }
 
-        public override SizeI DisplayGetDPI(object nativeDisplay)
+        public override SizeI DisplayGetDPI(Display display)
         {
             throw new NotImplementedException();
         }
 
-        public override double DisplayGetScaleFactor(object nativeDisplay)
+        public override double DisplayGetScaleFactor(Display display)
         {
             throw new NotImplementedException();
         }
 
-        public override bool DisplayGetIsPrimary(object nativeDisplay)
+        public override bool DisplayGetIsPrimary(Display display)
         {
             throw new NotImplementedException();
         }
 
-        public override RectI DisplayGetClientArea(object nativeDisplay)
+        public override RectI DisplayGetClientArea(Display display)
         {
             throw new NotImplementedException();
         }
 
-        public override RectI DisplayGetGeometry(object nativeDisplay)
+        public override RectI DisplayGetGeometry(Display display)
         {
             throw new NotImplementedException();
         }
@@ -1347,7 +1296,7 @@ namespace Alternet.Drawing
             throw new NotImplementedException();
         }
 
-        public override void DisposeDisplay(object nativeDisplay)
+        public override void DisposeDisplay(Display display)
         {
             throw new NotImplementedException();
         }
@@ -1363,6 +1312,11 @@ namespace Alternet.Drawing
         }
 
         public override object CreateImageFromImage(Image image)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SizeI ImageSetGetPreferredBitmapSizeFor(ImageSet imageSet, IControl control)
         {
             throw new NotImplementedException();
         }

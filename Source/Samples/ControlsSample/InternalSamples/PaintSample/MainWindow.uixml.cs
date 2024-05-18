@@ -15,7 +15,7 @@ namespace PaintSample
         private readonly UndoService? undoService;
 
         private readonly CanvasControl canvasControl;
-        private readonly GenericToolBar toolbar = new();
+        private readonly ToolBar toolbar = new();
         private readonly ColorSelector colorSelector;
         private readonly Border border;
         private readonly Grid mainGrid;
@@ -53,7 +53,7 @@ namespace PaintSample
             Size = (750, 700);
             StartLocation = WindowStartLocation.CenterScreen;
 
-            var menu = Menu!;
+            var menu = (Menu as Menu)!;
 
             fileMainMenu = menu.Add("_File");
             editMainMenu = menu.Add("_Edit");
@@ -172,7 +172,7 @@ namespace PaintSample
                 var url = "embres:ControlsSample.Resources.ToolIcons." +
                     tool.GetType().Name.Replace("Tool", "") + ".svg";
                 var (normalImage, disabledImage) =
-                    ControlUtils.GetNormalAndDisabledSvg(url, this);
+                    ToolBarUtils.GetNormalAndDisabledSvg(url, this);
                 var buttonId = toolbar.AddSpeedBtn(tool.Name, normalImage, disabledImage);
 
                 void ClickMe()
@@ -213,7 +213,7 @@ namespace PaintSample
                 throw new InvalidOperationException();
 #pragma warning restore
 
-            var image = ControlUtils.GetNormalAndDisabledSvg(stream, 32, this);
+            var image = SvgUtils.GetNormalAndDisabledSvg(stream, 32, this);
             return image;
         }
 
@@ -488,7 +488,7 @@ namespace PaintSample
 
         public void DoChangeLightness()
         {
-            var result = DialogFactory.GetNumberFromUser(null, "Lightness (0..200)", null, 100, 0, 200);
+            var result = MessageBox.GetNumberFromUser(null, "Lightness (0..200)", null, 100, 0, 200);
             if (result is null)
                 return;
             Application.Log($"Image.ChangeLightness: {result}");
@@ -500,7 +500,7 @@ namespace PaintSample
 
         public void DoChangeLightnessUseGetData()
         {
-            var result = DialogFactory.GetNumberFromUser(null, "Lightness (0..200)", null, 100, 0, 200);
+            var result = MessageBox.GetNumberFromUser(null, "Lightness (0..200)", null, 100, 0, 200);
             if (result is null)
                 return;
             Application.Log($"Change lightness using GenericImage.GetData");
@@ -513,7 +513,7 @@ namespace PaintSample
 
         public unsafe void DoFillRedUseSetData()
         {
-            var result = DialogFactory.GetNumberFromUser(null, "Transparency (0..255)", null, 100, 0, 255);
+            var result = MessageBox.GetNumberFromUser(null, "Transparency (0..255)", null, 100, 0, 255);
             if (result is null)
                 return;
 

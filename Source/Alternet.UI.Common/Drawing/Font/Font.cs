@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Alternet.UI;
+using Alternet.UI.Extensions;
 using Alternet.UI.Localization;
 
 namespace Alternet.Drawing
@@ -18,6 +20,7 @@ namespace Alternet.Drawing
         private static Font? defaultFont;
         private static Font? defaultMonoFont;
 
+        private FontStyle? style;
         private int? hashCode;
         private bool? gdiVerticalFont;
         private Font[]? fonts;
@@ -324,9 +327,9 @@ namespace Alternet.Drawing
         /// Initializes a new <see cref="Font" /> using a specified native font.
         /// </summary>
         /// <param name="nativeFont">Native font instance.</param>
-        public Font(object nativeFont)
+        public Font(IFontHandler handler)
         {
-            NativeObject = nativeFont;
+            Handler = handler;
         }
 
         internal Font(
@@ -337,7 +340,7 @@ namespace Alternet.Drawing
              GraphicsUnit unit = GraphicsUnit.Point,
              byte gdiCharSet = 1)
         {
-            NativeDrawing.FontParams prm = new()
+            IFontHandler.FontParams prm = new()
             {
                 GenericFamily = genericFamily,
                 FamilyName = familyName,
@@ -347,8 +350,8 @@ namespace Alternet.Drawing
                 GdiCharSet = 1,
             };
 
-            NativeObject = NativeDrawing.Default.CreateFont();
-            NativeDrawing.Default.UpdateFont(NativeObject, prm);
+            Handler = NativePlatform.Default.FontFactory.CreateFont();
+            Handler.Update(prm);
         }
 
         /// <summary>
@@ -378,30 +381,29 @@ namespace Alternet.Drawing
         /// The string representing the name of the font originally specified.
         /// </returns>
         [Browsable(false)]
-        public string? OriginalFontName => baseFont?.Name ?? Name;
+        public virtual string? OriginalFontName => baseFont?.Name ?? Name;
 
         /// <summary>
         /// Gets the pixel size.
         /// </summary>
-        public SizeI SizeInPixels => NativeDrawing.Default.GetFontSizeInPixels(NativeObject);
+        public virtual int SizeInPixels => Handler.GetPixelSize();
 
         /// <summary>
         /// Gets whether font size is in pixels.
         /// </summary>
         /// <returns></returns>
-        public bool IsUsingSizeInPixels
-            => NativeDrawing.Default.GetFontIsUsingSizeInPixels(NativeObject);
+        public virtual bool IsUsingSizeInPixels => Handler.IsUsingSizeInPixels();
 
         /// <summary>
         /// Gets the em-size of this <see cref="Font" /> measured in the units specified by
         /// the <see cref="Font.Unit" /> property.</summary>
         /// <returns>The em-size of this <see cref="Font" />.</returns>
-        public double Size
+        public virtual double Size
         {
             get
             {
                 if (IsUsingSizeInPixels)
-                    return SizeInPixels.Height;
+                    return SizeInPixels;
                 else
                     return SizeInPoints;
             }
@@ -413,13 +415,13 @@ namespace Alternet.Drawing
         /// <returns>
         /// A byte value that specifies the GDI character set that this
         /// <see cref="Font" /> uses. The default is 1. Currently always returns 1. </returns>
-        public byte GdiCharSet => 1;
+        public virtual byte GdiCharSet => 1;
 
         /// <summary>
         /// Gets the unit of measure for this <see cref="Font" />.</summary>
         /// <returns>A value that represents the unit of
         /// measure for this <see cref="Font" />.</returns>
-        public GraphicsUnit Unit
+        public virtual GraphicsUnit Unit
         {
             get
             {
@@ -433,7 +435,7 @@ namespace Alternet.Drawing
         /// <summary>
         /// Gets this font with <see cref="FontStyle.Regular"/> style.
         /// </summary>
-        public Font Base
+        public virtual Font Base
         {
             get
             {
@@ -449,7 +451,7 @@ namespace Alternet.Drawing
         /// <remarks>
         ///  See <see cref="FontWeight"/> for the numeric weight values.
         /// </remarks>
-        public int NumericWeight => NativeDrawing.Default.GetFontNumericWeight(NativeObject);
+        public virtual int NumericWeight => Handler.GetNumericWeight();
 
         /// <summary>
         /// Gets whether this font is a fixed width (or monospaced) font.
@@ -462,13 +464,13 @@ namespace Alternet.Drawing
         /// platform-specific functions are used for the check (resulting in a more accurate
         /// return value).
         /// </remarks>
-        public bool IsFixedWidth => NativeDrawing.Default.GetFontIsFixedWidth(NativeObject);
+        public virtual bool IsFixedWidth => Handler.IsFixedWidth();
 
         /// <summary>
         /// Gets the font weight.
         /// </summary>
         /// <returns></returns>
-        public FontWeight Weight => NativeDrawing.Default.GetFontWeight(NativeObject);
+        public virtual FontWeight Weight => Handler.GetWeight();
 
         /// <summary>
         /// Returns bold version of the font.
@@ -478,7 +480,7 @@ namespace Alternet.Drawing
         /// this property will return both italic and bold font.
         /// </remarks>
         [Browsable(false)]
-        public Font AsBold
+        public virtual Font AsBold
         {
             get
             {
@@ -494,7 +496,7 @@ namespace Alternet.Drawing
         /// this property will return both italic and underlined font.
         /// </remarks>
         [Browsable(false)]
-        public Font AsUnderlined
+        public virtual Font AsUnderlined
         {
             get
             {
@@ -507,12 +509,11 @@ namespace Alternet.Drawing
         /// </summary>
         /// <value>A <see cref="FontStyle"/> enumeration that contains
         /// style information for this <see cref="Font"/>.</value>
-        public FontStyle Style
+        public virtual FontStyle Style
         {
             get
             {
-                CheckDisposed();
-                return NativeDrawing.Default.GetFontStyle(NativeObject);
+                return style ??= GetStyle(Handler);
             }
         }
 
@@ -521,14 +522,14 @@ namespace Alternet.Drawing
         /// </summary>
         /// <value><c>true</c> if this <see cref="Font"/> is bold;
         /// otherwise, <c>false</c>.</value>
-        public bool IsBold => (Style & FontStyle.Bold) != 0;
+        public virtual bool IsBold => GetIsBold(Handler);
 
         /// <summary>
         /// Gets a value that indicates whether this <see cref="Font"/> is italic.
         /// </summary>
         /// <value><c>true</c> if this <see cref="Font"/> is italic;
         /// otherwise, <c>false</c>.</value>
-        public bool IsItalic => (Style & FontStyle.Italic) != 0;
+        public virtual bool IsItalic => Handler.GetItalic();
 
         /// <summary>
         /// Gets a value that indicates whether this <see cref="Font"/>
@@ -536,7 +537,12 @@ namespace Alternet.Drawing
         /// </summary>
         /// <value><c>true</c> if this <see cref="Font"/> has a horizontal
         /// line through it; otherwise, <c>false</c>.</value>
-        public bool IsStrikethrough => NativeDrawing.Default.GetFontStrikethrough(NativeObject);
+        public virtual bool IsStrikethrough => Handler.GetStrikethrough();
+
+        /// <summary>
+        /// Same as <see cref="IsStrikethrough"/>.
+        /// </summary>
+        public bool IsStrikeout => Handler.GetStrikethrough();
 
         /// <summary>
         /// Gets a value that indicates whether this <see cref="Font"/>
@@ -544,18 +550,18 @@ namespace Alternet.Drawing
         /// </summary>
         /// <value><c>true</c> if this <see cref="Font"/> is underlined;
         /// otherwise, <c>false</c>.</value>
-        public bool IsUnderlined => NativeDrawing.Default.GetFontUnderlined(NativeObject);
+        public virtual bool IsUnderlined => Handler.GetUnderlined();
 
         /// <summary>
         /// Gets the em-size, in points, of this <see cref="Font"/>.
         /// </summary>
         /// <value>The em-size, in points, of this <see cref="Font"/>.</value>
-        public double SizeInPoints
+        public virtual double SizeInPoints
         {
             get
             {
                 CheckDisposed();
-                return NativeDrawing.Default.GetFontSizeInPoints(NativeObject);
+                return Handler.SizeInPoints;
             }
         }
 
@@ -565,7 +571,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <value>The <see cref="FontFamily"/> associated with this
         /// <see cref="Font"/>.</value>
-        public FontFamily FontFamily
+        public virtual FontFamily FontFamily
         {
             get
             {
@@ -576,38 +582,39 @@ namespace Alternet.Drawing
         /// <summary>
         /// Gets native font.
         /// </summary>
-        public object NativeObject { get; private set; }
+        public virtual IFontHandler Handler { get; private set; }
 
         /// <summary>
-        /// Gets a <see cref="bool"/> value that indicates whether this <see cref="Font" /> is derived from
+        /// Gets a <see cref="bool"/> value that indicates whether this
+        /// <see cref="Font" /> is derived from
         /// a vertical font.</summary>
         /// <returns>
         /// <see langword="true" /> if this <see cref="Font" /> is derived from a vertical font;
         /// otherwise, <see langword="false" />.</returns>
         [Browsable(false)]
-        public bool GdiVerticalFont => gdiVerticalFont ??= IsVerticalName(Name);
+        public virtual bool GdiVerticalFont => gdiVerticalFont ??= IsVerticalName(Name);
 
         /// <summary>
         /// Gets the font family name of this <see cref="Font"/>.
         /// </summary>
         /// <value>A string representation of the font family name
         /// of this <see cref="Font"/>.</value>
-        public string Name
+        public virtual string Name
         {
             get
             {
                 CheckDisposed();
-                return NativeDrawing.Default.GetFontName(NativeObject);
+                return Handler.Name;
             }
         }
 
         /// <summary>
         /// Gets or sets the default font encoding.
         /// </summary>
-        internal static int DefaultEncoding
+        internal static FontEncoding DefaultEncoding
         {
-            get => NativeDrawing.Default.GetDefaultFontEncoding();
-            set => NativeDrawing.Default.SetDefaultFontEncoding(value);
+            get => NativePlatform.Default.FontFactory.DefaultFontEncoding;
+            set => NativePlatform.Default.FontFactory.DefaultFontEncoding = value;
         }
 
         /// <summary>
@@ -616,7 +623,7 @@ namespace Alternet.Drawing
         /// <remarks>
         /// Note that under Linux the returned value is always UTF8.
         /// </remarks>
-        internal int Encoding => NativeDrawing.Default.GetFontEncoding(NativeObject);
+        internal FontEncoding Encoding => Handler.GetEncoding();
 
         /// <summary>
         /// Returns a value that indicates whether the two objects are equal.
@@ -813,7 +820,7 @@ namespace Alternet.Drawing
         public override int GetHashCode()
         {
             CheckDisposed();
-            hashCode ??= NativeDrawing.Default.GetFontInfoDesc(NativeObject).GetHashCode();
+            hashCode ??= Handler.Serialize().GetHashCode();
             return hashCode.Value;
         }
 
@@ -826,7 +833,7 @@ namespace Alternet.Drawing
                 return false;
 
             CheckDisposed();
-            return NativeDrawing.Default.FontEquals(NativeObject, other.NativeObject);
+            return Handler.Equals(other);
         }
 
         /// <summary>
@@ -836,7 +843,7 @@ namespace Alternet.Drawing
         public override string ToString()
         {
             CheckDisposed();
-            return NativeDrawing.Default.FontToString(NativeObject);
+            return ToUserString(Handler);
         }
 
         /// <summary>
@@ -890,7 +897,7 @@ namespace Alternet.Drawing
         /// </summary>
         public virtual Font Clone()
         {
-            var nativeFont = NativeDrawing.Default.CreateFont(NativeObject);
+            var nativeFont = NativePlatform.Default.FontFactory.CreateFont(this);
             var result = new Font(nativeFont);
             return result;
         }
@@ -900,11 +907,210 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="font"></param>
         /// <returns></returns>
-        public static Font? FromInternal(object? font)
+        public static Font? FromInternal(IFontHandler? font)
         {
             if (font is null)
                 return null;
             return new Font(font);
+        }
+
+        /// <summary>
+        /// Helper function for converting <see cref="FontWeight"/> enum value
+        /// to the numeric weight.
+        /// </summary>
+        /// <param name="value">Font weight.</param>
+        /// <returns></returns>
+        public static int GetNumericWeightOf(FontWeight value)
+        {
+            int weight = ConvertFromLegacyWeightIfNecessary((int)value);
+
+            Debug.Assert(weight > (int)FontWeight.Invalid);
+            Debug.Assert(weight <= (int)FontWeight.Max);
+            Debug.Assert(weight % 100 == 0);
+
+            return weight;
+
+            int ConvertFromLegacyWeightIfNecessary(int weight)
+            {
+                switch (weight)
+                {
+                    case 90: return (int)FontWeight.Normal;
+                    case 91: return (int)FontWeight.Light;
+                    case 92: return (int)FontWeight.Bold;
+                    default: return weight;
+                }
+            }
+        }
+
+        public static void CoerceFontParams(ref IFontHandler.FontParams prm)
+        {
+            if (prm.Unit != GraphicsUnit.Point)
+            {
+                prm.Size = GraphicsUnitConverter.Convert(
+                    prm.Unit,
+                    GraphicsUnit.Point,
+                    Display.Primary.DPI.Height,
+                    prm.Size);
+            }
+
+            if (prm.GenericFamily == null && prm.FamilyName == null)
+            {
+                BaseApplication.LogError("Font name and family are null, using default font.");
+                prm.GenericFamily = Alternet.Drawing.GenericFontFamily.Default;
+            }
+
+            prm.Size = Alternet.Drawing.Font.CheckSize(prm.Size);
+        }
+
+        /// <summary>
+        /// Helper function for converting arbitrary numeric weight to the closest
+        /// value of <see cref="FontWeight"/> enum.
+        /// </summary>
+        /// <param name="numWeight">Numeric weight.</param>
+        /// <returns></returns>
+        public static FontWeight GetWeightClosestToNumericValue(int numWeight)
+        {
+            Debug.Assert(numWeight > 0);
+            Debug.Assert(numWeight <= 1000);
+
+            // round to nearest hundredth = FontWeight.* constant
+            int weight = ((numWeight + 50) / 100) * 100;
+
+            if (weight < (int)FontWeight.Thin)
+                weight = (int)FontWeight.Thin;
+            if (weight > (int)FontWeight.Max)
+                weight = (int)FontWeight.Max;
+
+            return (FontWeight)weight;
+        }
+
+        public static string ToUserString(FontWeight weight)
+        {
+            switch (weight)
+            {
+                default:
+                    throw new ArgumentException("Unknown font weight", nameof(weight));
+                case FontWeight.Normal:
+                    return string.Empty;
+                case FontWeight.Thin:
+                    return "thin";
+                case FontWeight.ExtraLight:
+                    return "extra light";
+                case FontWeight.Light:
+                    return "light";
+                case FontWeight.Medium:
+                    return "medium";
+                case FontWeight.SemiBold:
+                    return "semi bold";
+                case FontWeight.Bold:
+                    return "bold";
+                case FontWeight.ExtraBold:
+                    return "extra bold";
+                case FontWeight.Heavy:
+                    return "heavy";
+                case FontWeight.ExtraHeavy:
+                    return "extra heavy";
+            }
+        }
+
+        public static List<string> ToUserString(FontStyle style, FontWeight weight)
+        {
+            List<string> result = new();
+
+            if(style.HasFlag(FontStyle.Underline))
+                result.Add("underlined");
+            if (style.HasFlag(FontStyle.Strikeout))
+                result.Add("strikethrough");
+            if (style.HasFlag(FontStyle.Bold))
+                result.Add(ToUserString(weight));
+            if (style.HasFlag(FontStyle.Italic))
+                result.Add("italic");
+
+            return result;
+        }
+
+        public static string ToUserString(GenericFontFamily family)
+        {
+            switch (family)
+            {
+                case GenericFontFamily.None:
+                case GenericFontFamily.Default:
+                    return string.Empty;
+                case GenericFontFamily.SansSerif:
+                    return "swiss";
+                case GenericFontFamily.Serif:
+                    return "roman";
+                case GenericFontFamily.Monospace:
+                    return "teletype";
+                default:
+                    throw new ArgumentException("Unknown font family");
+            }
+        }
+
+        public static string ToUserString(IFontHandler font)
+        {
+            List<string> list = ToUserAsList(font);
+
+            var result = StringUtils.ToString(
+                list,
+                null,
+                null,
+                StringUtils.OneSpace);
+
+            return result;
+        }
+
+        public static bool GetIsBold(IFontHandler font)
+        {
+            return font.GetWeight() > FontWeight.Normal;
+        }
+
+        public static FontStyle GetStyle(IFontHandler font)
+        {
+            FontStyle result = FontStyle.Regular;
+
+            if (GetIsBold(font))
+                result |= FontStyle.Bold;
+
+            if (font.GetItalic())
+                result |= FontStyle.Italic;
+
+            if (font.GetUnderlined())
+                result |= FontStyle.Underline;
+
+            if (font.GetStrikethrough())
+                result |= FontStyle.Strikeout;
+
+            return result;
+        }
+
+        public static List<string> ToUserAsList(IFontHandler font)
+        {
+            var result = ToUserString(GetStyle(font), font.GetWeight());
+
+            string face = font.Name;
+            if (!string.IsNullOrEmpty(face))
+            {
+                if (face.ContainsSpace() || face.ContainsSemicolon() || face.ContainsComma())
+                {
+                    // eventually remove quote characters: most systems do not
+                    // allow them in a facename anyway so this usually does nothing
+                    face = face.Replace("'", "");
+
+                    // make it possible for FromUserString() function to understand
+                    // that the different words which compose this facename are
+                    // not different adjectives or other data but rather all parts
+                    // of the facename
+                    face = "'" + face + "'";
+                }
+
+                result.Add(face);
+            }
+
+            int size = (int)font.SizeInPoints;
+            result.Add(size.ToString());
+
+            return result;
         }
 
         internal static Font CreateDefaultMonoFont()
@@ -916,23 +1122,15 @@ namespace Alternet.Drawing
 
         internal static Font CreateDefaultFont()
         {
-            var nativeFont = NativeDrawing.Default.CreateDefaultFont();
+            var nativeFont = NativePlatform.Default.FontFactory.CreateDefaultFont();
             return new Font(nativeFont);
         }
 
-        protected object CreateNativeObject()
-        {
-            return NativeDrawing.Default.CreateFont();
-        }
-
         /// <inheritdoc/>
-        protected override void DisposeManagedResources()
+        protected override void DisposeManaged()
         {
-            if (NativeObject is not null)
-            {
-                ((IDisposable)NativeObject).Dispose();
-                NativeObject = null;
-            }
+            Handler.Dispose();
+            Handler = null;
         }
     }
 }

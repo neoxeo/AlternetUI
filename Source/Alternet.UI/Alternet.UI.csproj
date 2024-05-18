@@ -176,7 +176,6 @@
     <None Remove="Resources\Svg\toggle-on.svg" />
     <None Remove="Resources\Svg\trash-can.svg" />
     <None Remove="Resources\Svg\triangle-exclamation.svg" />
-    <None Remove="Xaml\.editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
@@ -313,12 +312,6 @@
 -->	
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Resources\Strings.resx">
-      <Generator>MSBuild:_GenerateResxSource</Generator>
-    </EmbeddedResource>
-  </ItemGroup>
-
   <!-- ================================================= -->
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
@@ -333,10 +326,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alternet.UI.Common\Alternet.UI.Common.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controls\BaseControls\AbstractControl\" />
   </ItemGroup>
 
   <!-- ================================================= -->

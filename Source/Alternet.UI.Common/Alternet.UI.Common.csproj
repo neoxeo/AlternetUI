@@ -36,14 +36,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Port\Markup\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:_GenerateResxSource</Generator>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

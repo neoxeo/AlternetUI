@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Alternet.UI.Localization;
+
 namespace Alternet.UI
 {
     public class BaseApplication : BaseObject
@@ -94,6 +96,11 @@ namespace Alternet.UI
         private static bool terminating = false;
         private static int logUpdateCount;
         private static bool logFileIsEnabled;
+        private static BaseApplication? current;
+
+        private readonly List<Window> windows = new();
+        private Window? window;
+        private volatile bool isDisposed;
 
         static BaseApplication()
         {
@@ -152,6 +159,22 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        ///  Occurs when an untrapped thread exception is thrown.
+        /// </summary>
+        /// <remarks>
+        /// This event allows your application to handle otherwise
+        /// unhandled exceptions that occur in UI threads. Attach
+        /// your event handler to the <see cref="ThreadException"/> event
+        /// to deal with these exceptions, which will
+        /// leave your application in an unknown state. Where possible,
+        /// exceptions should be handled by a structured
+        /// exception handling block. You can change whether this callback
+        /// is used for unhandled Windows Forms thread
+        /// exceptions by setting <see cref="BaseApplication.SetUnhandledExceptionMode"/>.
+        /// </remarks>
+        public static event ThreadExceptionEventHandler? ThreadException;
+
+        /// <summary>
         /// Occurs when controls which display log messages need to be refreshed.
         /// </summary>
         public static event EventHandler? LogRefresh;
@@ -162,10 +185,43 @@ namespace Alternet.UI
         public static event EventHandler<LogMessageEventArgs>? LogMessage;
 
         /// <summary>
+        /// Occurs when the application finishes processing events and is
+        /// about to enter the idle state.
+        /// </summary>
+        public static event EventHandler? Idle;
+
+        /// <summary>
         /// Gets or sets whether to call <see cref="Debug.WriteLine(string)"/> when\
         /// <see cref="Application.Log"/> is called. Default is <c>false</c>.
         /// </summary>
         public static bool DebugWriteLine { get; set; } = false;
+
+        public static bool ThreadExceptionAssigned => ThreadException is not null;
+
+        /// <summary>
+        /// Gets currently used platform.
+        /// </summary>
+        public static UIPlatformKind PlatformKind => NativePlatform.Default.GetPlatformKind();
+
+        /// <summary>
+        /// Gets the <see cref="Application"/> object for the currently
+        /// runnning application.
+        /// </summary>
+        public static BaseApplication Current
+        {
+            get
+            {
+                // maybe make it thread static?
+                // maybe move this to native?
+                return current ?? throw new InvalidOperationException(
+                    ErrorMessages.Default.CurrentApplicationIsNotSet);
+            }
+
+            protected set
+            {
+                current = value;
+            }
+        }
 
         /// <summary>
         /// Gets how the application responds to unhandled exceptions.
@@ -237,6 +293,12 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Returns true if between two <see cref="BeginBusyCursor"/> and
+        /// <see cref="EndBusyCursor"/> calls.
+        /// </summary>
+        public static bool IsBusyCursor => NativePlatform.Default.IsBusyCursor();
+
+        /// <summary>
         /// Allows to suppress some debug messages.
         /// </summary>
         /// <remarks>
@@ -244,6 +306,103 @@ namespace Alternet.UI
         ///  value is true.
         /// </remarks>
         public static bool SupressDiagnostics { get; set; } = true;
+
+        /// <summary>
+        /// Gets whether application was created and <see cref="Current"/> property is assigned.
+        /// </summary>
+        public static bool HasApplication => current is not null;
+
+        /// <summary>
+        /// Gets whether application was initialized;
+        /// </summary>
+        public static bool Initialized
+        {
+            get;
+            protected set;
+        }
+
+        /// <summary>
+        /// Gets whether application has forms.
+        /// </summary>
+        public static bool HasForms => HasApplication && Current.Windows.Count > 0;
+
+        /// <summary>
+        /// Gets the instantiated windows in an application.
+        /// </summary>
+        /// <value>A <see cref="IReadOnlyList{Window}"/> that contains
+        /// references to all window objects in the current application.</value>
+        public IReadOnlyList<Window> Windows => windows;
+
+        /// <summary>
+        /// Gets all visible windows in an application.
+        /// </summary>
+        /// <value>A <see cref="IReadOnlyList{Window}"/> that contains
+        /// references to all visible window objects in the current application.</value>
+        public virtual IEnumerable<Window> VisibleWindows
+        {
+            get
+            {
+                var result = Windows.Where(x => x.Visible);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether <see cref="Dispose(bool)"/> has been called.
+        /// </summary>
+        public virtual bool IsDisposed
+        {
+            get => isDisposed;
+            protected set => isDisposed = value;
+        }
+
+        /// <summary>
+        /// Gets or sets whether application in uixml preview mode.
+        /// </summary>
+        public virtual bool InUixmlPreviewerMode
+        {
+            get => false;
+            set
+            {
+            }
+        }
+
+        /// <summary>
+        /// Gets the layout direction for the current locale or <see cref="LangDirection.Default"/>
+        /// if it's unknown.
+        /// </summary>
+        public virtual LangDirection LangDirection
+        {
+            get
+            {
+                return NativePlatform.Default.GetLangDirection();
+            }
+        }
+
+        protected internal virtual bool InvokeRequired => throw new NotImplementedException();
+
+        protected Window? MainWindow
+        {
+            get => window;
+            set => window = value;
+        }
+
+        /// <summary>
+        /// Instructs the application to display a dialog with an optional
+        /// <paramref name="message"/>,
+        /// and to wait until the user dismisses the dialog.
+        /// </summary>
+        /// <param name="message">A string you want to display in the alert dialog, or,
+        /// alternatively, an object that is converted into a string and displayed.</param>
+        public static void Alert(object? message = null)
+        {
+            MessageBox.Show(
+                FirstWindow(),
+                message,
+                CommonStrings.Default.WindowTitleApplicationAlert,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.None);
+        }
 
         /// <summary>
         /// Logs name and value pair as "{name} = {value}".
@@ -375,6 +534,16 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Sets system option value by name.
+        /// </summary>
+        /// <param name="name">Option name.</param>
+        /// <param name="value">Option value.</param>
+        public static void SetSystemOption(string name, int value)
+        {
+            NativePlatform.Default.SetSystemOption(name, value);
+        }
+
+        /// <summary>
         /// Logs an empty string.
         /// </summary>
         public static void LogEmptyLine()
@@ -401,6 +570,29 @@ namespace Alternet.UI
         {
             if (condition)
                 Log(obj);
+        }
+
+        /// <summary>
+        /// Returns first window or <c>null</c> if there are no windows or window is not
+        /// of the <typeparamref name="T"/> type.
+        /// </summary>
+        /// <typeparam name="T">Type of the window to return.</typeparam>
+        public static T? FirstWindow<T>()
+            where T : class
+        {
+            var windows = Current.Windows;
+
+            if (windows.Count == 0)
+                return null;
+            return windows[0] as T;
+        }
+
+        /// <summary>
+        /// Returns first window or <c>null</c> if there are no windows.
+        /// </summary>
+        public static Window? FirstWindow()
+        {
+            return FirstWindow<Window>();
         }
 
         /// <summary>
@@ -458,6 +650,42 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Changes the cursor to the given cursor for all windows in the application.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="IsBusyCursor"/> to get current busy cursor state.
+        /// Use <see cref="EndBusyCursor"/> to revert the cursor back to its previous state.
+        /// These two calls can be nested, and a counter ensures that only the outer calls take effect.
+        /// </remarks>
+        public static void BeginBusyCursor() => NativePlatform.Default.BeginBusyCursor();
+
+        /// <summary>
+        /// Changes the cursor back to the original cursor, for all windows in the application.
+        /// </summary>
+        /// <remarks>
+        /// Use with <see cref="BeginBusyCursor"/> and <see cref="IsBusyCursor"/>.
+        /// </remarks>
+        public static void EndBusyCursor() => NativePlatform.Default.EndBusyCursor();
+
+        /// <summary>
+        /// Executes <paramref name="action"/> between calls to <see cref="BeginBusyCursor"/>
+        /// and <see cref="EndBusyCursor"/>.
+        /// </summary>
+        /// <param name="action">Action that will be executed.</param>
+        public static void DoInsideBusyCursor(Action action)
+        {
+            BeginBusyCursor();
+            try
+            {
+                action();
+            }
+            finally
+            {
+                EndBusyCursor();
+            }
+        }
+
+        /// <summary>
         /// Begins log section.
         /// </summary>
         public static void LogBeginSection(string? title = null, LogItemKind kind = LogItemKind.Information)
@@ -485,6 +713,11 @@ namespace Alternet.UI
         public static void LogEndSection(LogItemKind kind = LogItemKind.Information)
         {
             Log(LogUtils.SectionSeparator, kind);
+        }
+
+        public static void RaiseThreadException(object sender, ThreadExceptionEventArgs args)
+        {
+            ThreadException?.Invoke(sender, args);
         }
 
         /// <summary>
@@ -561,6 +794,20 @@ namespace Alternet.UI
                 OnLogRefresh();
         }
 
+        /// <summary>Processes all messages currently in the message queue.</summary>
+        public static void DoEvents()
+        {
+            Current?.ProcessPendingEvents();
+        }
+
+        /// <summary>
+        /// Processes all pending events.
+        /// </summary>
+        public virtual void ProcessPendingEvents()
+        {
+            NativePlatform.Default.ProcessPendingEvents();
+        }
+
         /// <summary>
         /// Instructs the application how to respond to unhandled exceptions.
         /// </summary>
@@ -573,6 +820,14 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Raises <see cref="Idle"/> event.
+        /// </summary>
+        public void RaiseIdle()
+        {
+            Idle?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
         /// Instructs the application how to respond to unhandled exceptions in debug mode.
         /// </summary>
         /// <param name="mode">An <see cref="UnhandledExceptionMode"/>
@@ -581,6 +836,23 @@ namespace Alternet.UI
         public virtual void SetUnhandledExceptionModeIfDebugger(UnhandledExceptionMode mode)
         {
             unhandledExceptionModeDebug = mode;
+        }
+
+        internal void RegisterWindow(Window window)
+        {
+            windows.Add(window);
+        }
+
+        internal void UnregisterWindow(Window window)
+        {
+            if (this.window == window)
+                this.window = null;
+            windows.Remove(window);
+        }
+
+        protected internal virtual void BeginInvoke(Action action)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -649,5 +921,12 @@ namespace Alternet.UI
             {
             }
         }
+
+        /// <summary>
+        /// Build counter for the test purposes.
+        /// </summary>
+#pragma warning disable
+        public static int BuildCounter = 6;
+#pragma warning restore
     }
 }

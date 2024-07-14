@@ -74,10 +74,6 @@ namespace Alternet.UI
         /// </summary>
         public ComboBox()
         {
-            if (BaseApplication.IsWindowsOS && BaseApplication.PlatformKind == UIPlatformKind.WxWidgets)
-            {
-                UserPaint = true;
-            }
         }
 
         /// <summary>
@@ -94,6 +90,11 @@ namespace Alternet.UI
         /// in the other controls.
         /// </remarks>
         public event EventHandler? SelectedItemChanged;
+
+        /// <summary>
+        /// Same as <see cref="SelectedItemChanged"/>. Added for the compatibility.
+        /// </summary>
+        public event EventHandler? SelectedIndexChanged;
 
         /// <summary>
         /// Occurs when the <see cref="IsEditable"/> property value changes.
@@ -215,7 +216,7 @@ namespace Alternet.UI
                     return;
                 selectedIndex = value;
                 Text = GetItemText(SelectedItem);
-                RaiseSelectedItemChanged(EventArgs.Empty);
+                RaiseSelectedItemChanged();
             }
         }
 
@@ -266,6 +267,8 @@ namespace Alternet.UI
         /// </summary>
         /// <value><c>true</c> if the <see cref="ComboBox"/> can be edited;
         /// otherwise <c>false</c>. The default is <c>false</c>.</value>
+        [Category("Appearance")]
+        [DefaultValue(true)]
         public virtual bool IsEditable
         {
             get
@@ -280,6 +283,42 @@ namespace Alternet.UI
                 CheckDisposed();
                 isEditable = value;
                 IsEditableChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value specifying the style of the combo box.
+        /// </summary>
+        /// <returns>
+        /// One of the <see cref="ComboBoxStyle" /> values. The default is <see langword="DropDown" />.
+        /// </returns>
+        [Category("Appearance")]
+        [DefaultValue(ComboBoxStyle.DropDown)]
+        [RefreshProperties(RefreshProperties.Repaint)]
+        [Browsable(false)]
+        public virtual ComboBoxStyle DropDownStyle
+        {
+            get
+            {
+                if (IsEditable)
+                    return ComboBoxStyle.DropDown;
+                else
+                    return ComboBoxStyle.DropDownList;
+            }
+
+            set
+            {
+                if (DropDownStyle == value)
+                    return;
+                switch (value)
+                {
+                    case ComboBoxStyle.DropDown:
+                        IsEditable = true;
+                        break;
+                    case ComboBoxStyle.DropDownList:
+                        IsEditable = false;
+                        break;
+                }
             }
         }
 
@@ -336,7 +375,7 @@ namespace Alternet.UI
         /// Gets or sets whether background of the item is owner drawn.
         /// </summary>
         [Browsable(false)]
-        public bool OwnerDrawItemBackground
+        public virtual bool OwnerDrawItemBackground
         {
             get
             {
@@ -353,7 +392,7 @@ namespace Alternet.UI
         /// Gets or sets whether item is owner drawn.
         /// </summary>
         [Browsable(false)]
-        public bool OwnerDrawItem
+        public virtual bool OwnerDrawItem
         {
             get
             {
@@ -417,15 +456,11 @@ namespace Alternet.UI
         /// Raises the <see cref="SelectedItemChanged"/> event and calls
         /// <see cref="OnSelectedItemChanged(EventArgs)"/>.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        public virtual void RaiseSelectedItemChanged(EventArgs e)
+        public void RaiseSelectedItemChanged()
         {
-            if (e == null)
-                throw new ArgumentNullException(nameof(e));
-
-            OnSelectedItemChanged(e);
-            SelectedItemChanged?.Invoke(this, e);
+            OnSelectedItemChanged(EventArgs.Empty);
+            SelectedItemChanged?.Invoke(this, EventArgs.Empty);
+            SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -447,7 +482,7 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void BindEnumProp(object instance, string propName)
         {
-            var choices = BasePropertyGrid.GetPropChoices(instance, propName);
+            var choices = PropertyGrid.GetPropChoices(instance, propName);
             if (choices is null)
                 return;
             IsEditable = false;
@@ -515,7 +550,7 @@ namespace Alternet.UI
                     color = SystemColors.GrayText;
                 }
 
-                var size = e.Graphics.MeasureText(s, font);
+                var size = e.Graphics.GetTextExtent(s, font);
 
                 var offsetX = TextMargin.X;
                 var offsetY = (e.ClipRectangle.Height - size.Height) / 2;
@@ -537,7 +572,7 @@ namespace Alternet.UI
                 e.Graphics.DrawText(
                     s,
                     font,
-                    color,
+                    color.AsBrush,
                     (e.ClipRectangle.X + 2, e.ClipRectangle.Y));
             }
         }
@@ -583,7 +618,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateComboBoxHandler(this);
+            return ControlFactory.Handler.CreateComboBoxHandler(this);
         }
 
         /// <summary>

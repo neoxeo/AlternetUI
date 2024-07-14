@@ -37,24 +37,24 @@ namespace Alternet.UI
             SetParentBackground(control, Brushes.Yellow);
         }
 
-        /// <inheritdoc cref="CustomControlPainter.GetCheckBoxSize"/>
+        /// <inheritdoc cref="IControlPainterHandler.GetCheckBoxSize"/>
         public static SizeD GetCheckBoxSize(
             Control control,
             CheckState checkState,
-            GenericControlState controlState)
+            VisualControlState controlState)
         {
-            return CustomControlPainter.Current.GetCheckBoxSize(control, checkState, controlState);
+            return ControlPainter.Handler.GetCheckBoxSize(control, checkState, controlState);
         }
 
-        /// <inheritdoc cref="CustomControlPainter.DrawCheckBox"/>
+        /// <inheritdoc cref="IControlPainterHandler.DrawCheckBox"/>
         public static void DrawCheckBox(
             this Graphics canvas,
             Control control,
             RectD rect,
             CheckState checkState,
-            GenericControlState controlState)
+            VisualControlState controlState)
         {
-            CustomControlPainter.Current.DrawCheckBox(
+            ControlPainter.Handler.DrawCheckBox(
                 control,
                 canvas,
                 rect,
@@ -211,10 +211,10 @@ namespace Alternet.UI
             CopyRect(srcNine.CenterLeft, dstNine.CenterLeft);
             CopyRect(srcNine.CenterRight, dstNine.CenterRight);
 
-            canvas.DrawImageI(e.Image, dstNine.TopLeft, srcNine.TopLeft);
-            canvas.DrawImageI(e.Image, dstNine.TopRight, srcNine.TopRight);
-            canvas.DrawImageI(e.Image, dstNine.BottomLeft, srcNine.BottomLeft);
-            canvas.DrawImageI(e.Image, dstNine.BottomRight, srcNine.BottomRight);
+            canvas.DrawImage(e.Image, dstNine.TopLeft, srcNine.TopLeft, GraphicsUnit.Pixel);
+            canvas.DrawImage(e.Image, dstNine.TopRight, srcNine.TopRight, GraphicsUnit.Pixel);
+            canvas.DrawImage(e.Image, dstNine.BottomLeft, srcNine.BottomLeft, GraphicsUnit.Pixel);
+            canvas.DrawImage(e.Image, dstNine.BottomRight, srcNine.BottomRight, GraphicsUnit.Pixel);
 
             void CopyRect(RectI srcRect, RectI dstRect)
             {
@@ -222,11 +222,11 @@ namespace Alternet.UI
                 {
                     var subImage = e.Image.GetSubBitmap(srcRect);
                     var brush = subImage.AsBrush;
-                    canvas.FillRectangleI(brush, dstRect);
+                    canvas.FillRectangle(brush, dstRect, GraphicsUnit.Pixel);
                 }
                 else
                 {
-                    canvas.DrawImageI(e.Image, dstRect, srcRect);
+                    canvas.DrawImage(e.Image, dstRect, srcRect, GraphicsUnit.Pixel);
                 }
             }
         }
@@ -341,7 +341,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Draws horizontal line using <see cref="Graphics.FillRectangle"/>.
+        /// Draws horizontal line using <see cref="Graphics.FillRectangle(Brush,RectD)"/>.
         /// </summary>
         /// <param name="dc">Drawing context.</param>
         /// <param name="brush">Brush to draw line.</param>
@@ -360,7 +360,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Draws vertical line using <see cref="Graphics.FillRectangle"/>.
+        /// Draws vertical line using <see cref="Graphics.FillRectangle(Brush,RectD)"/>.
         /// </summary>
         /// <param name="dc">Drawing context.</param>
         /// <param name="brush">Brush to draw line.</param>
@@ -403,13 +403,13 @@ namespace Alternet.UI
             var hasInnerBorder = innerColor != Color.Empty;
             if (hasOuterBorder)
             {
-                DrawingUtils.FillRectangleBorder(canvas, outerColor, result);
+                DrawingUtils.FillRectangleBorder(canvas, outerColor.AsBrush, result);
                 result.Deflate();
             }
 
             if (hasInnerBorder)
             {
-                DrawingUtils.FillRectangleBorder(canvas, innerColor, result);
+                DrawingUtils.FillRectangleBorder(canvas, innerColor.AsBrush, result);
                 result.Deflate();
             }
 
@@ -417,7 +417,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Draws rectangle border using <see cref="Graphics.FillRectangle"/>.
+        /// Draws rectangle border using <see cref="Graphics.FillRectangle(Brush,RectD)"/>.
         /// </summary>
         /// <param name="dc">Drawing context.</param>
         /// <param name="brush">Brush to draw border.</param>
@@ -436,7 +436,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Draws rectangle border using <see cref="Graphics.FillRectangle"/>.
+        /// Draws rectangle border using <see cref="Graphics.FillRectangle(Brush,RectD)"/>.
         /// </summary>
         /// <param name="dc">Drawing context.</param>
         /// <param name="brush">Brush to draw border.</param>
@@ -459,7 +459,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Draws rectangles border using <see cref="Graphics.FillRectangle"/>.
+        /// Draws rectangles border using <see cref="Graphics.FillRectangle(Brush,RectD)"/>.
         /// </summary>
         /// <param name="dc">Drawing context.</param>
         /// <param name="brush">Brush to draw border.</param>
@@ -499,6 +499,86 @@ namespace Alternet.UI
             var point = new PointD(rect.Right - width, rect.Top);
             var size = new SizeD(width, rect.Height);
             return new RectD(point, size);
+        }
+
+        /// <summary>
+        /// Performs word wrapping of the text.
+        /// </summary>
+        /// <param name="text">Text to wrap.</param>
+        /// <param name="pixels">Width of the text in device-independent units.</param>
+        /// <param name="font">Text font.</param>
+        /// <param name="scaleFactor">Scale factor.</param>
+        /// <returns></returns>
+        public static string WrapTextToMultipleLines(
+            string text,
+            Coord pixels,
+            Font font,
+            double? scaleFactor = null)
+        {
+            var list = WrapTextToList(text, pixels, font, scaleFactor);
+            if (list.Count == 0)
+                return string.Empty;
+            if (list.Count == 1)
+                return list[0];
+            StringBuilder result = new();
+            bool firstLine = true;
+            foreach(var s in list)
+            {
+                if(!firstLine)
+                    result.AppendLine();
+                result.Append(s);
+                firstLine = false;
+            }
+
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Performs word wrapping of the text.
+        /// </summary>
+        /// <param name="text">Text to wrap.</param>
+        /// <param name="pixels">Width of the text in device-independent units.</param>
+        /// <param name="font">Text font.</param>
+        /// <param name="scaleFactor">Scale factor.</param>
+        /// <returns></returns>
+        public static List<string> WrapTextToList(
+            string text,
+            Coord pixels,
+            Font font,
+            double? scaleFactor = null)
+        {
+            List<string> wrappedLines = new();
+
+            if (string.IsNullOrEmpty(text))
+                return wrappedLines;
+
+            var canvas = GraphicsFactory.GetOrCreateMemoryCanvas(scaleFactor);
+            var spaceWidth = canvas.MeasureText(StringUtils.OneSpace, font).Width;
+
+            string[] originalLines = text.Split(' ');
+
+            StringBuilder actualLine = new StringBuilder();
+            Coord actualWidth = 0;
+
+            foreach (var item in originalLines)
+            {
+                Coord w = canvas.MeasureText(item, font).Width + spaceWidth;
+                actualWidth += w;
+
+                if (actualWidth > pixels)
+                {
+                    wrappedLines.Add(actualLine.ToString());
+                    actualLine.Clear();
+                    actualWidth = w;
+                }
+
+                actualLine.Append(item + StringUtils.OneSpace);
+            }
+
+            if (actualLine.Length > 0)
+                wrappedLines.Add(actualLine.ToString());
+
+            return wrappedLines;
         }
     }
 }

@@ -84,21 +84,6 @@ namespace Alternet.UI.Native
             }
         }
         
-        public string Text
-        {
-            get
-            {
-                CheckDisposed();
-                return NativeApi.LinkLabel_GetText_(NativePointer);
-            }
-            
-            set
-            {
-                CheckDisposed();
-                NativeApi.LinkLabel_SetText_(NativePointer, value);
-            }
-        }
-        
         public string Url
         {
             get
@@ -149,17 +134,10 @@ namespace Alternet.UI.Native
         
         IntPtr OnEvent(NativeApi.LinkLabelEvent e, IntPtr parameter)
         {
-            switch (e)
             {
-                case NativeApi.LinkLabelEvent.HyperlinkClick:
-                {
-                    {
-                        var cea = new CancelEventArgs();
-                        HyperlinkClick?.Invoke(this, cea);
-                        return cea.Cancel ? new IntPtr(1) : IntPtr.Zero;
-                    }
-                }
-                default: throw new Exception("Unexpected LinkLabelEvent value: " + e);
+                var cea = new CancelEventArgs();
+                HyperlinkClick?.Invoke(this, cea);
+                return cea.Cancel ? new IntPtr(1) : IntPtr.Zero;
             }
         }
         
@@ -207,12 +185,6 @@ namespace Alternet.UI.Native
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void LinkLabel_SetVisited_(IntPtr obj, bool value);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern string LinkLabel_GetText_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void LinkLabel_SetText_(IntPtr obj, string value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern string LinkLabel_GetUrl_(IntPtr obj);

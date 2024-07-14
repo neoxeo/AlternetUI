@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
 
 using Alternet.Base.Collections;
 using Alternet.Drawing;
@@ -16,29 +18,30 @@ namespace Alternet.UI
     [DefaultEvent("Click")]
     public partial class Control
         : FrameworkElement, ISupportInitialize, IDisposable, IFocusable,
-        IWin32Window, ITextProperty, IComponent, IControl
+        IWin32Window, ITextProperty, IComponent, IControl, INotifyDataErrorInfo
     {
         /// <summary>
         /// Gets or sets min element size.
         /// </summary>
-        public static double MinElementSize = 32;
+        public static Coord MinElementSize = 32;
 
         /// <summary>
         /// Gets or sets whether <see cref="DebugBackgroundColor"/> property is used.
         /// </summary>
         public static bool UseDebugBackgroundColor = false;
 
-        internal bool enabled = true;
-
         private static readonly SizeD DefaultControlSize = SizeD.NaN;
         private static int groupIndexCounter;
         private static Font? defaultFont;
         private static Font? defaultMonoFont;
+        private static Control? hoveredControl;
 
         private ControlStyles controlStyle = ControlStyles.UserPaint | ControlStyles.StandardClick
             | ControlStyles.Selectable | ControlStyles.StandardDoubleClick
             | ControlStyles.AllPaintingInWmPaint | ControlStyles.UseTextForAccessibility;
 
+        private bool enabled = true;
+        private int handlerTextChanging;
         private int rowIndex;
         private int columnIndex;
         private int columnSpan = 1;
@@ -80,8 +83,9 @@ namespace Alternet.UI
         private string? text;
         private DockStyle dock;
         private LayoutStyle? layout;
-        private Graphics? measureCanvas;
-        private RectD? reportedBounds;
+        private RectD reportedBounds = RectD.MinusOne;
+        private Coord? scaleFactor;
+        private SizeD? dpi;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Control"/> class.
@@ -94,397 +98,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Occurs inside <see cref="Control.GetPreferredSize(SizeD)"/> method.
-        /// </summary>
-        /// <remarks>
-        /// If default <see cref="Control.GetPreferredSize(SizeD)"/> call is not needed,
-        /// set <see cref="HandledEventArgs.Handled"/>
-        /// property to <c>true</c>.
-        /// </remarks>
-        public static event EventHandler<DefaultPreferredSizeEventArgs>? GlobalGetPreferredSize;
-
-        /// <summary>
-        /// Occurs when the the control should reposition its child controls.
-        /// </summary>
-        /// <remarks>
-        /// If default layout is not needed, set <see cref="HandledEventArgs.Handled"/>
-        /// property to <c>true</c>.
-        /// </remarks>
-        public static event EventHandler<DefaultLayoutEventArgs>? GlobalOnLayout;
-
-        /// <summary>
-        /// Occurs when the user scrolls through the control contents using scrollbars.
-        /// </summary>
-        [Category("Action")]
-        public event ScrollEventHandler? Scroll;
-
-        /// <summary>
-        /// Occurs when cell settings are changed.
-        /// </summary>
-        /// <remarks>
-        /// Cell settings include <see cref="RowIndex"/>, <see cref="ColumnIndex"/>,
-        /// <see cref="RowSpan"/>, <see cref="ColumnSpan"/> and other properties.
-        /// </remarks>
-        public event EventHandler? CellChanged;
-
-        /// <summary>
-        /// Occurs when the window is activated in code or by the user.
-        /// </summary>
-        /// <remarks>
-        /// To activate a window at run time using code, call the <see cref="Window.Activate"/> method.
-        /// You can use this event for
-        /// tasks such as updating the contents of the window based on changes made to the
-        /// window's data when the window was not activated.
-        /// </remarks>
-        public event EventHandler? Activated;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Title"/> property changes.
-        /// </summary>
-        public event EventHandler? TitleChanged;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is moved over the control.
-        /// </summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseMove;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and a
-        /// mouse button is pressed.
-        /// </summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseDown;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and a mouse button
-        /// is released.</summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseUp;
-
-        /// <summary>
-        /// Occurs when the mouse wheel moves while the control has focus.
-        /// </summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseWheel;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and left
-        /// mouse button is pressed.
-        /// </summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseLeftButtonDown;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and right
-        /// mouse button is pressed.
-        /// </summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseRightButtonDown;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and right mouse button
-        /// is released.</summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseRightButtonUp;
-
-        /// <summary>
-        /// Occurs when the control needs to layout its children.</summary>
-        public event EventHandler<HandledEventArgs>? CustomLayout;
-
-        /// <summary>
-        /// Occurs when the control is double clicked by the mouse.
-        /// </summary>
-        [Category("Action")]
-        public event MouseEventHandler? MouseDoubleClick;
-
-        /// <summary>
-        /// Occurs when the mouse pointer is over the control and left mouse button
-        /// is released.</summary>
-        [Category("Mouse")]
-        public event MouseEventHandler? MouseLeftButtonUp;
-
-        /// <summary>
-        /// Occurs when the control's handle is created.
-        /// </summary>
-        public event EventHandler? HandleCreated;
-
-        /// <summary>
-        /// Occurs when the control's handle is destroyed.
-        /// </summary>
-        public event EventHandler? HandleDestroyed;
-
-        /// <summary>
-        /// Occurs when the window loses focus and is no longer the active window.
-        /// </summary>
-        /// <remarks>
-        /// You can use this event to perform tasks such as updating another window in
-        /// your application with data from the deactivated window.
-        /// </remarks>
-        public event EventHandler? Deactivated;
-
-        /// <summary>
-        /// Occurs when the contol gets focus.
-        /// </summary>
-        public event EventHandler? GotFocus;
-
-        /// <summary>
-        /// Occurs during a drag-and-drop operation and enables the drag source
-        /// to determine whether the drag-and-drop operation should be canceled.
-        /// </summary>
-        /// <remarks>
-        /// Currently this event is not called.
-        /// </remarks>
-        [Category("Drag Drop")]
-        public event QueryContinueDragEventHandler? QueryContinueDrag;
-
-        /// <summary>
-        /// Occurs when a key is pressed while the control has focus.
-        /// </summary>
-        [Category("Key")]
-        public event KeyEventHandler? KeyDown;
-
-        /// <summary>
-        /// Occurs when a key is released while the control has focus.
-        /// </summary>
-        [Category("Key")]
-        public event KeyEventHandler? KeyUp;
-
-        /// <summary>
-        /// Occurs when the control lost focus.
-        /// </summary>
-        public event EventHandler? LostFocus;
-
-        /// <summary>
-        /// Occurs when the <see cref="Control.Text" /> property value changes.
-        /// </summary>
-        public event EventHandler? TextChanged;
-
-        /// <summary>
-        /// Occurs when a character, space or backspace key is pressed while the control has focus.
-        /// </summary>
-        public event KeyPressEventHandler? KeyPress;
-
-        /// <summary>
-        /// Occurs when the <see cref="CurrentState"/> property value changes.
-        /// </summary>
-        public event EventHandler? CurrentStateChanged;
-
-        /// <summary>
-        /// Occurs when the <see cref="ToolTip"/> property value changes.
-        /// </summary>
-        public event EventHandler? ToolTipChanged;
-
-        /// <summary>
-        /// Occurs when the <see cref="IsMouseOver"/> property value changes.
-        /// </summary>
-        public event EventHandler? IsMouseOverChanged;
-
-        /// <summary>
-        /// Occurs when the control is clicked.
-        /// </summary>
-        public virtual event EventHandler? Click;
-
-        /// <summary>
-        /// Occurs when <see cref="Parent"/> is changed.
-        /// </summary>
-        public event EventHandler? ParentChanged;
-
-        /// <summary>
-        /// Occurs when the control is redrawn.
-        /// </summary>
-        /// <remarks>
-        /// The <see cref="Paint"/> event is raised when the control is redrawn.
-        /// It passes an instance of <see cref="PaintEventArgs"/> to the method(s)
-        /// that handles the <see cref="Paint"/> event.
-        /// </remarks>
-        public event EventHandler<PaintEventArgs>? Paint;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Margin"/> property changes.
-        /// </summary>
-        public event EventHandler? MarginChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Padding"/> property changes.
-        /// </summary>
-        public event EventHandler? PaddingChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Visible"/> property changes.
-        /// </summary>
-        public event EventHandler? VisibleChanged;
-
-        /// <summary>
-        /// Occurs after control was shown.
-        /// </summary>
-        public event EventHandler? AfterShow;
-
-        /// <summary>
-        /// Occurs after control was hidden.
-        /// </summary>
-        public event EventHandler? AfterHide;
-
-        /// <summary>
-        /// Occurs when the control loses mouse capture.
-        /// </summary>
-        /// <remarks>
-        /// In rare scenarios, you might need to detect unexpected input.
-        /// For example, consider the following scenarios.
-        /// <list type="bullet">
-        /// <item>During a mouse operation, the user opens the Start menu by
-        /// pressing the Windows key or CTRL+ESC.</item>
-        /// <item>During a mouse operation, the user switches to another program
-        /// by pressing ALT+TAB.</item>
-        /// <item>During a mouse operation, another program displays a window or
-        /// a message box that takes focus away from the current application.</item>
-        /// </list>
-        /// Mouse operations can include clicking and holding the mouse on a form
-        /// or a control, or performing a mouse drag operation.
-        /// If you have to detect when a form or a control loses mouse capture
-        /// for these and related unexpected scenarios, you can use the
-        /// <see cref="MouseCaptureLost"/> event.
-        /// </remarks>
-        public event EventHandler? MouseCaptureLost;
-
-        /// <summary>
-        /// When implemented by a class, occurs when user requests help for a control
-        /// </summary>
-        public event HelpEventHandler? HelpRequested;
-
-        /// <summary>
-        /// Occurs when exception is raised inside <see cref="AvoidException"/>.
-        /// </summary>
-        public event EventHandler<ControlExceptionEventArgs>? ProcessException;
-
-        /// <summary>
-        /// Occurs when the mouse pointer enters the control.
-        /// </summary>
-        public event EventHandler? MouseEnter;
-
-        /// <summary>
-        /// Occurs when the mouse pointer leaves the control.
-        /// </summary>
-        public event EventHandler? MouseLeave;
-
-        /// <summary>
-        /// Occurs when the child control is removed from this control.
-        /// </summary>
-        public event EventHandler<BaseEventArgs<Control>>? ChildRemoved;
-
-        /// <summary>
-        /// Occurs when the child control's <see cref="Visible"/> property is changed.
-        /// </summary>
-        public event EventHandler<BaseEventArgs<Control>>? ChildVisibleChanged;
-
-        /// <summary>
-        /// Occurs when the child control is added to this control.
-        /// </summary>
-        public event EventHandler<BaseEventArgs<Control>>? ChildInserted;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Enabled"/> property changes.
-        /// </summary>
-        public event EventHandler? EnabledChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Background"/> property changes.
-        /// </summary>
-        public event EventHandler? BackgroundChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Foreground"/> property changes.
-        /// </summary>
-        public event EventHandler? ForegroundChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="Font"/> property changes.
-        /// </summary>
-        public event EventHandler? FontChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="VerticalAlignment"/>
-        /// property changes.
-        /// </summary>
-        public event EventHandler? VerticalAlignmentChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="HorizontalAlignment"/>
-        /// property changes.
-        /// </summary>
-        public event EventHandler? HorizontalAlignmentChanged;
-
-        /// <summary>
-        /// Occurs when the control's size is changed.
-        /// </summary>
-        public event EventHandler? SizeChanged;
-
-        /// <summary>
-        /// Occurs when the application finishes processing events and is
-        /// about to enter the idle state. This is the same as <see cref="BaseApplication.Idle"/>
-        /// but on the control level.
-        /// </summary>
-        /// <remarks>
-        /// Use <see cref="ProcessIdle"/> property to specify whether <see cref="Idle"/>
-        /// event is fired.
-        /// </remarks>
-        public event EventHandler? Idle;
-
-        /// <summary>
-        /// Occurs when the control's size is changed.
-        /// </summary>
-        public event EventHandler? Resize;
-
-        /// <summary>
-        /// Occurs when the control's location is changed.
-        /// </summary>
-        public event EventHandler? LocationChanged;
-
-        /// <summary>
-        /// Occurs when a drag-and-drop operation needs to be started.
-        /// </summary>
-        /// <example>
-        /// The simplest event implementation is the following:
-        /// <code>
-        /// private IDataObject GetDataObject()
-        /// {
-        ///     var result = new DataObject();
-        ///     result.SetData(DataFormats.Text, "Test data string.");
-        ///     return result;
-        /// }
-        ///
-        /// private void ControlPanel_DragStart(object sender, DragStartEventArgs e)
-        /// {
-        ///     if (e.DistanceIsLess)
-        ///         return;
-        ///     e.DragStarted = true;
-        ///     var result = DoDragDrop(GetDataObject(), DragDropEffects.Copy | DragDropEffects.Move);
-        /// }
-        /// </code>
-        /// </example>
-        public event EventHandler<DragStartEventArgs>? DragStart;
-
-        /// <summary>
-        /// Occurs when a drag-and-drop operation is completed.
-        /// </summary>
-        public event EventHandler<DragEventArgs>? DragDrop;
-
-        /// <summary>
-        /// Occurs when an object is dragged over the control's bounds.
-        /// </summary>
-        public event EventHandler<DragEventArgs>? DragOver;
-
-        /// <summary>
-        /// Occurs when an object is dragged into the control's bounds.
-        /// </summary>
-        public event EventHandler<DragEventArgs>? DragEnter;
-
-        /// <summary>
-        /// Occurs when an object is dragged out of the control's bounds.
-        /// </summary>
-        public event EventHandler? DragLeave;
-
-        /// <summary>
         /// Gets the position of the mouse cursor in screen coordinates.
         /// </summary>
         /// <returns>
@@ -495,7 +108,7 @@ namespace Alternet.UI
         {
             get
             {
-                return Mouse.PrimaryDevice.GetScreenPosition();
+                return Mouse.GetPosition();
             }
         }
 
@@ -539,7 +152,26 @@ namespace Alternet.UI
             set
             {
                 defaultFont = value;
-                NativePlatform.Default.FontFactory.SetDefaultFont(value);
+                FontFactory.Handler.SetDefaultFont(value);
+            }
+        }
+
+        /// <summary>
+        /// Gets hovered control.
+        /// </summary>
+        /// <remarks>
+        /// Do not change this property, this is done by the library.
+        /// </remarks>
+        public static Control? HoveredControl
+        {
+            get => hoveredControl;
+
+            set
+            {
+                if (hoveredControl == value)
+                    return;
+                hoveredControl = value;
+                HoveredControlChanged?.Invoke(hoveredControl, EventArgs.Empty);
             }
         }
 
@@ -564,6 +196,20 @@ namespace Alternet.UI
         object IControl.NativeControl => Handler.GetNativeControl();
 
         /// <summary>
+        /// Gets scale factor used in device-independent units to/from
+        /// pixels conversions.
+        /// </summary>
+        /// <returns></returns>
+        [Browsable(false)]
+        public virtual Coord ScaleFactor
+        {
+            get
+            {
+                return scaleFactor ??= Handler.GetPixelScaleFactor();
+            }
+        }
+
+        /// <summary>
         /// Gets <see cref="Graphics"/> which can be used to measure text size
         /// and for other measure purposes.
         /// </summary>
@@ -572,13 +218,13 @@ namespace Alternet.UI
         {
             get
             {
-                measureCanvas ??= CreateDrawingContext();
+                var measureCanvas = GraphicsFactory.GetOrCreateMemoryCanvas(ScaleFactor);
                 return measureCanvas;
             }
         }
 
         /// <summary>
-        /// Gets border for all states of the control.
+        /// Gets or sets border for all states of the control.
         /// </summary>
         [Browsable(false)]
         public virtual ControlStateBorders? Borders
@@ -616,10 +262,16 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets whether mouse events are bubbled to parent control.
+        /// Gets or sets a value indicating whether this element responds to hit testing during
+        /// user interaction.
         /// </summary>
+        /// <remarks>
+        /// The default value is <c>false</c>. Setting <see cref="InputTransparent"/> to <c>true</c>
+        /// makes the element invisible to touch and pointer input. The input is passed to the first
+        /// non-input-transparent element that is visually behind the input transparent element.
+        /// </remarks>
         [Browsable(false)]
-        public virtual bool BubbleMouse { get; set; }
+        public virtual bool InputTransparent { get; set; }
 
         /// <summary>
         /// Gets or sets whether layout rules are ignored for this control.
@@ -649,7 +301,7 @@ namespace Alternet.UI
                     return;
 
                 title = value;
-                RaiseTitleChanged(EventArgs.Empty);
+                RaiseTitleChanged();
             }
         }
 
@@ -700,17 +352,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets whether controls is scrollable.
-        /// </summary>
-        [Browsable(false)]
-        public virtual bool IsScrollable
-        {
-            get => Handler.IsScrollable;
-
-            set => Handler.IsScrollable = value;
-        }
-
-        /// <summary>
         /// Gets or sets the Input Method Editor (IME) mode of the control.
         /// </summary>
         /// <returns>One of the <see cref="ImeMode" /> values.
@@ -721,26 +362,12 @@ namespace Alternet.UI
         public virtual ImeMode ImeMode { get; set; } = ImeMode.Off;
 
         /// <summary>
-        /// Gets a value indicating whether the control can receive focus.
-        /// </summary>
-        /// <returns>
-        /// <see langword="true" /> if the control can receive focus;
-        /// otherwise, <see langword="false" />.
-        /// </returns>
-        [Browsable(false)]
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        [Category("Focus")]
-        public bool CanFocus => IsFocusable;
-
-        /// <summary>
         /// Gets or sets the text associated with this control.
         /// </summary>
         /// <returns>
         /// The text associated with this control.
         /// </returns>
         [DefaultValue("")]
-        [Localizability(LocalizationCategory.Text)]
         public virtual string Text
         {
             get
@@ -751,10 +378,24 @@ namespace Alternet.UI
             set
             {
                 value ??= string.Empty;
-                if (text == value)
+
+                var forced = StateFlags.HasFlag(ControlFlags.ForceTextChange);
+                if (forced)
+                    StateFlags &= ~ControlFlags.ForceTextChange;
+
+                if (!forced && text == value)
                     return;
                 text = value;
-                RaiseTextChanged(EventArgs.Empty);
+
+                if (handlerTextChanging == 0)
+                {
+                    var coercedText = CoerceTextForHandler(value);
+
+                    if (forced || Handler.Text != coercedText)
+                        Handler.Text = coercedText;
+                }
+
+                RaiseTextChanged();
             }
         }
 
@@ -782,30 +423,6 @@ namespace Alternet.UI
                     return;
                 cursor = value;
                 Handler.SetCursor(value);
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the control, or one of its child
-        /// controls, currently has the input focus.
-        /// </summary>
-        /// <returns>
-        /// <see langword="true" /> if the control or one of its child controls
-        /// currently has the input focus; otherwise, <see langword="false" />.</returns>
-        [Browsable(false)]
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public bool ContainsFocus
-        {
-            get
-            {
-                var focused = GetFocusedControl();
-                if (focused is null)
-                    return false;
-                if (focused == this)
-                    return true;
-                var result = focused.HasIndirectParent(this);
-                return result;
             }
         }
 
@@ -875,7 +492,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Gets or sets size of the <see cref="Control"/>'s client area, in
-        /// device-independent units (1/96th inch per unit).
+        /// device-independent units.
         /// </summary>
         [Browsable(false)]
         public virtual SizeD ClientSize
@@ -960,10 +577,8 @@ namespace Alternet.UI
         [Browsable(false)]
         public virtual bool IsMouseOver
         {
-            get
-            {
-                return Handler.IsMouseOver;
-            }
+            get;
+            private set;
         }
 
         /// <summary>
@@ -1033,18 +648,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets whether this control itself can have focus.
-        /// </summary>
-        [Browsable(false)]
-        public virtual bool IsFocusable
-        {
-            get
-            {
-                return Handler.IsFocusable;
-            }
-        }
-
-        /// <summary>
         /// Gets the distance, in dips, between the right edge of the control and the left
         /// edge of its container's client area.
         /// </summary>
@@ -1054,7 +657,7 @@ namespace Alternet.UI
         [Browsable(false)]
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public double Right
+        public Coord Right
         {
             get => Bounds.Right;
             set => Left = value - Width;
@@ -1070,7 +673,7 @@ namespace Alternet.UI
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Category("Layout")]
-        public double Bottom
+        public Coord Bottom
         {
             get => Bounds.Bottom;
             set => Top = value - Height;
@@ -1116,23 +719,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets whether this control can have focus right now.
-        /// </summary>
-        /// <remarks>
-        /// If this property returns true, it means that calling <see cref="SetFocus"/> will put
-        /// focus either to this control or one of its children. If you need to know whether
-        /// this control accepts focus itself, use <see cref="IsFocusable"/>.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual bool CanAcceptFocus
-        {
-            get
-            {
-                return Handler.CanAcceptFocus;
-            }
-        }
-
-        /// <summary>
         /// Gets or sets the object that contains data about the control.
         /// </summary>
         /// <value>An <see cref="object"/> that contains data about the control.
@@ -1155,7 +741,6 @@ namespace Alternet.UI
         /// in the user interface.
         /// </summary>
         [DefaultValue(null)]
-        [Localizability(LocalizationCategory.ToolTip)]
         public virtual string? ToolTip
         {
             get
@@ -1176,7 +761,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Gets or sets the <see cref="Control"/> bounds relative to the parent,
-        /// in device-independent units (1/96th inch per unit).
+        /// in device-independent units.
         /// </summary>
         [Browsable(false)]
         public virtual RectD Bounds
@@ -1184,6 +769,8 @@ namespace Alternet.UI
             get => Handler.Bounds;
             set
             {
+                value.Width = Math.Max(0, value.Width);
+                value.Height = Math.Max(0, value.Height);
                 if (Bounds == value)
                     return;
                 Handler.Bounds = value;
@@ -1194,7 +781,7 @@ namespace Alternet.UI
         /// Gets or sets the distance between the left edge of the control
         /// and the left edge of its container's client area.
         /// </summary>
-        public virtual double Left
+        public virtual Coord Left
         {
             get
             {
@@ -1214,7 +801,7 @@ namespace Alternet.UI
         /// Gets or sets the distance between the top edge of the control
         /// and the top edge of its container's client area.
         /// </summary>
-        public virtual double Top
+        public virtual Coord Top
         {
             get
             {
@@ -1232,10 +819,9 @@ namespace Alternet.UI
 
         /// <summary>
         /// Gets or sets the location of upper-left corner of the control, in
-        /// device-independent units (1/96th inch per unit).
+        /// device-independent units.
         /// </summary>
-        /// <value>The position of the control's upper-left corner, in logical
-        /// units (1/96th of an inch).</value>
+        /// <value>The position of the control's upper-left corner, in device-independent units.</value>
         [Browsable(false)]
         public virtual PointD Location
         {
@@ -1292,11 +878,16 @@ namespace Alternet.UI
         /// You can also disable a control to restrict its use. For example, a
         /// button can be disabled to prevent the user from clicking it.
         /// </remarks>
+        /// <remarks>
+        /// Notice that this property can return false even if this control itself hadn't been
+        /// explicitly disabled when one of its parent controls is disabled. To get the intrinsic
+        /// status of this control, use <see cref="IsThisEnabled"/>.
+        /// </remarks>
         public virtual bool Enabled
         {
             get
             {
-                return enabled;
+                return enabled && IsParentEnabled;
             }
 
             set
@@ -1306,6 +897,43 @@ namespace Alternet.UI
                 enabled = value;
                 RaiseEnabledChanged(EventArgs.Empty);
                 Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the control is intrinsically enabled.
+        /// </summary>
+        /// <remarks>
+        /// This property is mostly used for the library itself, user code should normally use
+        /// <see cref="Enabled"/> instead.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual bool IsThisEnabled
+        {
+            get
+            {
+                return enabled;
+            }
+
+            set
+            {
+                Enabled = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether <see cref="Parent"/> of this control can respond
+        /// to user interaction.
+        /// </summary>
+        /// <remarks>
+        /// If <see cref="Parent"/> is not specified, returns <c>true</c>.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual bool IsParentEnabled
+        {
+            get
+            {
+                return Parent?.Enabled ?? true;
             }
         }
 
@@ -1401,18 +1029,6 @@ namespace Alternet.UI
             }
         }
 
-        /// <inheritdoc/>
-        [Browsable(false)]
-        public override IReadOnlyList<FrameworkElement> ContentElements
-        {
-            get
-            {
-                if (children == null)
-                    return Array.Empty<FrameworkElement>();
-                return children;
-            }
-        }
-
         /// <summary>
         /// Gets or sets the parent container of the control.
         /// </summary>
@@ -1426,7 +1042,7 @@ namespace Alternet.UI
                     return;
                 parent?.Children.Remove(this);
                 value?.Children.Add(this);
-                OnParentChanged(EventArgs.Empty);
+                RaiseParentChanged();
                 stateFlags |= ControlFlags.ParentAssigned;
             }
         }
@@ -1444,8 +1060,8 @@ namespace Alternet.UI
                 {
                     if (result == null)
                         return null;
-                    if (result is Window)
-                        return (Window?)result;
+                    if (result is Window window)
+                        return window;
                     result = result.Parent;
                 }
             }
@@ -1454,14 +1070,14 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the size of the control.
         /// </summary>
-        /// <value>The size of the control, in device-independent units (1/96th inch per unit).
-        /// The default value is <see cref="Alternet.Drawing.SizeD"/>(<see cref="double.NaN"/>,
-        /// <see cref="double.NaN"/>)/>.
+        /// <value>The size of the control, in device-independent units.
+        /// The default value is <see cref="SizeD"/>(<see cref="Coord.NaN"/>,
+        /// <see cref="Coord.NaN"/>)/>.
         /// </value>
         /// <remarks>
         /// This property specifies the size of the control.
-        /// Set this property to <see cref="Alternet.Drawing.SizeD"/>(<see cref="double.NaN"/>,
-        /// <see cref="double.NaN"/>) to specify system-default sizing
+        /// Set this property to <see cref="SizeD"/>(<see cref="Coord.NaN"/>,
+        /// <see cref="Coord.NaN"/>) to specify system-default sizing
         /// behavior when the control is first shown.
         /// </remarks>
         [Browsable(false)]
@@ -1481,15 +1097,15 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the width of the control.
         /// </summary>
-        /// <value>The width of the control, in device-independent units (1/96th inch per unit).
-        /// The default value is <see cref="double.NaN"/>.
+        /// <value>The width of the control, in device-independent units.
+        /// The default value is <see cref="Coord.NaN"/>.
         /// </value>
         /// <remarks>
         /// This property specifies the width of the control.
-        /// Set this property to <see cref="double.NaN"/> to specify system-default sizing
+        /// Set this property to <see cref="Coord.NaN"/> to specify system-default sizing
         /// behavior before the control is first shown.
         /// </remarks>
-        public virtual double Width
+        public virtual Coord Width
         {
             get => Size.Width;
             set => Size = new(value, Height);
@@ -1498,16 +1114,15 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the height of the control.
         /// </summary>
-        /// <value>The height of the control, in device-independent units
-        /// (1/96th inch per unit).
-        /// The default value is <see cref="double.NaN"/>.
+        /// <value>The height of the control, in device-independent units.
+        /// The default value is <see cref="Coord.NaN"/>.
         /// </value>
         /// <remarks>
         /// This property specifies the height of the control.
-        /// Set this property to <see cref="double.NaN"/> to specify system-default sizing
+        /// Set this property to <see cref="Coord.NaN"/> to specify system-default sizing
         /// behavior before the control is first shown.
         /// </remarks>
-        public virtual double Height
+        public virtual Coord Height
         {
             get => Size.Height;
             set => Size = new(Width, value);
@@ -1516,16 +1131,15 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the suggested size of the control.
         /// </summary>
-        /// <value>The suggested size of the control, in device-independent
-        /// units (1/96th inch per unit).
-        /// The default value is <see cref="Alternet.Drawing.SizeD"/>
-        /// (<see cref="double.NaN"/>, <see cref="double.NaN"/>)/>.
+        /// <value>The suggested size of the control, in device-independent units.
+        /// The default value is <see cref="SizeD"/>
+        /// (<see cref="Coord.NaN"/>, <see cref="Coord.NaN"/>)/>.
         /// </value>
         /// <remarks>
         /// This property specifies the suggested size of the control. An actual
         /// size is calculated by the layout system.
-        /// Set this property to <see cref="Alternet.Drawing.SizeD"/>
-        /// (<see cref="double.NaN"/>, <see cref="double.NaN"/>) to specify auto
+        /// Set this property to <see cref="SizeD"/>
+        /// (<see cref="Coord.NaN"/>, <see cref="Coord.NaN"/>) to specify auto
         /// sizing behavior.
         /// The value of this property is always the same as the value that was
         /// set to it and is not changed by the layout system.
@@ -1551,19 +1165,18 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the suggested width of the control.
         /// </summary>
-        /// <value>The suggested width of the control, in device-independent
-        /// units (1/96th inch per unit).
-        /// The default value is <see cref="double.NaN"/>.
+        /// <value>The suggested width of the control, in device-independent units.
+        /// The default value is <see cref="Coord.NaN"/>.
         /// </value>
         /// <remarks>
         /// This property specifies the suggested width of the control. An
         /// actual width is calculated by the layout system.
-        /// Set this property to <see cref="double.NaN"/> to specify auto
+        /// Set this property to <see cref="Coord.NaN"/> to specify auto
         /// sizing behavior.
         /// The value of this property is always the same as the value that was
         /// set to it and is not changed by the layout system.
         /// </remarks>
-        public double SuggestedWidth
+        public Coord SuggestedWidth
         {
             get => suggestedSize.Width;
 
@@ -1576,19 +1189,18 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the suggested height of the control.
         /// </summary>
-        /// <value>The suggested height of the control, in device-independent
-        /// units (1/96th inch per unit).
-        /// The default value is <see cref="double.NaN"/>.
+        /// <value>The suggested height of the control, in device-independent units.
+        /// The default value is <see cref="Coord.NaN"/>.
         /// </value>
         /// <remarks>
         /// This property specifies the suggested height of the control. An
         /// actual height is calculated by the layout system.
-        /// Set this property to <see cref="double.NaN"/> to specify auto
+        /// Set this property to <see cref="Coord.NaN"/> to specify auto
         /// sizing behavior.
         /// The value of this property is always the same as the value that was
         /// set to it and is not changed by the layout system.
         /// </remarks>
-        public double SuggestedHeight
+        public Coord SuggestedHeight
         {
             get => suggestedSize.Height;
 
@@ -1635,41 +1247,41 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets override value for the <see cref="CurrentState"/>
+        /// Gets or sets override value for the <see cref="VisualState"/>
         /// property.
         /// </summary>
         /// <remarks>
-        /// When <see cref="CurrentStateOverride"/> is specified, it's value
-        /// used instead of dynamic state calculation when <see cref="CurrentState"/>
+        /// When <see cref="VisualStateOverride"/> is specified, it's value
+        /// used instead of dynamic state calculation when <see cref="VisualState"/>
         /// returns its value.
         /// </remarks>
         [Browsable(false)]
-        public virtual GenericControlState? CurrentStateOverride { get; set; }
+        public virtual VisualControlState? VisualStateOverride { get; set; }
 
         /// <summary>
-        /// Gets current <see cref="GenericControlState"/>.
+        /// Gets current <see cref="VisualControlState"/>.
         /// </summary>
         [Browsable(false)]
-        public virtual GenericControlState CurrentState
+        public virtual VisualControlState VisualState
         {
             get
             {
-                if (CurrentStateOverride is not null)
-                    return CurrentStateOverride.Value;
+                if (VisualStateOverride is not null)
+                    return VisualStateOverride.Value;
 
-                if (!enabled)
-                    return GenericControlState.Disabled;
+                if (!Enabled)
+                    return VisualControlState.Disabled;
                 if (IsMouseOver)
                 {
                     if (IsMouseLeftButtonDown)
-                        return GenericControlState.Pressed;
+                        return VisualControlState.Pressed;
                     else
-                        return GenericControlState.Hovered;
+                        return VisualControlState.Hovered;
                 }
 
                 if (Focused)
-                    return GenericControlState.Focused;
-                return GenericControlState.Normal;
+                    return VisualControlState.Focused;
+                return VisualControlState.Normal;
             }
         }
 
@@ -1831,7 +1443,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the minimum width the window can be resized to.
         /// </summary>
-        public virtual double? MinWidth
+        public virtual Coord? MinWidth
         {
             get
             {
@@ -1853,7 +1465,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the minimum height the window can be resized to.
         /// </summary>
-        public virtual double? MinHeight
+        public virtual Coord? MinHeight
         {
             get
             {
@@ -1875,7 +1487,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the maximum width the window can be resized to.
         /// </summary>
-        public virtual double? MaxWidth
+        public virtual Coord? MaxWidth
         {
             get
             {
@@ -1897,7 +1509,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the maximum height the window can be resized to.
         /// </summary>
-        public virtual double? MaxHeight
+        public virtual Coord? MaxHeight
         {
             get
             {
@@ -2178,7 +1790,7 @@ namespace Alternet.UI
                 if (value == columnIndex)
                     return;
                 columnIndex = value;
-                OnCellChanged();
+                RaiseCellChanged();
             }
         }
 
@@ -2201,7 +1813,7 @@ namespace Alternet.UI
                 if (value == rowIndex)
                     return;
                 rowIndex = value;
-                OnCellChanged();
+                RaiseCellChanged();
             }
         }
 
@@ -2223,7 +1835,7 @@ namespace Alternet.UI
                 if (value == columnSpan)
                     return;
                 columnSpan = value;
-                OnCellChanged();
+                RaiseCellChanged();
             }
         }
 
@@ -2246,7 +1858,7 @@ namespace Alternet.UI
                 if (value == rowSpan)
                     return;
                 rowSpan = value;
-                OnCellChanged();
+                RaiseCellChanged();
             }
         }
 
@@ -2502,23 +2114,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the user can give the focus to this control
-        /// using the TAB key.
-        /// </summary>
-        public virtual bool TabStop
-        {
-            get
-            {
-                return Handler.TabStop;
-            }
-
-            set
-            {
-                Handler.TabStop = value;
-            }
-        }
-
-        /// <summary>
         /// Returns rectangle in which custom drawing need to be performed.
         /// Useful for custom draw controls
         /// </summary>
@@ -2567,16 +2162,8 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets whether control is graphic control. Graphic controls do not accept focus
-        /// and ignore keyboard.
-        /// </summary>
-        [Browsable(false)]
-        public virtual bool IsGraphicControl => false;
-
-        /// <summary>
         /// Gets a rectangle which describes the client area inside of the
-        /// <see cref="Control"/>,
-        /// in device-independent units (1/96th inch per unit).
+        /// <see cref="Control"/>, in device-independent units.
         /// </summary>
         [Browsable(false)]
         public virtual RectD ClientRectangle => new(PointD.Empty, ClientSize);
@@ -2584,8 +2171,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets a rectangle which describes an area inside of the
         /// <see cref="Control"/> available
-        /// for positioning (layout) of its child controls, in device-independent
-        /// units (1/96th inch per unit).
+        /// for positioning (layout) of its child controls, in device-independent units.
         /// </summary>
         [Browsable(false)]
         public virtual RectD ChildrenLayoutBounds
@@ -2608,7 +2194,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="WxControlHandler"/> associated with this class.
+        /// Gets a <see cref="IControlHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         public virtual IControlHandler Handler
@@ -2657,108 +2243,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a value indicating whether the control has input focus.
-        /// </summary>
-        [Browsable(false)]
-        public virtual bool Focused
-        {
-            get
-            {
-                return Handler.IsFocused;
-            }
-        }
-
-        /// <summary>
         /// Returns control identifier.
         /// </summary>
         [Browsable(false)]
         public virtual ControlTypeId ControlKind => ControlTypeId.Control;
-
-        /// <summary>
-        /// Gets or sets value indicating whether this control accepts
-        /// input or not (i.e. behaves like a static text) and so doesn't need focus.
-        /// </summary>
-        /// <remarks>
-        /// Default value is true.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual bool AcceptsFocus
-        {
-            get
-            {
-                return Handler.AcceptsFocusAll;
-            }
-
-            set
-            {
-                Handler.AcceptsFocusAll = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets value indicating whether this control accepts
-        /// focus from keyboard or not.
-        /// </summary>
-        /// <remarks>
-        /// Default value is true.
-        /// </remarks>
-        /// <returns>
-        /// Return false to indicate that while this control can,
-        /// in principle, have focus if the user clicks
-        /// it with the mouse, it shouldn't be included
-        /// in the TAB traversal chain when using the keyboard.
-        /// </returns>
-        [Browsable(false)]
-        public virtual bool AcceptsFocusFromKeyboard
-        {
-            get
-            {
-                return Handler.AcceptsFocusFromKeyboard;
-            }
-
-            set
-            {
-                Handler.AcceptsFocusFromKeyboard = value;
-            }
-        }
-
-        /// <summary>
-        /// Indicates whether this control or one of its children accepts focus.
-        /// </summary>
-        /// <remarks>
-        /// Default value is true.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual bool AcceptsFocusRecursively
-        {
-            get
-            {
-                return Handler.AcceptsFocusRecursively;
-            }
-
-            set
-            {
-                Handler.AcceptsFocusRecursively = value;
-            }
-        }
-
-        /// <summary>
-        /// Sets all focus related properties (<see cref="AcceptsFocus"/>,
-        /// <see cref="AcceptsFocusFromKeyboard"/>, <see cref="AcceptsFocusRecursively"/>) in one call.
-        /// </summary>
-        [Browsable(false)]
-        public virtual bool AcceptsFocusAll
-        {
-            get
-            {
-                return Handler.AcceptsFocusAll;
-            }
-
-            set
-            {
-                Handler.AcceptsFocusAll = value;
-            }
-        }
 
         /// <summary>
         /// Gets or sets whether <see cref="Idle"/> event is fired.
@@ -2778,6 +2266,67 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets absolute position of the control. Returned value is <see cref="Location"/>
+        /// plus all control's parents locations.
+        /// </summary>
+        [Browsable(false)]
+        public PointD AbsolutePosition
+        {
+            get
+            {
+                PointD origin;
+
+                if (ParentWindow == null)
+                    origin = PointD.MinValue;
+                else
+                    origin = PointD.Empty;
+
+                var ancestors = AllParents;
+
+                var result = Location;
+
+                foreach(var item in ancestors)
+                {
+                    result += item.Location;
+                }
+
+                return origin + result;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value that indicates whether this control or it's child controls have validation errors.
+        /// </summary>
+        /// <returns><c>true</c> if the control currently has validation errors;
+        /// otherwise, <c>false</c>.</returns>
+        [Browsable(false)]
+        public virtual bool HasErrors
+        {
+            get
+            {
+                return GetErrors(null).Cast<object>().Any();
+            }
+        }
+
+        /// <summary>
+        /// Enumerates all parent controls.
+        /// </summary>
+        [Browsable(false)]
+        public IEnumerable<Control> AllParents
+        {
+            get
+            {
+                var result = Parent;
+
+                while (result != null)
+                {
+                    yield return result;
+                    result = result.Parent;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets number of children items.
         /// </summary>
         [Browsable(false)]
@@ -2793,6 +2342,22 @@ namespace Alternet.UI
 
         IWindow? IControl.ParentWindow => ParentWindow;
 
+        /// <inheritdoc />
+        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection
+            => HasChildren ? Children : Array.Empty<FrameworkElement>();
+
+        /// <inheritdoc/>
+        [Browsable(false)]
+        internal override IReadOnlyList<FrameworkElement> ContentElements
+        {
+            get
+            {
+                if (children == null)
+                    return Array.Empty<FrameworkElement>();
+                return children;
+            }
+        }
+
         /// <summary>
         /// Gets a value indicating which of the modifier keys (SHIFT, CTRL, and ALT) is in
         /// a pressed state.</summary>
@@ -2805,22 +2370,6 @@ namespace Alternet.UI
             {
                 var modifiers = Keyboard.Modifiers;
                 return modifiers.ToKeys();
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets whether scroll events are binded and recveived in the control.
-        /// </summary>
-        protected virtual bool BindScrollEvents
-        {
-            get
-            {
-                return Handler.BindScrollEvents;
-            }
-
-            set
-            {
-                Handler.BindScrollEvents = value;
             }
         }
 
@@ -2840,11 +2389,10 @@ namespace Alternet.UI
             }
         }
 
+        /// <summary>
+        /// Gets whether this control is dummy control.
+        /// </summary>
         protected virtual bool IsDummy => false;
-
-        /// <inheritdoc />
-        protected override IEnumerable<FrameworkElement> LogicalChildrenCollection
-            => HasChildren ? Children : Array.Empty<FrameworkElement>();
 
         /// <summary>
         /// Gets child control at the specified index in the collection of child controls.

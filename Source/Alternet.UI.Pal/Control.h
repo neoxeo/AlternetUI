@@ -67,6 +67,9 @@ namespace Alternet::UI
     {
 #include "Api/Control.inc"
     public:
+        void OnTextChanged(wxCommandEvent& event);
+        void OnDpiChanged(wxDPIChangedEvent& event);
+
         long BuildStyle(long style, long element, bool value);
         void UpdateWindowStyle(long element, bool value);
         static wxString GetMouseEventDesc(const wxMouseEvent& ev);
@@ -115,29 +118,33 @@ namespace Alternet::UI
         int _ignoreRecreate = 0;
         int _borderStyle = 0;
         int _disableRecreateCounter = 0;
+        SizeI _eventOldDpi;
+        SizeI _eventNewDpi;
 
         virtual void OnPaint(wxPaintEvent& event);
         void OnEraseBackground(wxEraseEvent& event);
 
         void OnMouseCaptureLost(wxEvent& event);
 
-        void OnMouseEnter(wxMouseEvent& event);
-        void OnMouseLeave(wxMouseEvent& event);
-        void OnMouseLeftUp(wxMouseEvent& event);
-        void OnVisibleChanged(wxShowEvent& event);
-        void OnSizeChanged(wxSizeEvent& event);
-        void OnDestroy(wxWindowDestroyEvent& event);
-        void OnIdle(wxIdleEvent& event);
-        void OnActivate(wxActivateEvent& event);
+        virtual void OnMouseEnter(wxMouseEvent& event);
+        virtual void OnMouseLeave(wxMouseEvent& event);
+        virtual void OnMouseLeftUp(wxMouseEvent& event);
+        virtual void OnVisibleChanged(wxShowEvent& event);
+        virtual void OnSizeChanged(wxSizeEvent& event);
+        virtual void OnLocationChanged(wxMoveEvent& event);
+        virtual void OnDestroy(wxWindowDestroyEvent& event);
+        virtual void OnIdle(wxIdleEvent& event);
+        virtual void OnActivate(wxActivateEvent& event);
+        virtual void OnSysColorChanged(wxSysColourChangedEvent& event);
 
-        void OnScrollTop(wxScrollWinEvent& event);
-        void OnScrollBottom(wxScrollWinEvent& event);
-        void OnScrollLineUp(wxScrollWinEvent& event);
-        void OnScrollLineDown(wxScrollWinEvent& event);
-        void OnScrollPageUp(wxScrollWinEvent& event);
-        void OnScrollPageDown(wxScrollWinEvent& event);
-        void OnScrollThumbTrack(wxScrollWinEvent& event);
-        void OnScrollThumbRelease(wxScrollWinEvent& event);
+        virtual void OnScrollTop(wxScrollWinEvent& event);
+        virtual void OnScrollBottom(wxScrollWinEvent& event);
+        virtual void OnScrollLineUp(wxScrollWinEvent& event);
+        virtual void OnScrollLineDown(wxScrollWinEvent& event);
+        virtual void OnScrollPageUp(wxScrollWinEvent& event);
+        virtual void OnScrollPageDown(wxScrollWinEvent& event);
+        virtual void OnScrollThumbTrack(wxScrollWinEvent& event);
+        virtual void OnScrollThumbRelease(wxScrollWinEvent& event);
 
         virtual void OnParentChanged();
         virtual void OnAnyParentChanged();
@@ -201,6 +208,9 @@ namespace Alternet::UI
         bool IsInitInProgress();
 
     private:
+        string _textValue = u"";
+        RectD _eventBounds;
+
         bool CanSetScrollbar();
 
         void NotifyAllChildrenOnParentChange();

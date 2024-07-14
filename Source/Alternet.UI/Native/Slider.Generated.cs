@@ -114,7 +114,7 @@ namespace Alternet.UI.Native
             }
         }
         
-        public SliderOrientation Orientation
+        public Alternet.UI.SliderOrientation Orientation
         {
             get
             {
@@ -129,7 +129,7 @@ namespace Alternet.UI.Native
             }
         }
         
-        public SliderTickStyle TickStyle
+        public Alternet.UI.SliderTickStyle TickStyle
         {
             get
             {
@@ -172,14 +172,7 @@ namespace Alternet.UI.Native
         
         IntPtr OnEvent(NativeApi.SliderEvent e, IntPtr parameter)
         {
-            switch (e)
-            {
-                case NativeApi.SliderEvent.ValueChanged:
-                {
-                    ValueChanged?.Invoke(); return IntPtr.Zero;
-                }
-                default: throw new Exception("Unexpected SliderEvent value: " + e);
-            }
+            ValueChanged?.Invoke(); return IntPtr.Zero;
         }
         
         public Action? ValueChanged;
@@ -240,16 +233,16 @@ namespace Alternet.UI.Native
             public static extern void Slider_SetTickFrequency_(IntPtr obj, int value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern SliderOrientation Slider_GetOrientation_(IntPtr obj);
+            public static extern Alternet.UI.SliderOrientation Slider_GetOrientation_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Slider_SetOrientation_(IntPtr obj, SliderOrientation value);
+            public static extern void Slider_SetOrientation_(IntPtr obj, Alternet.UI.SliderOrientation value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern SliderTickStyle Slider_GetTickStyle_(IntPtr obj);
+            public static extern Alternet.UI.SliderTickStyle Slider_GetTickStyle_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Slider_SetTickStyle_(IntPtr obj, SliderTickStyle value);
+            public static extern void Slider_SetTickStyle_(IntPtr obj, Alternet.UI.SliderTickStyle value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void Slider_ClearTicks_(IntPtr obj);

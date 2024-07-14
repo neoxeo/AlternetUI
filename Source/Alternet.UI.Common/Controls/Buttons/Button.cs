@@ -9,9 +9,11 @@ namespace Alternet.UI
     /// Represents a button control.
     /// </summary>
     [ControlCategory("Common")]
-    public partial class Button : ButtonBase
+    public partial class Button : ButtonBase, IControlStateObjectChanged
     {
         private static bool imagesEnabled = true;
+
+        private ControlStateImages? stateImages;
 
         /// <summary>
         /// Initializes a new <see cref="Button"/> instance.
@@ -56,13 +58,25 @@ namespace Alternet.UI
         [Browsable(false)]
         public virtual ControlStateImages StateImages
         {
-            get => Handler.StateImages;
+            get
+            {
+                if(stateImages is null)
+                {
+                    stateImages = new();
+                    stateImages.ChangedHandler = this;
+                }
+
+                return stateImages;
+            }
 
             set
             {
-                if (!imagesEnabled || Handler.StateImages == value)
+                if (!imagesEnabled || stateImages == value)
                     return;
-                Handler.StateImages = value ?? throw new ArgumentNullException(nameof(StateImages));
+                PerformLayoutAndInvalidate(() =>
+                {
+                    StateImages.Assign(value);
+                });
             }
         }
 
@@ -169,6 +183,19 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets a value that determines if the background is drawn using visual styles,
+        /// if supported.</summary>
+        /// <returns>
+        /// <see langword="true" /> if the background is drawn using visual styles;
+        /// otherwise, <see langword="false" />.</returns>
+        /// <remarks>
+        /// Currently this property doesn't do anything and is added for compatibility.
+        /// </remarks>
+        [Category("Appearance")]
+        [Browsable(false)]
+        public virtual bool UseVisualStyleBackColor { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets a value that indicates whether a <see cref="Button"/> is
         /// the default button. In a modal dialog,
         /// a user invokes the default button by pressing the ENTER key.
@@ -246,13 +273,20 @@ namespace Alternet.UI
         }
 
         [Browsable(false)]
+        internal new string Title
+        {
+            get => base.Title;
+            set => base.Title = value;
+        }
+
+        [Browsable(false)]
         internal new Thickness Padding
         {
             get => base.Padding;
         }
 
         /// <summary>
-        /// Gets a <see cref="ButtonHandler"/> associated with this class.
+        /// Gets a <see cref="IButtonHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         internal new IButtonHandler Handler => (IButtonHandler)base.Handler;
@@ -274,7 +308,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Sets the margins between the image and the text of the button.
-        /// Value is in dips (1/96 inch).
+        /// Value is in device-independent units.
         /// </summary>
         /// <remarks>
         /// This method is currently only implemented under Windows.
@@ -285,18 +319,57 @@ namespace Alternet.UI
         public virtual void SetImageMargins(double x, double? y = null)
         {
             y ??= x;
-            if (BaseApplication.IsWindowsOS)
-            {
-                var xPixels = PixelFromDip(x);
-                var yPixels = PixelFromDip(y.Value);
-                Handler.SetImageMargins(xPixels, yPixels);
-            }
+            Handler.SetImageMargins(x, y.Value);
+        }
+
+        void IControlStateObjectChanged.DisabledChanged(object? sender)
+        {
+            Handler.DisabledImage = stateImages?.Disabled;
+            PerformLayoutAndInvalidate();
+        }
+
+        void IControlStateObjectChanged.NormalChanged(object? sender)
+        {
+            Handler.NormalImage = stateImages?.Normal;
+            PerformLayoutAndInvalidate();
+        }
+
+        void IControlStateObjectChanged.FocusedChanged(object? sender)
+        {
+            Handler.FocusedImage = stateImages?.Focused;
+            PerformLayoutAndInvalidate();
+        }
+
+        void IControlStateObjectChanged.HoveredChanged(object? sender)
+        {
+            Handler.HoveredImage = stateImages?.Hovered;
+            PerformLayoutAndInvalidate();
+        }
+
+        void IControlStateObjectChanged.PressedChanged(object? sender)
+        {
+            Handler.PressedImage = stateImages?.Pressed;
+            PerformLayoutAndInvalidate();
         }
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateButtonHandler(this);
+            return ControlFactory.Handler.CreateButtonHandler(this);
+        }
+
+        /// <inheritdoc/>
+        protected override void BindHandlerEvents()
+        {
+            base.BindHandlerEvents();
+            Handler.Click = RaiseClick;
+        }
+
+        /// <inheritdoc/>
+        protected override void UnbindHandlerEvents()
+        {
+            base.UnbindHandlerEvents();
+            Handler.Click = null;
         }
     }
 }

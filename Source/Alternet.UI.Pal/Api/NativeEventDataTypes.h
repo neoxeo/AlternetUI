@@ -5,6 +5,16 @@
 namespace Alternet::UI
 {
     #pragma pack(push, 1)
+    struct DragEventData
+    {
+        void* data;
+        double mouseClientLocationX;
+        double mouseClientLocationY;
+        DragDropEffects effect;
+    };
+    #pragma pack(pop)
+    
+    #pragma pack(push, 1)
     struct CompareListViewItemsEventData
     {
         int64_t item1Index;
@@ -25,25 +35,6 @@ namespace Alternet::UI
         int64_t itemIndex;
         char16_t* label;
         c_bool editCancelled;
-    };
-    #pragma pack(pop)
-    
-    #pragma pack(push, 1)
-    struct SplitterPanelEventData
-    {
-        int SashPosition;
-        int OldSize;
-        int NewSize;
-        int X;
-        int Y;
-    };
-    #pragma pack(pop)
-    
-    #pragma pack(push, 1)
-    struct TabPageSelectionEventData
-    {
-        int oldSelectedTabPageIndex;
-        int newSelectedTabPageIndex;
     };
     #pragma pack(pop)
     
@@ -78,16 +69,6 @@ namespace Alternet::UI
     #pragma pack(pop)
     
     #pragma pack(push, 1)
-    struct DragEventData
-    {
-        void* data;
-        double mouseClientLocationX;
-        double mouseClientLocationY;
-        DragDropEffects effect;
-    };
-    #pragma pack(pop)
-    
-    #pragma pack(push, 1)
     struct TextInputEventData
     {
         char16_t keyChar;
@@ -105,25 +86,9 @@ namespace Alternet::UI
     #pragma pack(pop)
     
     #pragma pack(push, 1)
-    struct MouseButtonEventData
-    {
-        int64_t timestamp;
-        void* targetControl;
-        MouseButton changedButton;
-    };
-    #pragma pack(pop)
-    
-    #pragma pack(push, 1)
     struct MouseEventData
     {
-        int64_t timestamp;
-        void* targetControl;
-    };
-    #pragma pack(pop)
-    
-    #pragma pack(push, 1)
-    struct MouseWheelEventData
-    {
+        int mouseEventKind;
         int64_t timestamp;
         void* targetControl;
         int delta;

@@ -60,6 +60,11 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Occurs when the size of the tab has changed.
+        /// </summary>
+        public event EventHandler<BaseEventArgs<Control>>? TabSizeChanged;
+
+        /// <summary>
         /// Occurs when the <see cref="SelectedIndex" /> property has changed.
         /// </summary>
         [Category("Behavior")]
@@ -102,9 +107,6 @@ namespace Alternet.UI
                 Invalidate();
             }
         }
-
-        /// <inheritdoc/>
-        public override IReadOnlyList<FrameworkElement> ContentElements => Pages;
 
         /// <summary>
         /// Gets or sets the index of the currently selected tab page.
@@ -461,6 +463,10 @@ namespace Alternet.UI
         [Browsable(false)]
         internal CardPanel Contents => cardPanel;
 
+        /// <inheritdoc/>
+        [Browsable(false)]
+        internal override IReadOnlyList<FrameworkElement> ContentElements => Pages;
+
         /// <summary>
         /// Gets internal control with tab labels.
         /// </summary>
@@ -468,7 +474,8 @@ namespace Alternet.UI
         internal CardPanelHeader Header => cardPanelHeader;
 
         /// <inheritdoc />
-        protected override IEnumerable<FrameworkElement> LogicalChildrenCollection => Pages;
+        [Browsable(false)]
+        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection => Pages;
 
         /// <summary>
         /// Gets default interior border color as <see cref="LightDarkColor"/>.
@@ -828,7 +835,7 @@ namespace Alternet.UI
         /// <returns></returns>
         protected virtual Color GetInteriorBorderColor()
         {
-            var color = Borders?.GetObjectOrNull(GenericControlState.Normal)?.Color;
+            var color = Borders?.GetObjectOrNull(VisualControlState.Normal)?.Color;
             color ??= ColorUtils.GetTabControlInteriorBorderColor(IsDarkBackground);
             return color;
         }
@@ -851,12 +858,13 @@ namespace Alternet.UI
                 e.Graphics,
                 ClientRectangle,
                 r,
-                GetInteriorBorderColor(),
+                GetInteriorBorderColor().AsBrush,
                 TabAlignment);
         }
 
-        private void CardPanelHeader_ButtonSizeChanged(object? sender, EventArgs e)
+        private void CardPanelHeader_ButtonSizeChanged(object? sender, BaseEventArgs<Control> e)
         {
+            TabSizeChanged?.Invoke(this, e);
             Invalidate();
         }
 
@@ -899,7 +907,7 @@ namespace Alternet.UI
                 Header,
                 e.Graphics,
                 r,
-                GetInteriorBorderColor(),
+                GetInteriorBorderColor().AsBrush,
                 TabAlignment);
         }
 

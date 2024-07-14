@@ -12,7 +12,15 @@ public partial class App : Application
 
 		MainPage = new AppShell();
 
+        Alternet.UI.App.LogMessage += App_LogMessage;
+
 	}
+
+    private void App_LogMessage(object? sender, Alternet.UI.LogMessageEventArgs e)
+    {
+        if(e.Message is not null)
+            LogMessage?.Invoke(this, e.Message);
+    }
 
     public static event EventHandler<string>? LogMessage;
 
@@ -20,7 +28,7 @@ public partial class App : Application
     {
         Window window = base.CreateWindow(activationState);
 
-        hook = new TaskPoolGlobalHook();
+        /*hook = new TaskPoolGlobalHook();
 
         hook.KeyTyped += Hook_KeyTyped;
         hook.KeyPressed += Hook_KeyPressed;
@@ -34,7 +42,7 @@ public partial class App : Application
 
         hook.MouseWheel += Hook_MouseWheel;
 
-        hook.RunAsync();
+        hook.RunAsync();*/
 
         window.Created += (s, e) =>
         {

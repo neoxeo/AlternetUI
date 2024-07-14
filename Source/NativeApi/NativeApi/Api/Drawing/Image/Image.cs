@@ -8,6 +8,12 @@ namespace NativeApi.Api
     //https://docs.wxwidgets.org/3.2/classwx_bitmap.html
     public class Image
     {
+        public static int GetStaticOption(int objectId, int propId) => default;
+
+        public bool HasMask { get; }
+
+        public static void Log() { }
+
         // Gets or sets the scale factor of this bitmap.
         // Scale factor is 1 by default, but can be greater to indicate that the size of
         // bitmap in logical, DPI-independent pixels is smaller than its actual size in
@@ -77,7 +83,7 @@ namespace NativeApi.Api
 
         public bool HasAlpha { get;set; }
 
-        public void ResetAlpha() { }
+        public bool ResetAlpha() => default;
 
         public int PixelWidth { get; }
         public int PixelHeight { get; }
@@ -105,8 +111,14 @@ namespace NativeApi.Api
         // resizing, e.g.to specify the quality option different from
         // wxIMAGE_QUALITY_NEAREST used by this function, please use the wxImage function
         // directly instead. Both the bitmap itself and size must be valid.
-        public void Rescale(SizeI sizeNeeded) { }
+        public bool Rescale(SizeI sizeNeeded) => default;
 
         public static int GetDefaultBitmapType() => default;
+
+        public IntPtr LockBits() => default;
+
+        public int GetStride() => default;
+
+        public void UnlockBits() { }
     }
 }

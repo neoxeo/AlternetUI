@@ -18,7 +18,7 @@ using System.ComponentModel;                 // EditorBrowsableAttribute, Browsa
 // you need to disable warnings 1634 and 1691. (Presharp Documentation)
 #pragma warning disable 1634, 1691
 
-namespace Alternet.UI.Threading
+namespace Alternet.UI.Port
 {
     /// <summary>
     ///     Provides UI services for a thread.
@@ -592,13 +592,13 @@ namespace Alternet.UI.Threading
                 try
                 {
                     DispatcherSynchronizationContext newSynchronizationContext;
-                    if(BaseCompatibilityPreferences.GetReuseDispatcherSynchronizationContextInstance())
+                    if(BaseCompatibilityPreferences.ReuseDispatcherSynchronizationContextInstance)
                     {
                         newSynchronizationContext = _defaultDispatcherSynchronizationContext;
                     }
                     else
                     {
-                        if(BaseCompatibilityPreferences.GetFlowDispatcherSynchronizationContextPriority())
+                        if(BaseCompatibilityPreferences.FlowDispatcherSynchronizationContextPriority)
                         {
                             newSynchronizationContext = new DispatcherSynchronizationContext(this, priority);
                         }
@@ -737,13 +737,13 @@ namespace Alternet.UI.Threading
                 try
                 {
                     DispatcherSynchronizationContext newSynchronizationContext;
-                    if(BaseCompatibilityPreferences.GetReuseDispatcherSynchronizationContextInstance())
+                    if(BaseCompatibilityPreferences.ReuseDispatcherSynchronizationContextInstance)
                     {
                         newSynchronizationContext = _defaultDispatcherSynchronizationContext;
                     }
                     else
                     {
-                        if(BaseCompatibilityPreferences.GetFlowDispatcherSynchronizationContextPriority())
+                        if(BaseCompatibilityPreferences.FlowDispatcherSynchronizationContextPriority)
                         {
                             newSynchronizationContext = new DispatcherSynchronizationContext(this, priority);
                         }
@@ -1308,13 +1308,13 @@ namespace Alternet.UI.Threading
                 try
                 {
                     DispatcherSynchronizationContext newSynchronizationContext;
-                    if(BaseCompatibilityPreferences.GetReuseDispatcherSynchronizationContextInstance())
+                    if(BaseCompatibilityPreferences.ReuseDispatcherSynchronizationContextInstance)
                     {
                         newSynchronizationContext = _defaultDispatcherSynchronizationContext;
                     }
                     else
                     {
-                        if(BaseCompatibilityPreferences.GetFlowDispatcherSynchronizationContextPriority())
+                        if(BaseCompatibilityPreferences.FlowDispatcherSynchronizationContextPriority)
                         {
                             newSynchronizationContext = new DispatcherSynchronizationContext(this, priority);
                         }
@@ -1764,7 +1764,7 @@ namespace Alternet.UI.Threading
 
         private Dispatcher()
         {
-            BaseApplication.Idle += Application_Idle;
+            App.Idle += Application_Idle;
 
             _queue = new PriorityQueue<DispatcherOperation>();
 

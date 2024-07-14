@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,11 +23,6 @@ namespace Alternet.UI
         /// Occurs when the value of the <see cref="Icon"/> property changes.
         /// </summary>
         event EventHandler? IconChanged;
-
-        /// <summary>
-        /// Occurs when the value of the "Toolbar" property changes.
-        /// </summary>
-        event EventHandler? ToolBarChanged;
 
         /// <summary>
         /// Occurs when the value of the "Statusbar" property changes.
@@ -139,11 +135,7 @@ namespace Alternet.UI
         ///   key events; <see langword="false" /> if the currently selected
         ///   control on the form receives key events.
         ///   The default is <see langword="false" />.</returns>
-        bool KeyPreview
-        {
-            get;
-            set;
-        }
+        bool KeyPreview { get; set; }
 
         /// <summary>
         /// Gets or sets whether to supress 'Esc' key.
@@ -261,7 +253,7 @@ namespace Alternet.UI
         /// </remarks>
         WindowStartLocation StartLocation { get; set; }
 
-        /*/// <summary>
+        /// <summary>
         /// Gets an array of <see cref="Window"/> objects that represent all windows that are
         /// owned by this window.
         /// </summary>
@@ -275,7 +267,7 @@ namespace Alternet.UI
         /// When a window is owned by another window, it is closed or hidden
         /// with the owner window.
         /// </remarks>
-        IWindow[] OwnedWindows { get; }*/
+        IWindow[] OwnedWindows { get; }
 
         /// <summary>
         /// Gets or sets a value that indicates whether window is minimized,

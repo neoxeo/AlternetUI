@@ -27,7 +27,7 @@ namespace Alternet.UI
         {
             var lastLineNumber = lines;
             var prompt = string.Format(CommonStrings.Default.LineNumberTemplate, 1, lastLineNumber);
-            var result = MessageBox.GetNumberFromUser(
+            var result = DialogFactory.GetNumberFromUser(
                 null,
                 prompt,
                 CommonStrings.Default.WindowTitleGoToLine,
@@ -55,7 +55,7 @@ namespace Alternet.UI
 
             var lastLineNumber = richTextBox.LastLineNumber + 1;
             var prompt = string.Format(CommonStrings.Default.LineNumberTemplate, 1, lastLineNumber);
-            var result = MessageBox.GetNumberFromUser(
+            var result = DialogFactory.GetNumberFromUser(
                 null,
                 prompt,
                 CommonStrings.Default.WindowTitleGoToLine,
@@ -70,7 +70,7 @@ namespace Alternet.UI
             richTextBox.ShowPosition(newPosition);
             if (textBox is IFocusable focusable)
             {
-                if (focusable.CanAcceptFocus)
+                if (focusable.CanFocus)
                     focusable.SetFocus();
             }
 
@@ -142,7 +142,7 @@ namespace Alternet.UI
                 return;
             var name = richTextBox.Name ?? textBox.GetType().Name;
             var prefix = $"{name}.CurrentPos:";
-            BaseApplication.LogReplace($"{prefix} {currentPos.Value + 1}", prefix);
+            App.LogReplace($"{prefix} {currentPos.Value + 1}", prefix);
         }
 
         internal static void AdjustTextBoxesHeightInternal(

@@ -1,8 +1,5 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Alternet.UI
 {
@@ -11,82 +8,183 @@ namespace Alternet.UI
     /// </summary>
     public static class Keyboard
     {
-        private static KeyboardDevice keyboardDevice = KeyboardDevice.Empty;
+        private static IKeyboardHandler? handler;
 
         /// <summary>
-        ///     The primary keyboard device.
+        /// Gets or sets handler.
         /// </summary>
-        public static KeyboardDevice PrimaryDevice
+        public static IKeyboardHandler Handler
         {
-            get
-            {
-                return keyboardDevice;
-            }
+            get => handler ??= App.Handler.CreateKeyboardHandler();
 
-            set
-            {
-                keyboardDevice = value;
-            }
+            set => handler = value;
         }
 
         /// <summary>
-        ///     The set of modifier keys currently pressed.
+        /// Gets the set of modifier keys currently pressed (Control, Alt, Shift, etc.).
         /// </summary>
         public static ModifierKeys Modifiers
         {
             get
             {
-                return Keyboard.PrimaryDevice.Modifiers;
+                ModifierKeys modifiers = ModifierKeys.None;
+                if (IsKeyDown(Key.Alt))
+                {
+                    modifiers |= ModifierKeys.Alt;
+                }
+
+                if (IsKeyDown(Key.Control))
+                {
+                    modifiers |= ModifierKeys.Control;
+                }
+
+                if (IsKeyDown(Key.Shift))
+                {
+                    modifiers |= ModifierKeys.Shift;
+                }
+
+                if (IsKeyDown(Key.Windows))
+                {
+                    modifiers |= ModifierKeys.Windows;
+                }
+
+                return modifiers;
             }
         }
 
         /// <summary>
-        ///     The set of raw modifier keys currently pressed.
+        /// Gets the set of raw modifier keys currently pressed (Control, Alt, Shift, etc.).
         /// </summary>
         public static RawModifierKeys RawModifiers
         {
             get
             {
-                return Keyboard.PrimaryDevice.RawModifiers;
+                RawModifierKeys modifiers = RawModifierKeys.None;
+                if (IsKeyDown(Key.Alt))
+                {
+                    modifiers |= RawModifierKeys.Alt;
+                }
+
+                if (IsKeyDown(Key.Control))
+                {
+                    modifiers |= RawModifierKeys.Control;
+                }
+
+                if (IsKeyDown(Key.Shift))
+                {
+                    modifiers |= RawModifierKeys.Shift;
+                }
+
+                if (IsKeyDown(Key.Windows))
+                {
+                    modifiers |= RawModifierKeys.Windows;
+                }
+
+                if (IsKeyDown(Key.MacCommand))
+                {
+                    modifiers |= RawModifierKeys.MacCommand;
+                }
+
+                if (IsKeyDown(Key.MacOption))
+                {
+                    modifiers |= RawModifierKeys.MacOption;
+                }
+
+                if (IsKeyDown(Key.MacControl))
+                {
+                    modifiers |= RawModifierKeys.MacControl;
+                }
+
+                return modifiers;
             }
         }
 
         /// <summary>
-        ///     Returns whether or not the specified key is down.
+        /// Returns whether or not the specified key state is down.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsKeyDown(KeyStates keyStates)
+        {
+            return (keyStates & KeyStates.Down) == KeyStates.Down;
+        }
+
+        /// <summary>
+        /// Returns whether or not the specified key state is toggled.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsKeyToggled(KeyStates keyStates)
+        {
+            return (keyStates & KeyStates.Toggled) == KeyStates.Toggled;
+        }
+
+        /// <summary>
+        /// Returns whether or not the specified key is down.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyDown(Key key)
         {
-            return Keyboard.PrimaryDevice.IsKeyDown(key);
+            return IsKeyDown(GetKeyStates(key));
         }
 
         /// <summary>
-        ///     Returns whether or not the specified key is up.
+        /// Returns whether or not the specified key is up.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyUp(Key key)
         {
-            return Keyboard.PrimaryDevice.IsKeyUp(key);
+            return !IsKeyDown(key);
         }
 
         /// <summary>
-        ///     Returns whether or not the specified key is toggled.
+        /// Returns whether or not the specified key is toggled.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyToggled(Key key)
         {
-            return Keyboard.PrimaryDevice.IsKeyToggled(key);
+            return IsKeyToggled(GetKeyStates(key));
         }
 
         /// <summary>
-        ///     Returns the state of the specified key.
+        /// Returns the state of the specified key.
         /// </summary>
         public static KeyStates GetKeyStates(Key key)
         {
-            return Keyboard.PrimaryDevice.GetKeyStates(key);
+            if (!IsValidKey(key))
+                return KeyStates.None;
+            try
+            {
+                return Keyboard.Handler.GetKeyStatesFromSystem(key);
+            }
+            catch(Exception e)
+            {
+                App.DebugLogError(e);
+                return KeyStates.None;
+            }
         }
 
-        // Check for Valid enum, as any int can be casted to the enum.
-        internal static bool IsValidKey(Key key)
+        /// <summary>
+        /// Gets whether specified key is valid for the current platform.
+        /// </summary>
+        /// <param name="key">key to check.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidKey(Key key)
         {
-            return (int)key >= (int)Key.None/* && (int)key <= (int)Key.OemClear*/;
+            return Handler.IsValidKey(key);
+        }
+
+        /// <summary>
+        /// Converts <paramref name="isRepeat"/> boolean to repeat count.
+        /// </summary>
+        /// <param name="isRepeat">Whether key was repeated.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint IsRepeatToRepeatCount(bool isRepeat)
+        {
+            if (isRepeat)
+                return 1;
+            else
+                return 0;
         }
     }
 }

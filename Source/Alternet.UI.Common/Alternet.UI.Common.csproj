@@ -1,38 +1,57 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="..\Version\Version.props" />
   <Import Project="..\Version\TargetFrameworks.props" />
   <Import Project="..\Keys\Keys.props" />
 
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
-    <TargetFrameworks>$(UITargetFrameworksWindows)</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Linux'))">
-    <TargetFrameworks>$(UITargetFrameworksLinux)</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('OSX'))">
-    <TargetFrameworks>$(UITargetFrameworksMacOs)</TargetFrameworks>
-  </PropertyGroup>
-
   <PropertyGroup>
     <Platforms>AnyCPU;x64</Platforms>
     <Nullable>enable</Nullable>
-    <LangVersion>11.0</LangVersion>
+    <LangVersion>12.0</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);XAMLX_INTERNAL</DefineConstants>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\ColorSvg\*.svg" />
+    <None Remove="Resources\Png\*.png" />
+    <None Remove="Resources\Svg\*.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ColorSvg\*.svg" />
+    <EmbeddedResource Include="Resources\Png\*.png" />
+    <EmbeddedResource Include="Resources\Svg\*.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Common" Version="8.2.2" />
+    <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.2.2" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+    <PackageReference Include="SkiaSharp" Version="2.88.8" />
+    <PackageReference Include="SkiaSharp.Extended" Version="2.0.0" />
+    <PackageReference Include="SkiaSharp.Extended.Iconify" Version="1.60.0" />
+    <PackageReference Include="SkiaSharp.Extended.Iconify.FontAwesome" Version="5.0.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.8" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.8" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="2.88.8" />
+    <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
     <PackageReference Include="System.Memory" Version="4.5.5" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.4" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="System.IO.Packaging" Version="8.0.0" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,6 +59,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alternet.UI.Interfaces\Alternet.UI.Interfaces.csproj" />
   </ItemGroup>
 
   <ItemGroup>

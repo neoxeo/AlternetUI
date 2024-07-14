@@ -6,6 +6,8 @@ using ApiCommon;
 
 namespace NativeApi.Api
 {
+    using Coord = double;
+
     public abstract class Control
     {
         public bool BindScrollEvents { get; set; }
@@ -39,10 +41,10 @@ namespace NativeApi.Api
         public static Color GetClassDefaultAttributesFgColor(int controlType, int windowVariant) => default;
         public static Font GetClassDefaultAttributesFont(int controlType, int windowVariant) => default;
 
-        public static int DrawingFromDip(double value, IntPtr window) => default;
-        public static double DrawingDPIScaleFactor(IntPtr window) => default;
-        public static double DrawingToDip(int value, IntPtr window) => default;
-        public static double DrawingFromDipF(double value, IntPtr window) => default;
+        public static int DrawingFromDip(Coord value, IntPtr window) => default;
+        public static Coord DrawingDPIScaleFactor(IntPtr window) => default;
+        public static Coord DrawingToDip(int value, IntPtr window) => default;
+        public static Coord DrawingFromDipF(double value, IntPtr window) => default;
 
         public bool ProcessIdle { get; set; }
         public bool ProcessUIUpdates { get; set; }
@@ -58,6 +60,11 @@ namespace NativeApi.Api
         public int LayoutDirection { get; set; }
         public string Name { get; set; }
         public int Id { get; set; }
+
+        public SizeI EventOldDpi { get; }
+
+        public SizeI EventNewDpi { get; }
+
         public event EventHandler? Idle;
         public event EventHandler? Paint;
         public event EventHandler? MouseEnter;
@@ -65,10 +72,12 @@ namespace NativeApi.Api
         public event EventHandler? MouseClick;
         public event EventHandler? VisibleChanged;
         public event EventHandler? MouseCaptureLost;
+        public event EventHandler? DpiChanged;
 
         [NativeEvent(cancellable: true)]
         public event EventHandler? Destroyed;
-        
+
+        public event EventHandler? TextChanged;
         public event EventHandler? GotFocus;
         public event EventHandler? LostFocus;
         public event EventHandler? DragLeave;
@@ -78,11 +87,14 @@ namespace NativeApi.Api
         public event EventHandler? VerticalScrollBarValueChanged;
         public event EventHandler? HorizontalScrollBarValueChanged;
         public event EventHandler? SizeChanged;
-        public event EventHandler Activated;
-        public event EventHandler Deactivated;
-        public event EventHandler HandleCreated;
-        public event EventHandler HandleDestroyed;
+        public event EventHandler? LocationChanged;
+        public event EventHandler? Activated;
+        public event EventHandler? Deactivated;
+        public event EventHandler? HandleCreated;
+        public event EventHandler? HandleDestroyed;
+        public event EventHandler? SystemColorsChanged;
 
+        public virtual string Text { get; set; }
         public bool IsActive { get; }
         public bool IsHandleCreated { get; }
         public bool IsWxWidgetCreated { get; }
@@ -101,6 +113,8 @@ namespace NativeApi.Api
         public SizeD Size { get; set; }
         public PointD Location { get; set; }
         public RectD Bounds { get; set; }
+        public RectD EventBounds { get; }
+
         public SizeD ClientSize { get; set; }
         public virtual Thickness IntrinsicLayoutPadding { get; }
         public virtual Thickness IntrinsicPreferredSizePadding { get; }
@@ -120,7 +134,7 @@ namespace NativeApi.Api
         public static void NotifyCaptureLost() { }
         public void Freeze() { }
         public void Thaw() { }
-        public void ShowPopupMenu(IntPtr menu, double x, double y) { }
+        public void ShowPopupMenu(IntPtr menu, Coord x, Coord y) { }
         public void BeginIgnoreRecreate() {}
         public void EndIgnoreRecreate() {}
         public SizeD GetDPI() => default;
@@ -130,6 +144,9 @@ namespace NativeApi.Api
         public void Invalidate() { }
         public void Update() { }
         public virtual SizeD GetPreferredSize(SizeD availableSize) => default;
+
+        public void SetFocusFlags(bool canSelect, bool tabStop, bool acceptsFocusRecursively) { }
+
         public DragDropEffects DoDragDrop(UnmanagedDataObject data,
             DragDropEffects allowedEffects) => default;
         public DrawingContext OpenPaintDrawingContext() => default;

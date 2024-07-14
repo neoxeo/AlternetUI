@@ -7,9 +7,8 @@ namespace Alternet.UI
     /// <summary>
     /// Specifies a set of objects for different control states.
     /// </summary>
-    public class ControlStateObjects<T> : INotifyPropertyChanged
+    public class ControlStateObjects<T> : ImmutableObject
     {
-        private bool immutable;
         private T? normal;
         private T? hovered;
         private T? pressed;
@@ -17,25 +16,35 @@ namespace Alternet.UI
         private T? focused;
 
         /// <summary>
-        /// Occurs when a property value changes.
+        /// Occurs when <see cref="Normal"/> property changes.
         /// </summary>
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public event EventHandler? NormalChanged;
 
         /// <summary>
-        /// Gets or sets whether object is immutable (properties can not be changed).
+        /// Occurs when <see cref="Focused"/> property changes.
         /// </summary>
-        public bool Immutable
-        {
-            get
-            {
-                return immutable;
-            }
+        public event EventHandler? FocusedChanged;
 
-            set
-            {
-                immutable = true;
-            }
-        }
+        /// <summary>
+        /// Occurs when <see cref="Hovered"/> property changes.
+        /// </summary>
+        public event EventHandler? HoveredChanged;
+
+        /// <summary>
+        /// Occurs when <see cref="Pressed"/> property changes.
+        /// </summary>
+        public event EventHandler? PressedChanged;
+
+        /// <summary>
+        /// Occurs when <see cref="Disabled"/> property changes.
+        /// </summary>
+        public event EventHandler? DisabledChanged;
+
+        /// <summary>
+        /// Gets or sets <see cref="IControlStateObjectChanged"/> object
+        /// which is used for the notifications.
+        /// </summary>
+        public IControlStateObjectChanged? ChangedHandler { get; set; }
 
         /// <summary>
         /// Gets whether <see cref="Normal"/> property is assigned.
@@ -68,7 +77,7 @@ namespace Alternet.UI
         public virtual T? Normal
         {
             get => normal;
-            set => SetProperty(ref normal, value);
+            set => SetProperty(ref normal, value, nameof(Normal), RaiseNormalChanged);
         }
 
         /// <summary>
@@ -77,7 +86,7 @@ namespace Alternet.UI
         public virtual T? Focused
         {
             get => focused;
-            set => SetProperty(ref focused, value);
+            set => SetProperty(ref focused, value, nameof(Focused), RaiseFocusedChanged);
         }
 
         /// <summary>
@@ -86,7 +95,7 @@ namespace Alternet.UI
         public virtual T? Hovered
         {
             get => hovered;
-            set => SetProperty(ref hovered, value);
+            set => SetProperty(ref hovered, value, nameof(Hovered), RaiseHoveredChanged);
         }
 
         /// <summary>
@@ -95,7 +104,7 @@ namespace Alternet.UI
         public virtual T? Pressed
         {
             get => pressed;
-            set => SetProperty(ref pressed, value);
+            set => SetProperty(ref pressed, value, nameof(Pressed), RaisePressedChanged);
         }
 
         /// <summary>
@@ -104,7 +113,7 @@ namespace Alternet.UI
         public virtual T? Disabled
         {
             get => disabled;
-            set => SetProperty(ref disabled, value);
+            set => SetProperty(ref disabled, value, nameof(Disabled), RaiseDisabledChanged);
         }
 
         /// <summary>
@@ -124,14 +133,14 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="state">Control state.</param>
         /// <returns></returns>
-        public virtual bool HasObject(GenericControlState state) => GetObjectOrNormal(state) != null;
+        public virtual bool HasObject(VisualControlState state) => GetObjectOrNormal(state) != null;
 
         /// <summary>
         /// Gets an object for the specified state or <see cref="Normal"/> if
         /// object for that state is not specified.
         /// </summary>
         /// <param name="state">Control state.</param>
-        public virtual T? GetObjectOrNormal(GenericControlState state)
+        public virtual T? GetObjectOrNormal(VisualControlState state)
         {
             return GetObjectOrNull(state) ?? normal;
         }
@@ -141,23 +150,23 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="state">Control state.</param>
         /// <param name="value">Object value.</param>
-        public virtual void SetObject(T? value, GenericControlState state = GenericControlState.Normal)
+        public virtual void SetObject(T? value, VisualControlState state = VisualControlState.Normal)
         {
             switch (state)
             {
-                case GenericControlState.Normal:
+                case VisualControlState.Normal:
                     Normal = value;
                     return;
-                case GenericControlState.Hovered:
+                case VisualControlState.Hovered:
                     Hovered = value;
                     return;
-                case GenericControlState.Pressed:
+                case VisualControlState.Pressed:
                     Pressed = value;
                     return;
-                case GenericControlState.Disabled:
+                case VisualControlState.Disabled:
                     Disabled = value;
                     return;
-                case GenericControlState.Focused:
+                case VisualControlState.Focused:
                     Focused = value;
                     return;
                 default:
@@ -171,7 +180,7 @@ namespace Alternet.UI
         /// <param name="source"></param>
         public virtual void Assign(ControlStateObjects<T>? source)
         {
-            if(source is null)
+            if (source is null)
             {
                 Normal = default;
                 Hovered = default;
@@ -209,7 +218,7 @@ namespace Alternet.UI
         /// <param name="state">Control state.</param>
         /// <param name="action">Action to call if no object is assigned for the state.</param>
         /// <returns></returns>
-        public virtual T GetObjectOrAction(GenericControlState state, Func<T> action)
+        public virtual T GetObjectOrAction(VisualControlState state, Func<T> action)
         {
             return GetObjectOrNull(state) ?? action();
         }
@@ -220,7 +229,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="state">Control state.</param>
         /// <param name="defaultValue">Default result value.</param>
-        public virtual T GetObjectOrDefault(GenericControlState state, T defaultValue)
+        public virtual T GetObjectOrDefault(VisualControlState state, T defaultValue)
         {
             return GetObjectOrNull(state) ?? defaultValue;
         }
@@ -230,46 +239,46 @@ namespace Alternet.UI
         /// is not specified.
         /// </summary>
         /// <param name="state">Control state.</param>
-        public virtual T? GetObjectOrNull(GenericControlState state)
+        public virtual T? GetObjectOrNull(VisualControlState state)
         {
             return state switch
             {
-                GenericControlState.Hovered => hovered,
-                GenericControlState.Pressed => pressed,
-                GenericControlState.Disabled => disabled,
-                GenericControlState.Focused => focused,
+                VisualControlState.Hovered => hovered,
+                VisualControlState.Pressed => pressed,
+                VisualControlState.Disabled => disabled,
+                VisualControlState.Focused => focused,
                 _ => normal,
             };
         }
 
-        /// <summary>
-        /// Sets field value and calls <see cref="PropertyChanged"/> event.
-        /// </summary>
-        /// <param name="storage"></param>
-        /// <param name="value"></param>
-        /// <param name="propertyName"></param>
-        /// <returns></returns>
-        protected virtual bool SetProperty(
-            ref T? storage,
-            T? value,
-            [CallerMemberName] string? propertyName = null)
+        private void RaiseNormalChanged()
         {
-            if (immutable)
-                return false;
-
-            if (Equals(storage, value))
-            {
-                return false;
-            }
-
-            storage = value;
-            OnPropertyChanged(propertyName);
-            return true;
+            NormalChanged?.Invoke(this, EventArgs.Empty);
+            ChangedHandler?.NormalChanged(this);
         }
 
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        private void RaiseFocusedChanged()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            FocusedChanged?.Invoke(this, EventArgs.Empty);
+            ChangedHandler?.FocusedChanged(this);
+        }
+
+        private void RaiseHoveredChanged()
+        {
+            HoveredChanged?.Invoke(this, EventArgs.Empty);
+            ChangedHandler?.HoveredChanged(this);
+        }
+
+        private void RaisePressedChanged()
+        {
+            PressedChanged?.Invoke(this, EventArgs.Empty);
+            ChangedHandler?.PressedChanged(this);
+        }
+
+        private void RaiseDisabledChanged()
+        {
+            DisabledChanged?.Invoke(this, EventArgs.Empty);
+            ChangedHandler?.DisabledChanged(this);
         }
     }
 }

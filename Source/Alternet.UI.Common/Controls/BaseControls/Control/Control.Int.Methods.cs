@@ -26,6 +26,14 @@ namespace Alternet.UI
             Generic,
         }
 
+        /// <summary>
+        /// Calculates horizontal <see cref="AlignedPosition"/> using align parameters.
+        /// </summary>
+        /// <param name="layoutBounds">Rectangle in which alignment is performed.</param>
+        /// <param name="childControl">Control to align.</param>
+        /// <param name="childPreferredSize">Preferred size.</param>
+        /// <param name="alignment">Alignment of the control.</param>
+        /// <returns></returns>
         public static AlignedPosition AlignHorizontal(
                     RectD layoutBounds,
                     Control childControl,
@@ -58,6 +66,14 @@ namespace Alternet.UI
             }
         }
 
+        /// <summary>
+        /// Calculates vertical <see cref="AlignedPosition"/> using align parameters.
+        /// </summary>
+        /// <param name="layoutBounds">Rectangle in which alignment is performed.</param>
+        /// <param name="control">Control to align.</param>
+        /// <param name="childPreferredSize">Preferred size.</param>
+        /// <param name="alignment">Alignment of the control.</param>
+        /// <returns></returns>
         public static AlignedPosition AlignVertical(
             RectD layoutBounds,
             Control control,
@@ -87,11 +103,6 @@ namespace Alternet.UI
                         layoutBounds.Top + control.Margin.Top,
                         layoutBounds.Height - control.Margin.Vertical);
             }
-        }
-
-        internal static void NotifyCaptureLost()
-        {
-            NativePlatform.Default.NotifyCaptureLost();
         }
 
         internal static void PerformDefaultLayout(
@@ -135,21 +146,21 @@ namespace Alternet.UI
             ControlTypeId controlType,
             ControlRenderSizeVariant renderSize = ControlRenderSizeVariant.Normal)
         {
-            return NativePlatform.Default.GetClassDefaultAttributesBgColor(controlType, renderSize);
+            return SystemSettings.Handler.GetClassDefaultAttributesBgColor(controlType, renderSize);
         }
 
         internal static Color GetClassDefaultAttributesFgColor(
             ControlTypeId controlType,
             ControlRenderSizeVariant renderSize = ControlRenderSizeVariant.Normal)
         {
-            return NativePlatform.Default.GetClassDefaultAttributesFgColor(controlType, renderSize);
+            return SystemSettings.Handler.GetClassDefaultAttributesFgColor(controlType, renderSize);
         }
 
         internal static Font? GetClassDefaultAttributesFont(
             ControlTypeId controlType,
             ControlRenderSizeVariant renderSize = ControlRenderSizeVariant.Normal)
         {
-            return NativePlatform.Default.GetClassDefaultAttributesFont(controlType, renderSize);
+            return SystemSettings.Handler.GetClassDefaultAttributesFont(controlType, renderSize);
         }
 
         /// <summary>
@@ -168,7 +179,7 @@ namespace Alternet.UI
             Invalidate();
         }
 
-        internal void RaiseProcessException(ControlExceptionEventArgs e)
+        internal void RaiseProcessException(ThrowExceptionEventArgs e)
         {
             OnProcessException(e);
             ProcessException?.Invoke(this, e);
@@ -189,54 +200,37 @@ namespace Alternet.UI
             return preferredSize;
         }
 
-        internal void SendMouseDownEvent(int x, int y)
+        internal virtual void InvalidateCaret()
         {
-            Handler.SendMouseDownEvent(x, y);
+            if (caretInfo is null || !caretInfo.Visible)
+                return;
+            RefreshRects(caretInfo.Region);
         }
 
-        internal void SendMouseUpEvent(int x, int y)
-        {
-            Handler.SendMouseUpEvent(x, y);
-        }
-
-        internal bool BeginRepositioningChildren()
-        {
-            return Handler.BeginRepositioningChildren();
-        }
-
-        internal void EndRepositioningChildren()
-        {
-            Handler.EndRepositioningChildren();
-        }
-
-        internal void DoInsideRepositioningChildren(Action action)
-        {
-            var repositioning = BeginRepositioningChildren();
-            if (repositioning)
-            {
-                try
-                {
-                    action();
-                }
-                finally
-                {
-                    EndRepositioningChildren();
-                }
-            }
-            else
-                action();
-        }
-
+        /// <summary>
+        /// Contains location and size calculated by the align method.
+        /// </summary>
         public class AlignedPosition
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AlignedPosition"/> class.
+            /// </summary>
+            /// <param name="origin">Location.</param>
+            /// <param name="size">Size.</param>
             public AlignedPosition(double origin, double size)
             {
                 Origin = origin;
                 Size = size;
             }
 
+            /// <summary>
+            /// Gets location.
+            /// </summary>
             public double Origin { get; }
 
+            /// <summary>
+            /// Gets size.
+            /// </summary>
             public double Size { get; }
         }
     }

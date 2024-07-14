@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+
 using Alternet.Base.Collections;
 using Alternet.Drawing;
 
@@ -21,23 +22,32 @@ namespace Alternet.UI
         private static int incFontSize = 0;
 
         private readonly WindowInfo info = new();
-        private object? toolbar = null;
+        /*private object? toolbar = null;*/
         private IconSet? icon = null;
         private object? menu = null;
         private Window? owner;
+        private bool needLayout = false;
+        private Collection<InputBinding>? inputBindings;
+        private int? oldDisplay;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Window"/> class.
         /// </summary>
         public Window()
         {
-            BaseApplication.Current.RegisterWindow(this);
             SetVisibleValue(false);
+            ProcessIdle = true;
+            App.Current.RegisterWindow(this);
             Bounds = GetDefaultBounds();
 
             if (Control.DefaultFont != Font.Default)
                 Font = Control.DefaultFont;
         }
+
+        /// <summary>
+        /// Occurs when window moves to another display.
+        /// </summary>
+        public event EventHandler? DisplayChanged;
 
         /// <summary>
         /// Occurs when the value of the <see cref="Menu"/> property changes.
@@ -49,10 +59,10 @@ namespace Alternet.UI
         /// </summary>
         public event EventHandler? IconChanged;
 
-        /// <summary>
+        /*/// <summary>
         /// Occurs when the value of the <see cref="ToolBar"/> property changes.
         /// </summary>
-        public event EventHandler? ToolBarChanged;
+        public event EventHandler? ToolBarChanged;*/
 
         /// <summary>
         /// Occurs when the value of the <see cref="StatusBar"/> property changes.
@@ -156,7 +166,7 @@ namespace Alternet.UI
         /// </summary>
         /// <value>A <see cref="Window"/> that represents the currently active window,
         /// or <see langword="null"/> if there is no active window.</value>
-        public static Window? ActiveWindow => NativePlatform.Default.GetActiveWindow();
+        public static Window? ActiveWindow => App.Handler.GetActiveWindow();
 
         /// <summary>
         /// Gets or sets default location and position of the window.
@@ -212,7 +222,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets DPI of the first created window.
         /// </summary>
-        public static SizeD? DefaultDPI => BaseApplication.FirstWindow()?.GetDPI();
+        public static SizeD? DefaultDPI => App.FirstWindow()?.GetDPI();
 
         /// <summary>
         /// Gets a value indicating whether the window is the currently active window for
@@ -264,7 +274,7 @@ namespace Alternet.UI
         /// is pressed. Set <c>true</c> to this property in order to handle 'Esc' key
         /// so no sound will be played.
         /// </remarks>
-        public bool SupressEsc { get; set; }
+        public virtual bool SupressEsc { get; set; }
 
         /// <summary>
         /// Gets or sets a boolean value indicating whether window has title bar.
@@ -287,6 +297,7 @@ namespace Alternet.UI
                 info.HasTitleBar = value;
                 OnHasTitleBarChanged(EventArgs.Empty);
                 HasTitleBarChanged?.Invoke(this, EventArgs.Empty);
+                Handler.HasTitleBar = value;
             }
         }
 
@@ -313,6 +324,7 @@ namespace Alternet.UI
                 info.HasBorder = value;
                 OnHasBorderChanged(EventArgs.Empty);
                 HasBorderChanged?.Invoke(this, EventArgs.Empty);
+                Handler.HasBorder = value;
             }
         }
 
@@ -330,6 +342,21 @@ namespace Alternet.UI
                 info.Resizable = value;
                 OnResizableChanged(EventArgs.Empty);
                 ResizableChanged?.Invoke(this, EventArgs.Empty);
+                Handler.Resizable = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override string Title
+        {
+            get => base.Title;
+
+            set
+            {
+                if (Title == value)
+                    return;
+                base.Title = value;
+                Handler.Title = value;
             }
         }
 
@@ -349,6 +376,7 @@ namespace Alternet.UI
                 info.IsToolWindow = value;
                 OnIsToolWindowChanged(EventArgs.Empty);
                 IsToolWindowChanged?.Invoke(this, EventArgs.Empty);
+                Handler.IsToolWindow = value;
             }
         }
 
@@ -391,6 +419,7 @@ namespace Alternet.UI
                 info.HasSystemMenu = value;
                 OnHasSystemMenuChanged(EventArgs.Empty);
                 HasSystemMenuChanged?.Invoke(this, EventArgs.Empty);
+                Handler.HasSystemMenu = value;
             }
         }
 
@@ -410,6 +439,7 @@ namespace Alternet.UI
                 info.AlwaysOnTop = value;
                 OnAlwaysOnTopChanged(EventArgs.Empty);
                 AlwaysOnTopChanged?.Invoke(this, EventArgs.Empty);
+                Handler.AlwaysOnTop = value;
             }
         }
 
@@ -427,6 +457,7 @@ namespace Alternet.UI
                 info.CloseEnabled = value;
                 OnCloseEnabledChanged(EventArgs.Empty);
                 CloseEnabledChanged?.Invoke(this, EventArgs.Empty);
+                Handler.CloseEnabled = value;
             }
         }
 
@@ -444,6 +475,7 @@ namespace Alternet.UI
                 info.MaximizeEnabled = value;
                 OnMaximizeEnabledChanged(EventArgs.Empty);
                 MaximizeEnabledChanged?.Invoke(this, EventArgs.Empty);
+                Handler.MaximizeEnabled = value;
             }
         }
 
@@ -473,6 +505,7 @@ namespace Alternet.UI
                 info.ShowInTaskbar = value;
                 OnShowInTaskbarChanged(EventArgs.Empty);
                 ShowInTaskbarChanged?.Invoke(this, EventArgs.Empty);
+                Handler.ShowInTaskbar = value;
             }
         }
 
@@ -490,6 +523,7 @@ namespace Alternet.UI
                 info.MinimizeEnabled = value;
                 OnMinimizeEnabledChanged(EventArgs.Empty);
                 MinimizeEnabledChanged?.Invoke(this, EventArgs.Empty);
+                Handler.MinimizeEnabled = value;
             }
         }
 
@@ -514,6 +548,7 @@ namespace Alternet.UI
                 owner = value;
                 OnOwnerChanged(EventArgs.Empty);
                 OwnerChanged?.Invoke(this, EventArgs.Empty);
+                Handler.SetOwner(value);
             }
         }
 
@@ -569,6 +604,40 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether this window is maximized.
+        /// </summary>
+        [Browsable(false)]
+        public bool IsMaximized
+        {
+            get => State == WindowState.Maximized;
+
+            set
+            {
+                if (value)
+                    State = WindowState.Maximized;
+                else
+                    State = WindowState.Normal;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether this window is minimized.
+        /// </summary>
+        [Browsable(false)]
+        public bool IsMinimized
+        {
+            get => State == WindowState.Minimized;
+
+            set
+            {
+                if (value)
+                    State = WindowState.Minimized;
+                else
+                    State = WindowState.Normal;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value that indicates whether window is minimized,
         /// maximized, or normal.
         /// </summary>
@@ -584,8 +653,7 @@ namespace Alternet.UI
                 if (IsDisposed)
                     return;
                 Handler.State = value;
-                OnStateChanged(EventArgs.Empty);
-                StateChanged?.Invoke(this, EventArgs.Empty);
+                RaiseStateChanged();
             }
         }
 
@@ -655,6 +723,8 @@ namespace Alternet.UI
 
                 OnMenuChanged(EventArgs.Empty);
                 MenuChanged?.Invoke(this, EventArgs.Empty);
+                Handler.SetMenu(value);
+                PerformLayout();
             }
         }
 
@@ -680,6 +750,7 @@ namespace Alternet.UI
                     return;
 
                 icon = value;
+                Handler.SetIcon(value);
                 OnIconChanged(EventArgs.Empty);
                 IconChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -710,12 +781,35 @@ namespace Alternet.UI
         /// Gets the collection of input bindings associated with this window.
         /// </summary>
         [Browsable(false)]
-        public virtual Collection<InputBinding> InputBindings { get; } = new();
+        public virtual Collection<InputBinding> InputBindings
+        {
+            get
+            {
+                if (inputBindings is null)
+                {
+                    inputBindings = new();
+
+                    inputBindings.ItemRemoved += (sender, index, item) =>
+                    {
+                        Port.InheritanceContextHelper.RemoveContextFromObject(this, item);
+                        Handler.RemoveInputBinding(item);
+                    };
+
+                    inputBindings.ItemInserted += (sender, index, item) =>
+                    {
+                        Handler.AddInputBinding(item);
+                        Port.InheritanceContextHelper.ProvideContextForObject(this, item);
+                    };
+                }
+
+                return inputBindings;
+            }
+        }
 
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.Window;
 
-        /// <summary>
+        /*/// <summary>
         /// Gets the toolbar that is displayed in the window.
         /// </summary>
         /// <value>
@@ -725,11 +819,11 @@ namespace Alternet.UI
         /// You can use this property to switch between complete toolbar sets at run time.
         /// </remarks>
         [Browsable(false)]
-        public virtual object? ToolBar
+        internal virtual object? ToolBar
         {
             get => toolbar;
 
-            internal set
+            set
             {
                 if (toolbar == value)
                     return;
@@ -745,11 +839,13 @@ namespace Alternet.UI
 
                 OnToolBarChanged(EventArgs.Empty);
                 ToolBarChanged?.Invoke(this, EventArgs.Empty);
+                Handler.SetToolBar(value);
+                PerformLayout();
             }
-        }
+        }*/
 
         /// <inheritdoc />
-        protected override IEnumerable<FrameworkElement> LogicalChildrenCollection
+        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection
         {
             get
             {
@@ -758,9 +854,6 @@ namespace Alternet.UI
 
                 if (Menu is FrameworkElement m)
                     yield return m;
-
-                if (ToolBar is FrameworkElement t)
-                    yield return t;
 
                 if (StatusBar is FrameworkElement s)
                     yield return s;
@@ -773,7 +866,7 @@ namespace Alternet.UI
         /// </summary>
         public static void UpdateDefaultFont()
         {
-            if (!BaseApplication.Initialized)
+            if (!App.Initialized)
                 return;
 
             var dpi = Display.Primary.DPI;
@@ -791,12 +884,12 @@ namespace Alternet.UI
         /// <summary>
         /// Shows window and focuses it.
         /// </summary>
-        /// <param name="useIdle">Whether to use <see cref="BaseApplication.Idle"/>
+        /// <param name="useIdle">Whether to use <see cref="App.Idle"/>
         /// event to show the window.</param>
         public virtual void ShowAndFocus(bool useIdle = false)
         {
             if (useIdle)
-                BaseApplication.AddIdleTask(Fn);
+                App.AddIdleTask(Fn);
             else
                 Fn();
 
@@ -852,6 +945,12 @@ namespace Alternet.UI
             Handler.Close();
         }
 
+        public void RaiseStateChanged()
+        {
+            OnStateChanged(EventArgs.Empty);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public void RaiseClosing(WindowClosingEventArgs e) => OnClosing(e);
 
         public void RaiseClosed(WindowClosedEventArgs e) => OnClosed(e);
@@ -882,7 +981,7 @@ namespace Alternet.UI
                 child.EnsureHandlerCreated();
         }
 
-        internal static Window? GetParentWindow(DependencyObject dp)
+        internal static Window? GetParentWindow(object dp)
         {
             if (dp is Window w)
                 return w;
@@ -898,7 +997,7 @@ namespace Alternet.UI
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
-            => NativePlatform.Default.CreateWindowHandler(this);
+            => ControlFactory.Handler.CreateWindowHandler(this);
 
         protected void ApplyStartLocationOnce(Control? owner)
         {
@@ -987,9 +1086,9 @@ namespace Alternet.UI
 
             if (disposing)
             {
-                BaseApplication.Current.UnregisterWindow(this);
-                if (!BaseApplication.Current.VisibleWindows.Any())
-                    NativePlatform.Default.ExitMainLoop();
+                App.Current.UnregisterWindow(this);
+                if (!App.Current.VisibleWindows.Any())
+                    App.Handler.ExitMainLoop();
             }
         }
 
@@ -1037,13 +1136,27 @@ namespace Alternet.UI
         protected override void OnIdle(EventArgs e)
         {
             base.OnIdle(e);
+
+            if (needLayout)
+            {
+                PerformLayout();
+                needLayout = false;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnHandlerSizeChanged(EventArgs e)
+        {
+            base.OnHandlerSizeChanged(e);
+            PerformLayout();
+            needLayout = true;
         }
 
         /// <inheritdoc/>
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
-            if(e.Key == Key.Escape && SupressEsc)
+            if (e.Key == Key.Escape && SupressEsc)
             {
                 e.Handled = true;
                 return;
@@ -1096,12 +1209,25 @@ namespace Alternet.UI
         {
         }
 
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            base.OnSystemColorsChanged(e);
+            SystemSettings.ResetColors();
+        }
+
+        protected override void OnDpiChanged(DpiChangedEventArgs e)
+        {
+            base.OnDpiChanged(e);
+            Display.Reset();
+            PerformLayoutAndInvalidate();
+        }
+
         /// <summary>
         /// Applies <see cref="Window.StartLocation"/> to the location of the window.
         /// </summary>
         protected virtual void ApplyStartLocation(Control? owner)
         {
-            RectD displayRect = GetDisplay().ClientAreaDip;
+            RectD displayRect = new Display(this).ClientAreaDip;
             RectD parentRect = RectD.Empty;
             bool center = true;
 
@@ -1148,6 +1274,91 @@ namespace Alternet.UI
         /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
         protected virtual void OnStateChanged(EventArgs e)
         {
+        }
+
+        /// <summary>
+        /// Raised by the handler when it is going to be closed.
+        /// </summary>
+        /// <param name="e">Event arguments.</param>
+        public virtual void OnHandlerClosing(CancelEventArgs e)
+        {
+            // todo: add close reason/force parameter (see wxCloseEvent.CanVeto()).
+            var closingEventArgs = new WindowClosingEventArgs(e.Cancel);
+            RaiseClosing(closingEventArgs);
+            if (closingEventArgs.Cancel)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            RaiseClosed(new WindowClosedEventArgs());
+
+            if (!Modal)
+                Dispose();
+        }
+
+        protected virtual void OnHandlerInputBindingCommandExecuted(HandledEventArgs<string> e)
+        {
+            var binding = InputBindings.First(x => x.ManagedCommandId == e.Value);
+
+            e.Handled = false;
+
+            var command = binding.Command;
+            if (command == null)
+                return;
+
+            if (!command.CanExecute(binding.CommandParameter))
+                return;
+
+            command.Execute(binding.CommandParameter);
+            e.Handled = true;
+        }
+
+        /// <inheritdoc/>
+        protected override void BindHandlerEvents()
+        {
+            base.BindHandlerEvents();
+            Handler.StateChanged = RaiseStateChanged;
+            Handler.Closing = OnHandlerClosing;
+            Handler.InputBindingCommandExecuted = OnHandlerInputBindingCommandExecuted;
+        }
+
+        /// <inheritdoc/>
+        protected override void UnbindHandlerEvents()
+        {
+            base.UnbindHandlerEvents();
+            Handler.StateChanged = null;
+            Handler.Closing = null;
+            Handler.InputBindingCommandExecuted = null;
+        }
+
+        /// <inheritdoc/>
+        protected override void OnHandlerLocationChanged(EventArgs e)
+        {
+            base.OnHandlerLocationChanged(e);
+
+            InsideTryCatch(RaiseDisplayChanged);
+        }
+
+        private void RaiseDisplayChanged()
+        {
+            if (DisplayChanged is null)
+                return;
+
+            var newDisplay = Display.GetFromControl(this);
+
+            if (oldDisplay is null)
+            {
+                oldDisplay = newDisplay;
+                return;
+            }
+
+            if (oldDisplay == newDisplay)
+                return;
+
+            DisplayChanged?.Invoke(this, EventArgs.Empty);
+
+            oldDisplay = newDisplay;
         }
     }
 }

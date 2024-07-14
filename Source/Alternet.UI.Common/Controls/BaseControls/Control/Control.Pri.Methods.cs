@@ -9,40 +9,17 @@ namespace Alternet.UI
 {
     public partial class Control
     {
-        private void CreateAndAttachHandler()
-        {
-            if (GetRequiredHandlerType() == HandlerType.Native)
-                handler = CreateHandler();
-            else
-                handler = NativePlatform.Default.CreateControlHandler(this);
-
-            handler?.Attach(this);
-            OnHandlerAttached(EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="TitleChanged"/> event and calls
-        /// <see cref="OnTitleChanged(EventArgs)"/>.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
-        private void RaiseTitleChanged(EventArgs e)
-        {
-            OnTitleChanged(e);
-            TitleChanged?.Invoke(this, e);
-            Parent?.OnChildPropertyChanged(this, nameof(Title));
-        }
-
         private void Children_ItemInserted(object? sender, int index, Control item)
         {
             item.SetParentInternal(this);
-            Handler.RaiseChildInserted(item);
+            RaiseChildInserted(index, item);
             PerformLayout();
         }
 
         private void Children_ItemRemoved(object? sender, int index, Control item)
         {
             item.SetParentInternal(null);
-            Handler.RaiseChildRemoved(item);
+            RaiseChildRemoved(item);
             PerformLayout();
         }
 
@@ -88,6 +65,7 @@ namespace Alternet.UI
         /// event data.</param>
         private void RaiseEnabledChanged(EventArgs e)
         {
+            RaiseVisualStateChanged();
             OnEnabledChanged(e);
             EnabledChanged?.Invoke(this, e);
             Handler.SetEnabled(Enabled);

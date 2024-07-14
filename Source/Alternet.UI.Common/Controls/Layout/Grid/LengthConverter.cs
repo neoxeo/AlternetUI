@@ -1,3 +1,4 @@
+#pragma warning disable
 #nullable disable
 
 using System;
@@ -77,7 +78,7 @@ namespace Alternet.UI
         /// ConvertFrom - Attempt to convert to a length from the given object
         /// </summary>
         /// <returns>
-        /// The double representing the size in 1/96th of an inch.
+        /// The double representing the size in device-independent units.
         /// </returns>
         /// <exception cref="ArgumentNullException">
         /// An ArgumentNullException is thrown if the example object is null.
@@ -135,7 +136,7 @@ namespace Alternet.UI
                 double l = (double)value;
                 if (destinationType == typeof(string))
                 {
-                    if (DoubleUtil.IsNaN(l))
+                    if (DoubleUtils.IsNaN(l))
                         return "Auto";
                     else
                         return Convert.ToString(l, cultureInfo);
@@ -223,7 +224,7 @@ namespace Alternet.UI
 
         static internal string ToString(double l, CultureInfo cultureInfo)
         {
-            if (DoubleUtil.IsNaN(l)) return "Auto";
+            if (DoubleUtils.IsNaN(l)) return "Auto";
             return Convert.ToString(l, cultureInfo);
         }
 

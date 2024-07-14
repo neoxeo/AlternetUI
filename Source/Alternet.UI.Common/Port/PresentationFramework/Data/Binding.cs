@@ -15,10 +15,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.ComponentModel;
 using System.Xml;
-using Alternet.UI.Internal;
-using Alternet.UI.Threading;
 
-namespace Alternet.UI
+namespace Alternet.UI.Port
 {
     /// <summary>
     /// Status of the Binding
@@ -328,8 +326,8 @@ namespace Alternet.UI
 
                 if (_ppath != null && _ppath.StartsWithStaticProperty)
                 {
-                    if (_sourceInUse == SourceProperties.None || _sourceInUse == SourceProperties.StaticSource ||
-                        FrameworkCompatibilityPreferences.TargetsDesktop_V4_0) 
+                    if (_sourceInUse == SourceProperties.None
+                        || _sourceInUse == SourceProperties.StaticSource) 
                     {
                         // net 4.5 breaks static bindings - this is for compat
                         SourceReference = StaticSourceRef;

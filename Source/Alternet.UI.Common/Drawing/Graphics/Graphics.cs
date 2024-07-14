@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Alternet.UI;
@@ -9,8 +10,10 @@ namespace Alternet.Drawing
     /// <summary>
     /// Defines a custom drawing surface.
     /// </summary>
-    public abstract class Graphics : DisposableObject
+    public abstract class Graphics : DisposableObject, IGraphics, IDisposable
     {
+        private Stack<TransformMatrix>? stack;
+
         /// <summary>
         /// Returns true if the object is ok to use.
         /// </summary>
@@ -26,6 +29,39 @@ namespace Alternet.Drawing
         /// <see cref="Graphics"/>.
         /// </summary>
         public abstract TransformMatrix Transform { get; set; }
+
+        /// <summary>
+        /// Gets used scale factor.
+        /// </summary>
+        public Coord ScaleFactor
+        {
+            get
+            {
+                return GraphicsFactory.ScaleFactorFromDpi(GetDPI().Width);
+            }
+        }
+
+        /// <summary>
+        /// Gets horizontal scale factor.
+        /// </summary>
+        public Coord HorizontalScaleFactor
+        {
+            get
+            {
+                return GraphicsFactory.ScaleFactorFromDpi(GetDPI().Width);
+            }
+        }
+
+        /// <summary>
+        /// Gets vertical scale factor.
+        /// </summary>
+        public Coord VerrticalScaleFactor
+        {
+            get
+            {
+                return GraphicsFactory.ScaleFactorFromDpi(GetDPI().Height);
+            }
+        }
 
         /// <summary>
         /// Gets or sets clippring region.
@@ -48,6 +84,167 @@ namespace Alternet.Drawing
         public abstract object NativeObject { get; }
 
         /// <summary>
+        /// Checks whether <see cref="Brush"/> parameter is ok.
+        /// </summary>
+        /// <param name="value">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugBrushAssert(Brush value)
+        {
+            if (value is null)
+                throw new Exception("Brush is null");
+            if (value.IsDisposed)
+                throw new Exception("Brush was disposed");
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="SolidBrush"/> parameter is ok.
+        /// </summary>
+        /// <param name="brush">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugSolidBrushAssert(Brush brush)
+        {
+            DebugBrushAssert(brush);
+            if (brush is not SolidBrush)
+            {
+                throw new ArgumentException(
+                    ErrorMessages.Default.OnlySolidBrushInstancesSupported,
+                    nameof(brush));
+            }
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="Pen"/> parameter is ok.
+        /// </summary>
+        /// <param name="value">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugPenAssert(Pen value)
+        {
+            if (value is null)
+                throw new Exception("Pen is null");
+            if (value.IsDisposed)
+                throw new Exception("Pen was disposed");
+        }
+
+        /// <summary>
+        /// Checks whether array of <see cref="PointD"/> parameter is ok.
+        /// </summary>
+        /// <param name="points">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugBezierPointsAssert(PointD[] points)
+        {
+            var length = points.Length;
+
+            if (length == 0)
+                return;
+
+            if ((length - 1) % 3 != 0)
+            {
+                throw new ArgumentException(
+                    "The number of points should be a multiple of 3 plus 1, such as 4, 7, or 10.",
+                    nameof(points));
+            }
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="Color"/> parameter is ok.
+        /// </summary>
+        /// <param name="value">Parameter value.</param>
+        /// <param name="paramName">Parameter name.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugColorAssert(Color value, string? paramName = default)
+        {
+            if (value is null)
+                throw new Exception($"{Fn()} is null");
+            if (!value.IsOk)
+                throw new Exception($"{Fn()} is not ok");
+
+            string Fn()
+            {
+                if (paramName is null)
+                    return "Color";
+                else
+                    return $"Color '{paramName}'";
+            }
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="Image"/> parameter is ok.
+        /// </summary>
+        /// <param name="image">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugImageAssert(Image image)
+        {
+            if (image is null)
+                throw new Exception("Image is null");
+            if (image.IsDisposed)
+                throw new Exception("Image was disposed");
+            if (image.Width <= 0 || image.Height <= 0)
+                throw new Exception("Image has invalid size");
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="string"/> parameter is ok.
+        /// </summary>
+        /// <param name="text">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugTextAssert(string text)
+        {
+            if (text is null)
+                throw new Exception("Text is null");
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="Font"/> parameter is ok.
+        /// </summary>
+        /// <param name="font">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugFontAssert(Font font)
+        {
+            if (font is null)
+                throw new Exception("Font is null");
+            if (font.IsDisposed)
+                throw new Exception("Font is disposed");
+        }
+
+        /// <summary>
+        /// Checks whether <see cref="TextFormat"/> parameter is ok.
+        /// </summary>
+        /// <param name="format">Parameter value.</param>
+        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
+        [Conditional("DEBUG")]
+        [System.Diagnostics.DebuggerNonUserCodeAttribute]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugFormatAssert(TextFormat format)
+        {
+            if (format is null)
+                throw new Exception("Text format is null");
+        }
+
+        /// <summary>
         /// Creates a new <see cref="Graphics"/> from the specified
         /// <see cref="Image"/>.
         /// </summary>
@@ -66,7 +263,7 @@ namespace Alternet.Drawing
         public static Graphics FromImage(Image image)
         {
             DebugImageAssert(image);
-            return NativeDrawing.Default.CreateGraphicsFromImage(image);
+            return GraphicsFactory.Handler.CreateGraphicsFromImage(image);
         }
 
         /// <summary>
@@ -75,7 +272,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public static Graphics FromScreen()
         {
-            return NativeDrawing.Default.CreateGraphicsFromScreen();
+            return GraphicsFactory.Handler.CreateGraphicsFromScreen();
         }
 
         /// <summary>
@@ -83,7 +280,7 @@ namespace Alternet.Drawing
         /// the full angle is 360 degrees) with the specified font, background and
         /// foreground colors.
         /// </summary>
-        /// <param name="location">Location used to draw the text. Specified in pixels.</param>
+        /// <param name="location">Location used to draw the text. Specified in dips.</param>
         /// <param name="text">Text to draw.</param>
         /// <param name="angle">Text angle.</param>
         /// <param name="font">Font used to draw the text.</param>
@@ -97,15 +294,18 @@ namespace Alternet.Drawing
         /// <remarks>
         /// Under Windows only TrueType fonts can be drawn by this function.
         /// </remarks>
-        public abstract void DrawRotatedTextI(
+        /// <param name="unit"><see cref="GraphicsUnit"/> that determines
+        /// the unit of measure for the point parameter.</param>
+        public abstract void DrawRotatedText(
             string text,
-            PointI location,
+            PointD location,
             Font font,
             Color foreColor,
             Color backColor,
-            double angle);
+            Coord angle,
+            GraphicsUnit unit = GraphicsUnit.Dip);
 
-        /// <summary>
+        /*/// <summary>
         /// Gets the dimensions of the string using the specified font.
         /// </summary>
         /// <param name="text">The text string to measure.</param>
@@ -124,9 +324,9 @@ namespace Alternet.Drawing
         public abstract SizeD GetTextExtent(
             string text,
             Font font,
-            out double descent,
-            out double externalLeading,
-            IControl? control = null);
+            out Coord? descent,
+            out Coord? externalLeading,
+            IControl? control = null);*/
 
         /// <summary>
         /// Gets the dimensions of the string using the specified font.
@@ -149,7 +349,7 @@ namespace Alternet.Drawing
         /// Copy from a source <see cref="Graphics"/> to this graphics.
         /// With this method you can specify the destination coordinates and the
         /// size of area to copy which will be the same for both the source and target.
-        /// If you need to apply scaling while copying, use <see cref="StretchBlitI"/>.
+        /// If you need to apply scaling while copying, use <see cref="StretchBlit"/>.
         /// Sizes and positions are specified in pixels.
         /// </summary>
         /// <param name="destPt">Destination device context position.</param>
@@ -174,7 +374,7 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <remarks>
         /// You can influence whether MaskBlt or the explicit mask blitting code
-        /// is used, by using <see cref="Application.SetSystemOption(string, int)"/>
+        /// is used, by using <see cref="App.SetSystemOption(string, int)"/>
         /// and setting the 'no-maskblt' option to 1.
         /// </remarks>
         /// <remarks>
@@ -198,21 +398,24 @@ namespace Alternet.Drawing
         /// This sequence of operations ensures that the source's transparent area
         /// need not be black, and logical functions are supported.
         /// </remarks>
-        public abstract bool BlitI(
-            PointI destPt,
-            SizeI sz,
+        /// <param name="unit"><see cref="GraphicsUnit"/> that determines
+        /// the unit of measure for the point and size parameters.</param>
+        public abstract bool Blit(
+            PointD destPt,
+            SizeD sz,
             Graphics source,
-            PointI srcPt,
+            PointD srcPt,
             RasterOperationMode rop = RasterOperationMode.Copy,
             bool useMask = false,
-            PointI? srcPtMask = null);
+            PointD? srcPtMask = null,
+            GraphicsUnit unit = GraphicsUnit.Dip);
 
         /// <summary>
         /// Copies from a source <see cref="Graphics"/> to this graphics
-        /// possibly changing the scale. Unlike <see cref="BlitI"/>, this method
+        /// possibly changing the scale. Unlike <see cref="Blit"/>, this method
         /// allows specifying different source and destination region sizes,
         /// meaning that it can stretch or shrink it while copying.
-        /// The meaning of its other parameters is the same as with <see cref="BlitI"/>.
+        /// The meaning of its other parameters is the same as with <see cref="Blit"/>.
         /// Sizes and positions are specified in pixels.
         /// </summary>
         /// <param name="dstPt">Destination device context position.</param>
@@ -238,7 +441,7 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <remarks>
         /// You can influence whether MaskBlt or the explicit mask blitting code
-        /// is used, by using <see cref="Application.SetSystemOption(string, int)"/>
+        /// is used, by using <see cref="App.SetSystemOption(string, int)"/>
         /// and setting the 'no-maskblt' option to 1.
         /// </remarks>
         /// <remarks>
@@ -262,15 +465,18 @@ namespace Alternet.Drawing
         /// This sequence of operations ensures that the source's transparent area
         /// need not be black, and logical functions are supported.
         /// </remarks>
-        public abstract bool StretchBlitI(
-            PointI dstPt,
-            SizeI dstSize,
+        /// <param name="unit"><see cref="GraphicsUnit"/> that determines
+        /// the unit of measure for the point and size parameters.</param>
+        public abstract bool StretchBlit(
+            PointD dstPt,
+            SizeD dstSize,
             Graphics source,
-            PointI srcPt,
-            SizeI srcSize,
+            PointD srcPt,
+            SizeD srcSize,
             RasterOperationMode rop = RasterOperationMode.Copy,
             bool useMask = false,
-            PointI? srcPtMask = null);
+            PointD? srcPtMask = null,
+            GraphicsUnit unit = GraphicsUnit.Dip);
 
         /// <summary>
         /// Calls <see cref="FillRoundedRectangle"/> and than <see cref="DrawRoundedRectangle"/>.
@@ -286,7 +492,7 @@ namespace Alternet.Drawing
             Pen pen,
             Brush brush,
             RectD rectangle,
-            double cornerRadius);
+            Coord cornerRadius);
 
         /// <summary>
         /// Gets the dimensions of the string using the specified font.
@@ -302,7 +508,7 @@ namespace Alternet.Drawing
         public abstract SizeD GetTextExtent(string text, Font font);
 
         /// <summary>
-        /// Calls <see cref="FillRectangle"/> and than <see cref="DrawRectangle"/>.
+        /// Calls <see cref="FillRectangle(Brush, RectD)"/> and than <see cref="DrawRectangle"/>.
         /// </summary>
         /// <param name="pen"></param>
         /// <param name="brush"></param>
@@ -350,9 +556,9 @@ namespace Alternet.Drawing
             Pen pen,
             Brush brush,
             PointD center,
-            double radius,
-            double startAngle,
-            double sweepAngle);
+            Coord radius,
+            Coord startAngle,
+            Coord sweepAngle);
 
         /// <summary>
         /// Calls <see cref="FillCircle"/> and than <see cref="DrawCircle"/>.
@@ -364,7 +570,7 @@ namespace Alternet.Drawing
         /// <remarks>
         /// This method works faster than fill and then draw.
         /// </remarks>
-        public abstract void Circle(Pen pen, Brush brush, PointD center, double radius);
+        public abstract void Circle(Pen pen, Brush brush, PointD center, Coord radius);
 
         /// <summary>
         /// Calls <see cref="FillPolygon"/> and than <see cref="DrawPolygon"/>.
@@ -380,7 +586,7 @@ namespace Alternet.Drawing
 
         /// <summary>
         /// Fills the interior of a rectangle specified by a <see cref="RectD"/> structure.
-        /// Rectangle is specified in dips (1/96 inch).
+        /// Rectangle is specified in device-independent units.
         /// </summary>
         /// <param name="brush"><see cref="Brush"/> that determines the characteristics
         /// of the fill.</param>
@@ -394,19 +600,21 @@ namespace Alternet.Drawing
         public abstract void FillRectangle(Brush brush, RectD rectangle);
 
         /// <summary>
-        /// Fills the interior of a rectangle specified by a <see cref="RectI"/> structure.
-        /// Rectangle is specified in pixels.
+        /// Fills the interior of a rectangle specified by a <see cref="RectD"/> structure.
+        /// Rectangle is specified in device-independent units.
         /// </summary>
         /// <param name="brush"><see cref="Brush"/> that determines the characteristics
         /// of the fill.</param>
-        /// <param name="rectangle"><see cref="RectI"/> structure that represents the
+        /// <param name="rectangle"><see cref="RectD"/> structure that represents the
         /// rectangle to fill.</param>
         /// <remarks>
         /// This method fills the interior of the rectangle defined by the <c>rect</c> parameter,
-        /// including the specified upper-left corner and up to the calculated lower and
-        /// bottom edges.
+        /// including the specified upper-left corner and up to the calculated
+        /// lower and bottom edges.
         /// </remarks>
-        public abstract void FillRectangleI(Brush brush, RectI rectangle);
+        /// <param name="unit"><see cref="GraphicsUnit"/> that determines
+        /// the unit of measure for the rectangle parameter.</param>
+        public abstract void FillRectangle(Brush brush, RectD rectangle, GraphicsUnit unit);
 
         /// <summary>
         /// Draws an arc representing a portion of a circle specified by a center
@@ -425,9 +633,9 @@ namespace Alternet.Drawing
         public abstract void DrawArc(
             Pen pen,
             PointD center,
-            double radius,
-            double startAngle,
-            double sweepAngle);
+            Coord radius,
+            Coord startAngle,
+            Coord sweepAngle);
 
         /// <summary>
         /// Draws debug points on the corners of the specified rectangle.
@@ -457,7 +665,7 @@ namespace Alternet.Drawing
         /// <param name="x">X-coordinate of the point.</param>
         /// <param name="y">Y-coordinate of the point.</param>
         /// <exception cref="ArgumentNullException">if <paramref name="pen"/> is <c>null</c>.</exception>
-        public abstract void DrawPoint(Pen pen, double x, double y);
+        public abstract void DrawPoint(Pen pen, Coord x, Coord y);
 
         /// <summary>
         /// Fills the interior of a pie section defined by a circle specified by a center
@@ -475,9 +683,9 @@ namespace Alternet.Drawing
         public abstract void FillPie(
             Brush brush,
             PointD center,
-            double radius,
-            double startAngle,
-            double sweepAngle);
+            Coord radius,
+            Coord startAngle,
+            Coord sweepAngle);
 
         /// <summary>
         /// Draws an outline of a pie section defined by a circle specified by a center
@@ -495,9 +703,9 @@ namespace Alternet.Drawing
         public abstract void DrawPie(
             Pen pen,
             PointD center,
-            double radius,
-            double startAngle,
-            double sweepAngle);
+            Coord radius,
+            Coord startAngle,
+            Coord sweepAngle);
 
         /// <summary>
         /// Draws a Bézier spline defined by four <see cref="PointD"/> structures.
@@ -539,7 +747,7 @@ namespace Alternet.Drawing
         /// <param name="center"><see cref="PointD"/> structure that defines the center of
         /// the circle.</param>
         /// <param name="radius">Defines the radius of the circle.</param>
-        public abstract void DrawCircle(Pen pen, PointD center, double radius);
+        public abstract void DrawCircle(Pen pen, PointD center, Coord radius);
 
         /// <summary>
         /// Fills the interior of a circle specified by a center <see cref="PointD"/> and a radius.
@@ -549,7 +757,7 @@ namespace Alternet.Drawing
         /// <param name="center"><see cref="PointD"/> structure that defines the center of
         /// the circle.</param>
         /// <param name="radius">Defines the radius of the circle.</param>
-        public abstract void FillCircle(Brush brush, PointD center, double radius);
+        public abstract void FillCircle(Brush brush, PointD center, Coord radius);
 
         /// <summary>
         /// Draws a rounded rectangle specified by a <see cref="RectD"/> and a corner radius.
@@ -558,7 +766,7 @@ namespace Alternet.Drawing
         /// style of the rounded rectangle.</param>
         /// <param name="rect">A <see cref="RectD"/> that represents the rectangle to add.</param>
         /// <param name="cornerRadius">The corner radius of the rectangle.</param>
-        public abstract void DrawRoundedRectangle(Pen pen, RectD rect, double cornerRadius);
+        public abstract void DrawRoundedRectangle(Pen pen, RectD rect, Coord cornerRadius);
 
         /// <summary>
         /// Fills the interior of a rounded rectangle specified by a <see cref="RectD"/> and
@@ -568,7 +776,7 @@ namespace Alternet.Drawing
         /// fill.</param>
         /// <param name="rect">A <see cref="RectD"/> that represents the rectangle to add.</param>
         /// <param name="cornerRadius">The corner radius of the rectangle.</param>
-        public abstract void FillRoundedRectangle(Brush brush, RectD rect, double cornerRadius);
+        public abstract void FillRoundedRectangle(Brush brush, RectD rect, Coord cornerRadius);
 
         /// <summary>
         /// Draws a polygon defined by an array of <see cref="PointD"/> structures.
@@ -685,7 +893,7 @@ namespace Alternet.Drawing
         /// <param name="y1">Y coordinate of the first point.</param>
         /// <param name="x2">X coordinate of the second point.</param>
         /// <param name="y2">Y coordinate of the second point.</param>
-        public void DrawLine(Pen pen, double x1, double y1, double x2, double y2) =>
+        public void DrawLine(Pen pen, Coord x1, Coord y1, Coord x2, Coord y2) =>
             DrawLine(pen, new(x1, y1), new(x2, y2));
 
         /// <summary>
@@ -731,14 +939,12 @@ namespace Alternet.Drawing
         /// <param name="image"><see cref="Image"/> to draw.</param>
         /// <param name="origin"><see cref="PointD"/> structure that represents the
         /// upper-left corner of the drawn image.</param>
-        /// <param name="useMask">If useMask is true and the bitmap has a transparency mask,
-        /// the bitmap will be drawn transparently.</param>
         /// <remarks>
         /// When drawing a mono-bitmap, the current text foreground color will
         /// be used to draw the foreground of the bitmap (all bits set to 1), and
         /// the current text background color to draw the background (all bits set to 0).
         /// </remarks>
-        public abstract void DrawImage(Image image, PointD origin, bool useMask = false);
+        public abstract void DrawImage(Image image, PointD origin);
 
         /// <summary>
         /// Draws an image into the region defined by the specified <see cref="RectD"/>.
@@ -746,14 +952,12 @@ namespace Alternet.Drawing
         /// <param name="image"><see cref="Image"/> to draw.</param>
         /// <param name="destinationRect">The region in which to draw
         /// <paramref name="image"/>.</param>
-        /// <param name="useMask">If useMask is true and the bitmap has a transparency mask,
-        /// the bitmap will be drawn transparently.</param>
         /// <remarks>
         /// When drawing a mono-bitmap, the current text foreground color will
         /// be used to draw the foreground of the bitmap (all bits set to 1), and
         /// the current text background color to draw the background (all bits set to 0).
         /// </remarks>
-        public abstract void DrawImage(Image image, RectD destinationRect, bool useMask = false);
+        public abstract void DrawImage(Image image, RectD destinationRect);
 
         /// <summary>
         /// Draws the specified portion of the image into the region defined by the specified
@@ -761,33 +965,12 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="image"><see cref="Image"/> to draw.</param>
         /// <param name="destinationRect">The region in which to draw
-        /// <paramref name="image"/>.</param>
+        /// <paramref name="image"/>. Specified in device-independent units.</param>
         /// <param name="sourceRect">
         /// <see cref="RectD"/> structure that specifies the portion of the
         /// <paramref name="image"/> object to draw.
         /// </param>
-        /// <remarks>
-        /// Parameters <paramref name="destinationRect"/> and <paramref name="sourceRect"/>
-        /// are specified in dips (1/96 inch).
-        /// </remarks>
         public abstract void DrawImage(Image image, RectD destinationRect, RectD sourceRect);
-
-        /// <summary>
-        /// Draws the specified portion of the image into the region defined by the specified
-        /// <see cref="RectI"/>.
-        /// </summary>
-        /// <param name="image"><see cref="Image"/> to draw.</param>
-        /// <param name="destinationRect">The region in which to draw
-        /// <paramref name="image"/>.</param>
-        /// <param name="sourceRect">
-        /// <see cref="RectI"/> structure that specifies the portion of the
-        /// <paramref name="image"/> object to draw.
-        /// </param>
-        /// <remarks>
-        /// Parameters <paramref name="destinationRect"/> and <paramref name="sourceRect"/>
-        /// are specified in pixels.
-        /// </remarks>
-        public abstract void DrawImageI(Image image, RectI destinationRect, RectI sourceRect);
 
         /// <summary>
         /// Sets the color of the specified pixel in this <see cref="Graphics" />.</summary>
@@ -808,7 +991,7 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="x">The x-coordinate of the pixel to set.</param>
         /// <param name="y">The y-coordinate of the pixel to set.</param>
-        public abstract void SetPixel(double x, double y, Pen pen);
+        public abstract void SetPixel(Coord x, Coord y, Pen pen);
 
         /// <summary>
         /// Sets the color of the specified pixel in this <see cref="Graphics" />.</summary>
@@ -819,7 +1002,7 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="x">The x-coordinate of the pixel to set.</param>
         /// <param name="y">The y-coordinate of the pixel to set.</param>
-        public abstract void SetPixel(double x, double y, Color color);
+        public abstract void SetPixel(Coord x, Coord y, Color color);
 
         /// <summary>
         /// Gets the color of the specified pixel in this <see cref="Graphics" />.</summary>
@@ -859,9 +1042,25 @@ namespace Alternet.Drawing
         /// the drawn text.</param>
         /// <param name="origin"><see cref="PointD"/> structure that specifies the upper-left
         /// corner of the drawn text.</param>
-        public virtual void DrawText(string text, Font font, Brush brush, PointD origin)
+        public abstract void DrawText(string text, Font font, Brush brush, PointD origin);
+
+        /// <summary>
+        /// Draws multiple text strings at the specified location with the specified
+        /// <see cref="Brush"/> and <see cref="Font"/> objects.
+        /// </summary>
+        /// <param name="text">Strings  to draw.</param>
+        /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
+        /// <param name="brush"><see cref="Brush"/> that determines the color and texture of
+        /// the drawn text.</param>
+        /// <param name="origin"><see cref="PointD"/> structure that specifies the upper-left
+        /// corner of the drawn text.</param>
+        public virtual void DrawText(string[] text, Font font, Brush brush, PointD origin)
         {
-            DrawText(text, font, brush, origin, TextFormat.Default);
+            foreach(var s in text)
+            {
+                DrawText(s, font, brush, origin);
+                origin.Y += MeasureText(s, font).Height;
+            }
         }
 
         /// <summary>
@@ -869,7 +1068,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="text"></param>
         /// <param name="origin"></param>
-        public virtual void DrawText(string text, PointD origin)
+        public void DrawText(string text, PointD origin)
         {
             DrawText(text, Font.Default, Brush.Default, origin);
         }
@@ -880,55 +1079,11 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="text">String to draw.</param>
         /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
-        /// <param name="brush"><see cref="Brush"/> that determines the color and texture of
-        /// the drawn text.</param>
-        /// <param name="origin"><see cref="PointD"/> structure that specifies the upper-left
-        /// corner of the drawn text.</param>
-        /// <param name="format"><see cref="TextFormat"/> that specifies formatting attributes,
-        /// such as
-        /// alignment and trimming, that are applied to the drawn text.</param>
-        public abstract void DrawText(
-            string text,
-            Font font,
-            Brush brush,
-            PointD origin,
-            TextFormat format);
-
-        /// <summary>
-        /// Draws the specified text string at the specified location with the specified
-        /// <see cref="Brush"/> and <see cref="Font"/> objects.
-        /// </summary>
-        /// <param name="text">String to draw.</param>
-        /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
         /// <param name="brush"><see cref="Brush"/> that determines the color and texture
         /// of the drawn text.</param>
         /// <param name="bounds"><see cref="RectD"/> structure that specifies the bounds of
         /// the drawn text.</param>
-        public virtual void DrawText(string text, Font font, Brush brush, RectD bounds)
-        {
-            DrawText(text, font, brush, bounds, TextFormat.Default);
-        }
-
-        /// <summary>
-        /// Draws the specified text string at the specified location with the specified
-        /// <see cref="Brush"/> and <see
-        /// cref="Font"/> objects.
-        /// </summary>
-        /// <param name="text">String to draw.</param>
-        /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
-        /// <param name="brush"><see cref="Brush"/> that determines the color and texture
-        /// of the drawn text.</param>
-        /// <param name="bounds"><see cref="RectD"/> structure that specifies the bounds of
-        /// the drawn text.</param>
-        /// <param name="format"><see cref="TextFormat"/> that specifies formatting attributes,
-        /// such as
-        /// alignment and trimming, that are applied to the drawn text.</param>
-        public abstract void DrawText(
-            string text,
-            Font font,
-            Brush brush,
-            RectD bounds,
-            TextFormat format);
+        public abstract void DrawText(string text, Font font, Brush brush, RectD bounds);
 
         /// <summary>
         /// Draws waved line in the specified rectangular area.
@@ -1000,53 +1155,45 @@ namespace Alternet.Drawing
         /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
         /// <returns>
         /// This method returns a <see cref="SizeD"/> structure that represents the size,
-        /// in device-independent units (1/96th inch per unit), of the
+        /// in device-independent units, of the
         /// string specified by the <c>text</c> parameter as drawn with the <c>font</c> parameter.
         /// </returns>
-        public abstract SizeD MeasureText(string text, Font font);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeD MeasureText(string text, Font font)
+            => GetTextExtent(text, font);
 
         /// <summary>
-        /// Measures the specified string when drawn with the specified <see cref="Font"/> and
-        /// maximum width.
+        /// Pops a stored state from the stack and sets the current transformation matrix
+        /// to that state.
         /// </summary>
-        /// <param name="text">String to measure.</param>
-        /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
-        /// <param name="maximumWidth">Maximum width of the string in device-independent
-        /// units (1/96th inch per unit).</param>
-        /// <returns>
-        /// This method returns a <see cref="SizeD"/> structure that represents the size,
-        /// in device-independent units (1/96th inch per unit), of the
-        /// string specified by the <c>text</c> parameter as drawn with the <c>font</c> parameter.
-        /// </returns>
-        public abstract SizeD MeasureText(string text, Font font, double maximumWidth);
-
-        /// <summary>
-        /// Measures the specified string when drawn with the specified <see cref="Font"/>,
-        /// maximum width and <see cref="TextFormat"/>.
-        /// </summary>
-        /// <param name="text">String to measure.</param>
-        /// <param name="font"><see cref="Font"/> that defines the text format of the string.</param>
-        /// <param name="maximumWidth">Maximum width of the string in device-independent
-        /// units (1/96th inch per unit).</param>
-        /// <param name="format"><see cref="TextFormat"/> that specifies formatting attributes,
-        /// such as
-        /// alignment and trimming, that are applied to the drawn text.</param>
-        /// <returns>
-        /// This method returns a <see cref="SizeD"/> structure that represents the size,
-        /// in device-independent units (1/96th inch per unit), of the
-        /// string specified by the <c>text</c> parameter as drawn with the <c>font</c> parameter.
-        /// </returns>
-        public abstract SizeD MeasureText(
-            string text,
-            Font font,
-            double maximumWidth,
-            TextFormat format);
+        public virtual void Pop()
+        {
+            stack ??= new();
+            Transform = stack.Pop();
+        }
 
         /// <summary>
         /// Pushes the current state of the <see cref="Graphics"/> transformation
-        /// matrix on a stack.
+        /// matrix on a stack
+        /// and concatenates the current transform with a new transform.
         /// </summary>
-        public abstract void Push();
+        /// <param name="transform">A transform to concatenate with the current transform.</param>
+        public virtual void PushTransform(TransformMatrix transform)
+        {
+            Push();
+            var currentTransform = Transform;
+            currentTransform.Multiply(transform);
+            Transform = currentTransform;
+        }
+
+        /// <summary>
+        /// Pushes the current state of the transformation matrix on a stack.
+        /// </summary>
+        public void Push()
+        {
+            stack ??= new();
+            stack.Push(Transform);
+        }
 
         /// <summary>
         /// Draws text with the specified font, background and foreground colors.
@@ -1089,14 +1236,6 @@ namespace Alternet.Drawing
             int indexAccel = -1);
 
         /// <summary>
-        /// Pushes the current state of the <see cref="Graphics"/> transformation
-        /// matrix on a stack
-        /// and concatenates the current transform with a new transform.
-        /// </summary>
-        /// <param name="transform">A transform to concatenate with the current transform.</param>
-        public abstract void PushTransform(TransformMatrix transform);
-
-        /// <summary>
         /// Returns the DPI of the display used by this object.
         /// </summary>
         /// <returns>
@@ -1104,13 +1243,7 @@ namespace Alternet.Drawing
         /// used by this control. If the DPI is not available,
         /// returns Size(0,0) object.
         /// </returns>
-        public abstract SizeD GetDPI();
-
-        /// <summary>
-        /// Pops a stored state from the stack and sets the current transformation matrix
-        /// to that state.
-        /// </summary>
-        public abstract void Pop();
+        public abstract SizeI GetDPI();
 
         /// <summary>
         /// Destroys the current clipping region so that none of the DC is clipped.
@@ -1150,162 +1283,63 @@ namespace Alternet.Drawing
         public abstract RectD GetClippingBox();
 
         /// <summary>
-        /// Checks whether <see cref="Brush"/> parameter is ok.
+        /// Converts point to device-independent units.
         /// </summary>
-        /// <param name="value">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugBrushAssert(Brush value)
+        /// <param name="point">Point.</param>
+        /// <param name="unit">The unit of measure for the point.</param>
+        public virtual void ToDip(ref PointD point, GraphicsUnit unit)
         {
-            if (value is null)
-                throw new Exception("Brush is null");
-            if (value.IsDisposed)
-                throw new Exception("Brush was disposed");
-        }
-
-        /// <summary>
-        /// Checks whether <see cref="SolidBrush"/> parameter is ok.
-        /// </summary>
-        /// <param name="brush">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugSolidBrushAssert(Brush brush)
-        {
-            DebugBrushAssert(brush);
-            if (brush is not SolidBrush)
+            if (unit != GraphicsUnit.Dip)
             {
-                throw new ArgumentException(
-                    ErrorMessages.Default.OnlySolidBrushInstancesSupported,
-                    nameof(brush));
+                var dpi = GetDPI();
+                var graphicsType = GraphicsUnitConverter.GraphicsType.Undefined;
+                point = GraphicsUnitConverter.ConvertPoint(
+                    unit,
+                    GraphicsUnit.Dip,
+                    dpi,
+                    point,
+                    graphicsType);
             }
         }
 
         /// <summary>
-        /// Checks whether <see cref="Pen"/> parameter is ok.
+        /// Converts <see cref="SizeD"/> to device-independent units.
         /// </summary>
-        /// <param name="value">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugPenAssert(Pen value)
+        /// <param name="size">Size.</param>
+        /// <param name="unit">The unit of measure for the size.</param>
+        public virtual void ToDip(ref SizeD size, GraphicsUnit unit)
         {
-            if (value is null)
-                throw new Exception("Pen is null");
-            if (value.IsDisposed)
-                throw new Exception("Pen was disposed");
-        }
-
-        /// <summary>
-        /// Checks whether array of <see cref="PointD"/> parameter is ok.
-        /// </summary>
-        /// <param name="points">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugBezierPointsAssert(PointD[] points)
-        {
-            if (points.Length == 0)
-                return;
-
-            if ((points.Length - 1) % 3 != 0)
+            if (unit != GraphicsUnit.Dip)
             {
-                throw new ArgumentException(
-                    "The number of points should be a multiple of 3 plus 1, such as 4, 7, or 10.",
-                    nameof(points));
+                var dpi = GetDPI();
+                var graphicsType = GraphicsUnitConverter.GraphicsType.Undefined;
+                size = GraphicsUnitConverter.ConvertSize(
+                    unit,
+                    GraphicsUnit.Dip,
+                    dpi,
+                    size,
+                    graphicsType);
             }
         }
 
         /// <summary>
-        /// Checks whether <see cref="Color"/> parameter is ok.
+        /// Converts rectangle to device-independent units.
         /// </summary>
-        /// <param name="value">Parameter value.</param>
-        /// <param name="paramName">Parameter name.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugColorAssert(Color value, string? paramName = default)
+        /// <param name="rect">Rectangle.</param>
+        /// <param name="unit">The unit of measure for the rectangle.</param>
+        public virtual void ToDip(ref RectD rect, GraphicsUnit unit)
         {
-            if (value is null)
-                throw new Exception($"{Fn()} is null");
-            if (!value.IsOk)
-                throw new Exception($"{Fn()} is not ok");
-
-            string Fn()
+            if (unit != GraphicsUnit.Dip)
             {
-                if (paramName is null)
-                    return "Color";
-                else
-                    return $"Color '{paramName}'";
+                var dpi = GetDPI();
+                var graphicsType = GraphicsUnitConverter.GraphicsType.Undefined;
+                rect = GraphicsUnitConverter.ConvertRect(
+                    unit,
+                    GraphicsUnit.Dip,
+                    dpi,
+                    rect,
+                    graphicsType);
             }
-        }
-
-        /// <summary>
-        /// Checks whether <see cref="Image"/> parameter is ok.
-        /// </summary>
-        /// <param name="image">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugImageAssert(Image image)
-        {
-            if (image is null)
-                throw new Exception("Image is null");
-            if(image.IsDisposed)
-                throw new Exception("Image was disposed");
-            if (image.Width <= 0 || image.Height <= 0)
-                throw new Exception("Image has invalid size");
-        }
-
-        /// <summary>
-        /// Checks whether <see cref="string"/> parameter is ok.
-        /// </summary>
-        /// <param name="text">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugTextAssert(string text)
-        {
-            if (text is null)
-                throw new Exception("Text is null");
-        }
-
-        /// <summary>
-        /// Checks whether <see cref="Font"/> parameter is ok.
-        /// </summary>
-        /// <param name="font">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugFontAssert(Font font)
-        {
-            if (font is null)
-                throw new Exception("Font is null");
-            if (font.IsDisposed)
-                throw new Exception("Font is disposed");
-        }
-
-        /// <summary>
-        /// Checks whether <see cref="TextFormat"/> parameter is ok.
-        /// </summary>
-        /// <param name="format">Parameter value.</param>
-        /// <exception cref="Exception">Raised if parameter is not ok.</exception>
-        [Conditional("DEBUG")]
-        [System.Diagnostics.DebuggerNonUserCodeAttribute]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void DebugFormatAssert(TextFormat format)
-        {
-            if (format is null)
-                throw new Exception("Text format is null");
         }
     }
 }

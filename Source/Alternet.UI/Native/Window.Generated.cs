@@ -334,24 +334,6 @@ namespace Alternet.UI.Native
             }
         }
         
-        public Toolbar? Toolbar
-        {
-            get
-            {
-                CheckDisposed();
-                var _nnn = NativeApi.Window_GetToolbar_(NativePointer);
-                var _mmm = NativeObject.GetFromNativePointer<Toolbar>(_nnn, p => new Toolbar(p));
-                ReleaseNativeObjectPointer(_nnn);
-                return _mmm;
-            }
-            
-            set
-            {
-                CheckDisposed();
-                NativeApi.Window_SetToolbar_(NativePointer, value?.NativePointer ?? IntPtr.Zero);
-            }
-        }
-        
         public System.IntPtr WxStatusBar
         {
             get
@@ -400,7 +382,7 @@ namespace Alternet.UI.Native
             NativeApi.Window_Activate_(NativePointer);
         }
         
-        public void AddInputBinding(string managedCommandId, Key key, ModifierKeys modifiers)
+        public void AddInputBinding(string managedCommandId, Alternet.UI.Key key, Alternet.UI.ModifierKeys modifiers)
         {
             CheckDisposed();
             NativeApi.Window_AddInputBinding_(NativePointer, managedCommandId, key, modifiers);
@@ -448,18 +430,10 @@ namespace Alternet.UI.Native
                 {
                     StateChanged?.Invoke(); return IntPtr.Zero;
                 }
-                case NativeApi.WindowEvent.SizeChanged:
-                {
-                    SizeChanged?.Invoke(); return IntPtr.Zero;
-                }
                 case NativeApi.WindowEvent.InputBindingCommandExecuted:
                 {
                     var ea = new NativeEventArgs<CommandEventData>(MarshalEx.PtrToStructure<CommandEventData>(parameter));
                     InputBindingCommandExecuted?.Invoke(this, ea); return ea.Result;
-                }
-                case NativeApi.WindowEvent.LocationChanged:
-                {
-                    LocationChanged?.Invoke(); return IntPtr.Zero;
                 }
                 default: throw new Exception("Unexpected WindowEvent value: " + e);
             }
@@ -467,9 +441,7 @@ namespace Alternet.UI.Native
         
         public event EventHandler<CancelEventArgs>? Closing;
         public Action? StateChanged;
-        public Action? SizeChanged;
         public event NativeEventHandler<CommandEventData>? InputBindingCommandExecuted;
-        public Action? LocationChanged;
         
         [SuppressUnmanagedCodeSecurity]
         public class NativeApi : NativeApiProvider
@@ -483,9 +455,7 @@ namespace Alternet.UI.Native
             {
                 Closing,
                 StateChanged,
-                SizeChanged,
                 InputBindingCommandExecuted,
-                LocationChanged,
             }
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -603,12 +573,6 @@ namespace Alternet.UI.Native
             public static extern void Window_SetMenu_(IntPtr obj, IntPtr value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern IntPtr Window_GetToolbar_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Window_SetToolbar_(IntPtr obj, IntPtr value);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern System.IntPtr Window_GetWxStatusBar_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -645,7 +609,7 @@ namespace Alternet.UI.Native
             public static extern void Window_Activate_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Window_AddInputBinding_(IntPtr obj, string managedCommandId, Key key, ModifierKeys modifiers);
+            public static extern void Window_AddInputBinding_(IntPtr obj, string managedCommandId, Alternet.UI.Key key, Alternet.UI.ModifierKeys modifiers);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void Window_RemoveInputBinding_(IntPtr obj, string managedCommandId);

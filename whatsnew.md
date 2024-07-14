@@ -1,3 +1,244 @@
+# 0.9.613 (2024 June 25)
+
+- Used netstandard2.0 in the library.
+- Fixed bug in splitter movement, get mouse pos from system.
+- Window.Icon can be specified in uixml. Example: "embres:RoslynSyntaxParsing.Sample.ico".
+- Application.SetUnhandledExceptionModes.
+- BaseException, BaseXmlException, ExceptionCreatedEventArgs classes.
+- SplittedPanel: TopBottomVisible, LeftRightVisible.
+- LogListBox.ShowDebugWelcomeMessage.
+- Alternet.UI.Build.Tasks: Support Alternet.Editor in uixml.
+- Cursor.AllowCustomCursors.
+- Used ScrollBarOrientation instead of ScrollOrientation beacuse it was a duplicate.
+- Clipboard.SetDataObject(IDataObject? data, bool copy).
+- new properties in DataFormats as in WinForms.
+- DataObject.SetText(string textData, TextDataFormat format).
+
+# 0.9.612 (2024 June 21)
+
+- <u>**Critical**</u>: Fix exception when year > 3000.
+- Optimized Keys to/from Key conversions.
+- SkiaContainer now handles focus and keyboard input.
+- ComboBox: SelectedIndexChanged, DropDownStyle.
+- Application.StartuPath, CommonDialog.ShowModal, FileDialog.FilterIndex, Button.UseVisualStyleBackColor, ListControl.SelectedIndexAsInt.
+
+# 0.9.611 (2024 June 18)
+
+- <u>**Critical**</u> Updated to use WxWidgets 3.2.5. Fixes different problems on Linux.
+- Display: MinScaleFactor, AllDPI, MinDPI, MaxDPI, HasDifferentDPI, BaseDPI, BaseDPIValue.
+- Maui platform related improvements.
+- EnumMapping class.
+
+# 0.9.610 (2024 June 16)
+
+- <u>**Critical**</u> StatusBar: Fixed StatusBar was not shown in the window.
+- <u>**Critical**</u> SystemSettings: Fixed bug in ResetColors().
+- <u>**Critical**</u> Control: Fixed Bounds property set method. Now min width or height is always 0, previously it was possible to set negative values, so it caused Gtk exceptions on Linux.
+- Demo: Fixed uixml InputTransparent prop related exceptions.
+- ScrollBar: SizeFromMetrics(), ArrowBitmapSizeFromMetrics(), ThumbSizeFromMetrics().
+- Hide some properties in controls from PropertyGrid.
+- Control: Focus related fixes.
+- Image.Url property.
+- Demo: Fixed doubling of browsable types in PropGrid demo.
+- Demo: Fixed 'Add Panel', 'Set Null' actions for StatusBar demo.
+
+# 0.9.609 (2024 June 15)
+
+- Size and Rect: PixelToDip/PixelFromDip.
+- Window: DisplayChanged event.
+- LogListBox: Fixed scrolling to end when item added.
+- TextBox: Supports INotifyDataErrorInfo interface.
+- TextBox: ErrorsChanged event.
+- TextBox: HasErrors property.
+- TextBox: HasErrorEmptyText(), HasErrorMinLength(), HasErrorMaxLength(), GetErrors().
+- TextBox: Added new optional 'errorEnumerator' param in RunDefaultValidation and Report* methods.
+- ResourceLoader.StreamFromUrlOrDefault.
+- GraphicsFactory: CreateMemoryCanvas(Image image), CreateMemoryDC renamed to CreateMemoryCanvas.
+- TextBoxAndLabel: Fixed double Init() in constructor.
+- ControlAndLabel: supports INotifyDataErrorInfo.
+- Control: e.CurrentTarget is correctly assigned in KeyPress event.
+- Control: BubbleMouse renamed to InputTransparent as in Maui.
+- Control: Simplified Focus related methods/props.
+- Control: AbsolutePosition, AllParents.
+- Control: INotifyDataErrorInfo is supported.
+- Control: HasErrors - returns whether this control or it's child controls have validation errors.
+- Control: GetErrors - gets the validation errors for this control and it's child controls.
+- Control: ErrorsChanged event - Occurs when the validation errors have changed for this control or it's child controls.
+- Font.SizeInDips.
+- ScrollBar: DefaultMetrics, Metrics.
+- PointD: +/- operators for (PointD, PointD).
+- ImageLockMode is used in LockSurface.
+- Improvements related to drawing on Skia and using Control in Maui.
+
+# 0.9.608 (2024 June 12)
+
+- Control: DpiChanged event.
+- Control: MeasureCanvas optimized (uses global memory dc and is not created for every control).
+- Control: Enabled is returned correctly if parent control is disabled.
+- Control: GetPixelScaleFactor() -> ScaleFactor.
+- Control: IsMouseOver implemented inside Control and not passed to platform.
+- Control: Removed SendSizeEvent as not possible to implement on Maui.
+- Control: Removed ScreenToDevice, DeviceToScreen as we have similar PixelToDip/PixelFromDip methods.
+- Control: Removed BeginIgnoreRecreate/EndIgnoreRecreate as were buggy and confusing, use BeginInit/EndInit.
+- Control: Dpi and ScaleFactor are cached.
+- Control: IsParentEnabled, IsThisEnabled.
+- LogListBox: BoundToApplicationLog can be set.
+- Image.BitsFormat.
+- NativeApiGenerator: No switch clause is generated if there is only one event.
+- Display: Removed exceptions.
+- Display: IsOk, MaxScaleFactor, AllScalefactors, speed optimizations.
+- UixmlLoader: new static Func properties LoadFromResName, LoadFromStream, ReportLoadException.
+- TabControl: TabSizeChanged event.
+- Window: Call PerformLayout on DpiChanged event.
+- SystemColors: Updated on SystemColorsChanged.
+- PlessMouse: LastMousePosition, LastMousePositionChanged.
+- GraphicsFactory: GetOrCreateMemoryDC, CreateMemoryDC.
+- Graphicsfactory: ScaleFactor param is now optional in all PixelFromDip/PixelToDip and other methods that have it. If it is not specified, Display.MaxScaleFactor is used.
+- PointD: MinValue, MacValue, new constructor.
+- ARGBValue, RGBAValue structs and PlessSystemSettingsHandler class.
+
+# 0.9.607 (2024 June 10)
+
+- Added SkiaSharp mega demo in ControlsSample.
+- Control: SystemColorsChanged event.
+- Control: All event calls and other code move out from On* methods to Raise* methods, so now we do not need to call base method when overriding On* methods.
+- Control: Added Bubble* methods.
+- Control: GetFocusedControl speed optimization.
+- Control: static events FocusedControlChanged, HoveredControlChanged
+- GenericImage: HasAlpha, HasMask are now properties and not methods (similar to Image).
+- GenericImage: LockSurface() which allows to lock SKCanvas.
+- Key and mouse events handling speed optimization.
+- Mouse and Keyboard classes are now not abstract and have Default property.
+- PictureBox is invalidated when Image prop is set.
+- Fixed exception in get mouse pos from system (occured in some cases).
+- Platformless caret implemented in Control.
+
+# 0.9.606 (2024 June 8)
+
+- Display.Reset, Image.HasMask.
+- Display: AllScreens property checks whether display were added/removed from system.
+- Control: ForEachChild(action, recursive), ResetMeasureCanvas(), ResetDisplay().
+- Window: DpiChanged event is raised when form is moved to another display and it has other dpi.
+- Window: Child's Display and MeasureCanvas properties are updated when form is moved to another display.
+- Color: Used ColorStruct inside, AsStruct property, speed optimizations.
+- Color: Constructors made public, MinMaxRgb method.
+- Image.LockSurface - allows to get SKCanvas from Image.
+- ImageBitsFormat class.
+- GraphicsFactory: Definable converters from color, pen, font to SKPaint.
+- GraphicsFactory: NativeBitsFormat, AlphaBitsFormat, GenericBitsFormat.
+- GraphicsFactory: ScaleFactorFromDpi, PixelFromDip, PixelToDip for Coord, Point, Rect, Size.
+- Simplify and speed up system color to rgb conversion.
+- Graphics: GetDPI now returns SizeI.
+- Graphics: HorizontalScaleFactor, VerticalScaleFactor, ScaleFactor.
+- Graphics: Removed "I" suffix from DrawRotatedTextI, StretchBlitI, BlitI. Added GraphicsUnit optional parameter instead of it.
+- Graphics: Removed optional useMask param in DrawImage.
+- Graphics: ToDip for Point, Size, Rect.
+- Graphics: FillRectangle(Brush brush, RectD rectangle, GraphicsUnit unit).
+- Added SkiaSharpSampleDll with SkiaSharp samples.
+
+# 0.9.605 (2024 June 5)
+
+- Color: GetRgbValues, WithRed, WithGreen, WithBlue, WithAlpha.
+- Color: Optimization of the internal structure (occupy less memory and speed up).
+- Color: SkiaColor, State properties.
+- Color: Optimization of AsPen and GetAsPen.
+- Color: Optimization of Color to SKColor conversion.
+- Image and GenericImage: static Create(int width, int height, SKColor[] pixels).
+- Image and GenericImage: Correct pixel conversion in case when image has alpha or mask color
+- Image: static Create(int width, int height, Color color).
+- Image and GenericImage: ConvertToDisabled implemented internally
+- Image: ChangeLightness(int ialpha).
+- Image: Load methods now understand urls.
+- Image: Save to file now uses file system.
+- Image: Exceptions are not raised during load/save, only false is returned in case of error.
+- GenericImage: Pixels, RgbData, AlphaData properties.
+- GenericImage: FillPixels, FillAlphaData, FillRgbData, CreatePixels, CreateRgbData, CreateAlphaData, SetRgbValuesFromPtr, SetAlphaValuesFromPtr.
+- GenericImage: Removed GetNativeData, SetNativeData, GetNativeAlphaData, SetNativeAlphaData. Use Pixels, AlphaData, RgbData instead of them.
+- GraphicsFactory: Many new create SkPaint methods.
+- GraphicsFactory: DefaultScaleQuality, DefaultAntialias
+- SkiaUtils: IsFamilySkia, FontFamilies, ResetFonts.
+- Font.SkiaMetrics property.
+- By default only Skia compatible fonts are available in library.
+- FontFamily: SkiaTypeface, IsFixedPitch, IsFixedPitchFontFamily
+- New classes: FontListBox, FontNameAndSize, SampleFonts.
+- Correct implementation of default fixed pitch font search for maui/skia.
+- Included assets required by SkiaSharp in library csproj.
+- DialogFactory: AskByte and other methods.
+- Impoved installation scripts. Now TargetPlatfroms override can be specified using bool flags (See Source/Version/SampleFrameworksOverride.props).
+
+# 0.9.604 (2024 June 3)
+
+- Fixed exception when maximized window is closed.
+- RadioButton: CheckedChanged event is now fired when IsChecked property changed from code.
+- Control: LocationChanged event is now fired.
+- Window: StateChanged event is now fired.
+- Image: ExtensionsForLoad, ExtensionsForSave props.
+- Color and RGBValue to/from SKColor conversions.
+- GenericImage and Image to/from SKBitmap conversions.
+- Font, Brush, Pen to/from Skia converters.
+- Brush: Renamed BrushColor property to AsColor.
+- Window: IsMaximized, IsMinimized.
+- Enum renamed GenericControlState -> VisualControlState.
+- Control.CurrentState renamed to VisualState as Window has State property and it was confusing.
+- Font.Default and Font.DefaultMono set methods.
+- FontFamily: Families, FamiliesNames and FamiliesNamesAscending speedup, types changed to IEnumerable.
+- FontFamily: Reset, IsOk.
+- FontFamily.IsFamilyValid speedup and implemented on c# internally.
+- SystemFonts: All properties are now can be set.
+- SystemFonts: Default, DefaultMono, Serif, SansSerif, GetFont, SetFont.
+- FontFamily.GetName property.
+- Renamed BaseApplication to App.
+- SolidBrush: made all constructors public.
+- Color.AsBrush now returns immutable brush.
+- Brushes: Now uses Color.AsBrush. As a result: speedup and less resources are used.
+- GenericImage: Load and constructor now understand urls (previously only filename).
+- LogListBox: Ctrl+C (selected items to clipboard).
+- Control: Calls to events moved to Raise* methods from On* methods, so now overriding doesn't require calling base.On* method.
+- Display.Default.
+- Font and Color: AsFillPaint, AsStrokePaint props.
+- SkiaGraphics: better DrawText, GetTextExtent.
+- GenericImage: Contstructors without IntPtr.
+- GenericImage: Added constrcutor with SKColor[] parameter.
+- GenericImage: Static methods GetRGBValues, GetAlphaValues, SeparateAlphaData.
+- GenericImage: All load file methods now understand urls.
+- GenericImage: Save methods now use FileSystem.
+- ResourceLoader now uses FileSystem, so it can be redirected by the developer.
+- RectI and RectD: static CreateRect(Width, Height).
+- ImageSet, ImageList, IconSet improved: Common ancestor, support IImageContainer interface.
+- ImageList.ImageSize is now SizeI as in WinForms.
+
+# 0.9.603 (2024 May 30)
+
+- Control: TextChanged event.
+- LogListBox: Fixed item repaint if LogReplace.
+- Image: Save methods now have optional quality parameter (but currently they are used only in maui port).
+- Added some SkiaSharp related features. 
+- Alternet.UI.Port namespace is used in all cs files in Port sub-folder.
+
+# 0.9.602 (2024 May 26)
+
+- TransformMatrix reimplemented on c#.
+- Graphics: Push and Pop reimplemented on c#.
+- Resource url embres protocol now works without assembly name in url.
+- WebBrowser: moved xml comments to cs file.
+- Fixed csproj files so FrameworksOverride.props now works.
+- Add Changed event to IconSet and ImageList.
+
+# 0.9.601 (2024 May 23)
+
+- All controls are now separated from WxWidgets and were moved to Alternet.UI.Common.
+- Font: GetNumericWeightOf, CoerceFontParams, GetWeightClosestToNumericValue.
+- Font.SizeInPixels is now int.
+- Font: different static ToUserString methods.
+- Font.Encoding is now FontEncoding (previously was int).
+- FontFamily.GetName(GenericFontFamily family).
+- Application.Idle is now static event.
+- Use KnownSystemColor instead of SystemSettingsColor in all places.
+- Speed optimization: CheckBox, ProgressBar, MenuItem, KeyBinding, InputBinding.
+- Add touch related enums and event.
+- Implemented Default property in all common dialogs.
+- Enums moved to UI.Interfaces dll.
+
 # 0.9.600 (2024 May 16)
 
 - Alternet.UI is now fully crossplatform. It was separated from WxWidgets. 
@@ -7,6 +248,8 @@ We plan to support at least three platforms: WxWidgets (Window, Linux, MacOs), M
 - Added ContainerControl - base class for all container controls.
 - Renamed GenericToolbar to ToolBar. Old toolbar worked only with WxWidgets, the new one is crossplatform.
 - Speedup of property handling in controls: ComboBox, NumericUpDown, Slider, DateTimePicker, TextBox. 
+
+---
 
 # 0.9.527 (2024 April 4)
 

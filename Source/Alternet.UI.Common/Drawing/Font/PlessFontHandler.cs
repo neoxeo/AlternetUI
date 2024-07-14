@@ -11,7 +11,7 @@ namespace Alternet.Drawing
     /// <summary>
     /// Platformless <see cref="IFontHandler"/> implementation.
     /// </summary>
-    public class PlessFontHandler : DisposableObject, IPlessFontHandler
+    public class PlessFontHandler : DisposableObject, IFontHandler
     {
         private string name = string.Empty;
         private FontStyle style = FontStyle.Regular;
@@ -20,6 +20,12 @@ namespace Alternet.Drawing
         private FontEncoding encoding = FontEncoding.Default;
         private bool isFixedWidth = false;
         private string? serialized;
+
+        public PlessFontHandler(string name, double sizeInPoints)
+        {
+            this.Name = name;
+            this.SizeInPoints = sizeInPoints;
+        }
 
         public PlessFontHandler()
         {
@@ -127,6 +133,21 @@ namespace Alternet.Drawing
             return weight;
         }
 
+        public virtual void SetNumericWeight(int value)
+        {
+            var newWeight = Font.GetWeightClosestToNumericValue(value);
+            SetWeight(newWeight);
+        }
+
+        public virtual void SetWeight(FontWeight value)
+        {
+            if (weight == value)
+                return;
+            weight = value;
+            style = Font.ChangeFontStyle(style, FontStyle.Bold, Font.GetIsBold(weight));
+            Changed();
+        }
+
         public virtual bool IsFixedWidth()
         {
             return isFixedWidth;
@@ -162,7 +183,7 @@ namespace Alternet.Drawing
 
         public virtual void Update(IFontHandler.FontParams prm)
         {
-            Font.CoerceFontParams(ref prm);
+            Font.CoerceFontParams(prm);
             if (prm.GenericFamily is null)
                 name = prm.FamilyName ?? FontFamily.GetName(GenericFontFamily.Default);
             else
@@ -175,7 +196,6 @@ namespace Alternet.Drawing
                 weight = FontWeight.Normal;
 
             Changed();
-            throw new NotImplementedException();
         }
     }
 }

@@ -49,6 +49,16 @@ int GetId();
 void SetId(int value);
 
 
+SizeI GetEventOldDpi();
+
+
+SizeI GetEventNewDpi();
+
+
+virtual string GetText();
+virtual void SetText(const string& value);
+
+
 bool GetIsActive();
 
 
@@ -107,6 +117,9 @@ RectD GetBounds();
 void SetBounds(const RectD& value);
 
 
+RectD GetEventBounds();
+
+
 SizeD GetClientSize();
 void SetClientSize(const SizeD& value);
 
@@ -154,6 +167,20 @@ void SetMinimumSize(const SizeD& value);
 SizeD GetMaximumSize();
 void SetMaximumSize(const SizeD& value);
 
+void BeginUpdate();
+void EndUpdate();
+void RecreateWindow();
+void ResetBackgroundColor();
+void ResetForegroundColor();
+PointD ClientToScreen(const PointD& point);
+PointD ScreenToClient(const PointD& point);
+PointI ScreenToDevice(const PointD& point);
+PointD DeviceToScreen(const PointI& point);
+bool SetFocus();
+void FocusNextControl(bool forward, bool nested);
+void BeginInit();
+void EndInit();
+void Destroy();
 void SaveScreenshot(const string& fileName);
 void SendSizeEvent();
 void SendMouseDownEvent(int x, int y);
@@ -185,23 +212,10 @@ void RemoveChild(Control* control);
 void Invalidate();
 void Update();
 virtual SizeD GetPreferredSize(const SizeD& availableSize);
+void SetFocusFlags(bool canSelect, bool tabStop, bool acceptsFocusRecursively);
 DragDropEffects DoDragDrop(UnmanagedDataObject* data, DragDropEffects allowedEffects);
 DrawingContext* OpenPaintDrawingContext();
 DrawingContext* OpenClientDrawingContext();
-void BeginUpdate();
-void EndUpdate();
-void RecreateWindow();
-void ResetBackgroundColor();
-void ResetForegroundColor();
-PointD ClientToScreen(const PointD& point);
-PointD ScreenToClient(const PointD& point);
-PointI ScreenToDevice(const PointD& point);
-PointD DeviceToScreen(const PointI& point);
-bool SetFocus();
-void FocusNextControl(bool forward, bool nested);
-void BeginInit();
-void EndInit();
-void Destroy();
 bool BeginRepositioningChildren();
 void EndRepositioningChildren();
 RectI GetUpdateClientRect();
@@ -240,7 +254,9 @@ enum class ControlEvent
     MouseClick,
     VisibleChanged,
     MouseCaptureLost,
+    DpiChanged,
     Destroyed,
+    TextChanged,
     GotFocus,
     LostFocus,
     DragLeave,
@@ -250,10 +266,12 @@ enum class ControlEvent
     VerticalScrollBarValueChanged,
     HorizontalScrollBarValueChanged,
     SizeChanged,
+    LocationChanged,
     Activated,
     Deactivated,
     HandleCreated,
     HandleDestroyed,
+    SystemColorsChanged,
 };
 typedef void* (*ControlEventCallbackType)(Control* obj, ControlEvent event, void* param);
 static void SetEventCallback(ControlEventCallbackType value) { eventCallback = value; }

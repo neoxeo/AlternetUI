@@ -6,23 +6,85 @@ using System.Threading.Tasks;
 
 using Alternet.Drawing;
 
+using Microsoft.Maui.Controls;
+
+using SkiaSharp;
+
 namespace Alternet.UI
 {
-    internal class MauiControlHandler : DisposableObject, IControlHandler
+    internal class MauiControlHandler : BaseControlHandler, IControlHandler
     {
-        private Control control;
+        public static Color DefaultBackgroundColor = SystemColors.Window;
+
+        public static Color DefaultForegroundColor = SystemColors.WindowText;
+
+        private SkiaContainer? container;
+        private Color backgroundColor = DefaultBackgroundColor;
+        private Color foregroundColor = DefaultForegroundColor;
 
         public MauiControlHandler()
         {
         }
 
-        public Color BackgroundColor { get; set; }
+        public virtual bool UserPaint
+        {
+            get => true;
 
-        public Color ForegroundColor { get; set; }
+            set
+            {
+            }
+        }
 
-        public Control Control { get; }
+        public virtual bool IsNativeControlCreated
+        {
+            get => true;
+
+            set
+            {
+            }
+        }
+
+        public virtual bool IsHandleCreated
+        {
+            get => true;
+
+            set
+            {
+            }
+        }
+
+        public virtual bool IsFocused
+        {
+            get => Control.FocusedControl == container?.Control;
+
+            set
+            {
+                if (IsFocused == value)
+                    return;
+                Control.FocusedControl?.RaiseLostFocus();
+                Control.FocusedControl = container?.Control;
+                Control.FocusedControl?.RaiseGotFocus();
+            }
+        }
+
+        public SkiaContainer? Container
+        {
+            get => container;
+
+            set => container = value;
+        }
+
+        public Action<DragEventArgs>? DragDrop { get; set; }
+
+        public Action<DragEventArgs>? DragOver { get; set; }
+
+        public Action<DragEventArgs>? DragEnter { get; set; }
 
         public Action? Idle { get; set; }
+
+        public virtual string Text { get; set; } = string.Empty;
+
+        public Action? TextChanged { get; set; }
 
         public Action? Paint { get; set; }
 
@@ -48,6 +110,8 @@ namespace Alternet.UI
 
         public Action? SizeChanged { get; set; }
 
+        public Action? LocationChanged { get; set; }
+
         public Action? Activated { get; set; }
 
         public Action? Deactivated { get; set; }
@@ -56,365 +120,329 @@ namespace Alternet.UI
 
         public Action? HandleDestroyed { get; set; }
 
-        public bool WantChars { get; set; }
+        public virtual bool WantChars { get; set; }
 
-        public bool ShowHorzScrollBar { get; set; }
+        public virtual bool ShowHorzScrollBar { get; set; }
 
-        public bool ShowVertScrollBar { get; set; }
+        public virtual bool ShowVertScrollBar { get; set; }
 
-        public bool ScrollBarAlwaysVisible { get; set; }
+        public virtual bool ScrollBarAlwaysVisible { get; set; }
 
-        public LangDirection LangDirection { get; set; }
+        public virtual LangDirection LangDirection { get; set; }
 
-        public ControlBorderStyle BorderStyle { get; set; }
+        public virtual ControlBorderStyle BorderStyle { get; set; }
 
-        public bool IsAttached { get; }
+        public virtual Thickness IntrinsicLayoutPadding { get; set; }
 
-        public bool IsNativeControlCreated { get; }
+        public virtual Thickness IntrinsicPreferredSizePadding { get; set; }
 
-        public bool IsFocused { get; }
+        public virtual bool IsScrollable { get; set; }
 
-        public Thickness IntrinsicLayoutPadding { get; }
+        public virtual RectD Bounds { get; set; }
 
-        public Thickness IntrinsicPreferredSizePadding { get; }
+        public virtual RectD EventBounds { get; set; }
 
-        public bool IsScrollable { get; set; }
+        public virtual bool Visible { get; set; }
 
-        public RectD Bounds { get; set; }
+        public virtual SizeD MinimumSize { get; set; }
 
-        public bool Visible { get; set; }
+        public virtual SizeD MaximumSize { get; set; }
 
-        public bool UserPaint { get; set; }
+        public virtual Color BackgroundColor
+        {
+            get => backgroundColor;
+            set => backgroundColor = value;
+        }
 
-        public SizeD MinimumSize { get; set; }
+        public virtual Color ForegroundColor
+        {
+            get => foregroundColor;
+            set => foregroundColor = value;
+        }
 
-        public SizeD MaximumSize { get; set; }
+        public virtual Font? Font { get; set; }
 
-        public Font? Font { get; set; }
+        public virtual bool IsBold { get; set; }
 
-        public bool IsBold { get; set; }
+        public virtual bool TabStop
+        {
+            get => true;
 
-        public bool TabStop { get; set; }
+            set
+            {
+            }
+        }
 
-        public bool AllowDrop { get; set; }
+        public virtual bool AllowDrop { get; set; }
 
-        public bool AcceptsFocus { get; set; }
+        public virtual ControlBackgroundStyle BackgroundStyle { get; set; }
 
-        public ControlBackgroundStyle BackgroundStyle { get; set; }
+        public virtual bool ProcessIdle { get; set; }
 
-        public bool AcceptsFocusFromKeyboard { get; set; }
+        public virtual bool BindScrollEvents { get; set; }
 
-        public bool AcceptsFocusRecursively { get; set; }
+        public virtual SizeD ClientSize
+        {
+            get => Bounds.Size;
+            set => Bounds = (Bounds.Location, value);
+        }
 
-        public bool AcceptsFocusAll { get; set; }
+        public virtual bool ProcessUIUpdates { get; set; }
 
-        public bool ProcessIdle { get; set; }
+        public virtual bool IsMouseCaptured { get; set; }
 
-        public bool BindScrollEvents { get; set; }
+        public Action? SystemColorsChanged { get; set; }
 
-        public SizeD ClientSize { get; set; }
+        public SizeI EventOldDpi { get; }
 
-        public bool CanAcceptFocus { get; }
+        public SizeI EventNewDpi { get; }
 
-        public bool IsMouseOver { get; }
+        public Action? DpiChanged { get; set; }
 
-        public bool ProcessUIUpdates { get; set; }
+        public bool CanSelect
+        {
+            get => true;
+        }
 
-        public bool IsMouseCaptured { get; }
-
-        public bool IsHandleCreated { get; }
-
-        public bool IsFocusable { get; }
-
-        public void AlwaysShowScrollbars(bool hflag = true, bool vflag = true)
+        public virtual void AlwaysShowScrollbars(bool hflag = true, bool vflag = true)
         {
         }
 
-        public void Attach(Control control)
+        public virtual void BeginInit()
         {
         }
 
-        public void BeginIgnoreRecreate()
+        public virtual void BeginUpdate()
         {
         }
 
-        public void BeginInit()
+        public virtual void CaptureMouse()
         {
         }
 
-        public bool BeginRepositioningChildren()
-        {
-            return default;
-        }
-
-        public void BeginUpdate()
+        public virtual void CenterOnParent(GenericOrientation direction)
         {
         }
 
-        public void CaptureMouse()
+        public virtual PointD ScreenToClient(PointD point)
         {
+            return MauiApplicationHandler.ScreenToClient(point, Control);
         }
 
-        public void CenterOnParent(GenericOrientation direction)
+        public virtual PointD ClientToScreen(PointD point)
         {
+            return MauiApplicationHandler.ClientToScreen(point, Control);
         }
 
-        public PointD ClientToScreen(PointD point)
-        {
-            return default;
-        }
-
-        public Graphics OpenPaintDrawingContext()
-        {
-            return default;
-        }
-
-        public Graphics CreateDrawingContext()
-        {
-            return default;
-        }
-
-        public void Detach()
-        {
-        }
-
-        public PointD DeviceToScreen(PointI point)
+        public virtual DragDropEffects DoDragDrop(object data, DragDropEffects allowedEffects)
         {
             return default;
         }
 
-        public void DisableRecreate()
+        public virtual void EndInit()
         {
         }
 
-        public DragDropEffects DoDragDrop(object data, DragDropEffects allowedEffects)
-        {
-            return default;
-        }
-
-        public void EnableRecreate()
+        public virtual void EndUpdate()
         {
         }
 
-        public void EndIgnoreRecreate()
+        public virtual void FocusNextControl(bool forward = true, bool nested = true)
         {
         }
 
-        public void EndInit()
+        public virtual Color GetDefaultAttributesBgColor()
         {
+            return SystemColors.Window;
         }
 
-        public void EndRepositioningChildren()
+        public virtual Color GetDefaultAttributesFgColor()
         {
+            return SystemColors.WindowText;
         }
 
-        public void EndUpdate()
-        {
-        }
-
-        public void FocusNextControl(bool forward = true, bool nested = true)
-        {
-        }
-
-        public Color GetDefaultAttributesBgColor()
+        public virtual Font? GetDefaultAttributesFont()
         {
             return default;
         }
 
-        public Color GetDefaultAttributesFgColor()
+        public virtual SizeD GetDPI()
+        {
+            return 96 * GetPixelScaleFactor();
+        }
+
+        public virtual nint GetHandle()
         {
             return default;
         }
 
-        public Font? GetDefaultAttributesFont()
+        public virtual object GetNativeControl()
+        {
+            return AssemblyUtils.Default;
+        }
+
+        public virtual Coord GetPixelScaleFactor()
+        {
+            return Display.Primary.ScaleFactor;
+        }
+
+        public virtual SizeD GetPreferredSize(SizeD availableSize)
+        {
+            return availableSize;
+        }
+
+        public virtual ScrollEventType GetScrollBarEvtKind()
         {
             return default;
         }
 
-        public SizeD GetDPI()
+        public virtual int GetScrollBarEvtPosition()
         {
             return default;
         }
 
-        public nint GetHandle()
+        public virtual int GetScrollBarLargeChange(bool isVertical)
         {
             return default;
         }
 
-        public object GetNativeControl()
+        public virtual int GetScrollBarMaximum(bool isVertical)
         {
             return default;
         }
 
-        public double GetPixelScaleFactor()
-        {
-            return 0;
-        }
-
-        public SizeD GetPreferredSize(SizeD availableSize)
+        public virtual int GetScrollBarValue(bool isVertical)
         {
             return default;
         }
 
-        public ScrollEventType GetScrollBarEvtKind()
+        public virtual RectI GetUpdateClientRectI()
+        {
+            return new RectI((0, 0), Control.PixelFromDip(ClientSize));
+        }
+
+        public virtual void HandleNeeded()
+        {
+        }
+
+        public virtual bool IsScrollBarVisible(bool isVertical)
         {
             return default;
         }
 
-        public int GetScrollBarEvtPosition()
-        {
-            return 0;
-        }
-
-        public int GetScrollBarLargeChange(bool isVertical)
-        {
-            return 0;
-        }
-
-        public int GetScrollBarMaximum(bool isVertical)
-        {
-            return 0;
-        }
-
-        public int GetScrollBarValue(bool isVertical)
-        {
-            return 0;
-        }
-
-        public RectI GetUpdateClientRectI()
+        public virtual bool IsTransparentBackgroundSupported()
         {
             return default;
         }
 
-        public void HandleNeeded()
+        public virtual void Lower()
         {
         }
 
-        public void Invalidate()
+        public virtual void OnChildInserted(Control childControl)
         {
         }
 
-        public bool IsScrollBarVisible(bool isVertical)
-        {
-            return false;
-        }
-
-        public bool IsTransparentBackgroundSupported()
-        {
-            return default;
-        }
-
-        public void Lower()
+        public virtual void OnChildRemoved(Control childControl)
         {
         }
 
-        public void OnLayoutChanged()
+        public virtual Graphics OpenPaintDrawingContext()
+        {
+            return PlessGraphics.Default;
+        }
+
+        public virtual int PixelFromDip(Coord value)
+        {
+            return GraphicsFactory.PixelFromDip(value, Control.ScaleFactor);
+        }
+
+        public virtual Coord PixelToDip(int value)
+        {
+            return GraphicsFactory.PixelToDip(value, Control.ScaleFactor);
+        }
+
+        public virtual void Raise()
         {
         }
 
-        public int PixelFromDip(double value)
-        {
-            return 0;
-        }
-
-        public double PixelFromDipF(double value)
-        {
-            return 0;
-        }
-
-        public double PixelToDip(int value)
-        {
-            return 0;
-        }
-
-        public void Raise()
+        public virtual void RecreateWindow()
         {
         }
 
-        public void RaiseChildInserted(Control childControl)
+        public virtual void ReleaseMouseCapture()
         {
         }
 
-        public void RaiseChildRemoved(Control childControl)
+        public virtual void ResetBackgroundColor()
+        {
+            BackgroundColor = DefaultBackgroundColor;
+        }
+
+        public virtual void ResetForegroundColor()
+        {
+            ForegroundColor = DefaultForegroundColor;
+        }
+
+        public virtual void SaveScreenshot(string fileName)
         {
         }
 
-        public void RecreateWindow()
+        public virtual void SetCursor(Cursor? value)
         {
         }
 
-        public void RefreshRect(RectD rect, bool eraseBackground = true)
+        public virtual void SetEnabled(bool value)
+        {
+            if (container is not null)
+                container.IsEnabled = value;
+        }
+
+        public virtual bool SetFocus()
+        {
+            return true;
+        }
+
+        public virtual void SetScrollBar(
+            bool isVertical,
+            bool visible,
+            int value,
+            int largeChange,
+            int maximum)
         {
         }
 
-        public void ReleaseMouseCapture()
+        public virtual void SetToolTip(string? value)
         {
         }
 
-        public void ResetBackgroundColor()
+        public virtual void UnsetToolTip()
         {
         }
 
-        public void ResetForegroundColor()
+        public virtual void RefreshRect(RectD rect, bool eraseBackground = true)
         {
+            Invalidate();
         }
 
-        public void SaveScreenshot(string fileName)
+        public virtual void Update()
         {
+            Invalidate();
         }
 
-        public PointD ScreenToClient(PointD point)
+        public virtual void Invalidate()
         {
-            return PointD.Empty;
+            container?.Invalidate();
         }
 
-        public PointI ScreenToDevice(PointD point)
+        public virtual Graphics CreateDrawingContext()
         {
-            return PointI.Empty;
+            SKBitmap bitmap = new();
+            SKCanvas canvas = new(bitmap);
+            return new SkiaGraphics(canvas);
         }
 
-        public void SendMouseDownEvent(int x, int y)
-        {
-        }
-
-        public void SendMouseUpEvent(int x, int y)
-        {
-        }
-
-        public void SendSizeEvent()
-        {
-        }
-
-        public void SetBounds(RectD rect, SetBoundsFlags flags)
-        {
-        }
-
-        public void SetCursor(Cursor? value)
-        {
-        }
-
-        public void SetEnabled(bool value)
-        {
-        }
-
-        public bool SetFocus()
-        {
-            return false;
-        }
-
-        public void SetScrollBar(IControl control, bool isVertical, bool visible, int value, int largeChange, int maximum)
-        {
-        }
-
-        public void SetToolTip(string? value)
-        {
-        }
-
-        public void UnsetToolTip()
-        {
-        }
-
-        public void Update()
+        public void SetFocusFlags(bool canSelect, bool tabStop, bool acceptsFocusRecursively)
         {
         }
     }

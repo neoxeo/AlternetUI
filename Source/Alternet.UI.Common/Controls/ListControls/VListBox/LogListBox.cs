@@ -37,6 +37,8 @@ namespace Alternet.UI
         private ContextMenuStrip? contextMenu;
         private string? lastLogMessage;
         private MenuItem? menuItemShowDevTools;
+        private bool boundToApplicationLog;
+        private bool showDebugWelcomeMessage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LogListBox"/> class.
@@ -56,7 +58,7 @@ namespace Alternet.UI
         /// Gets the last logged message.
         /// </summary>
         [Browsable(false)]
-        public string? LastLogMessage
+        public virtual string? LastLogMessage
         {
             get
             {
@@ -67,12 +69,42 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets whether <see cref="BindApplicationLog"/> was called.
+        /// Gets or sets whether debug welcome message is logged at the application start.
+        /// Default value is <c>false</c>.
+        /// </summary>
+        public bool ShowDebugWelcomeMessage
+        {
+            get => showDebugWelcomeMessage;
+
+            set
+            {
+                if (showDebugWelcomeMessage == value || showDebugWelcomeMessage)
+                    return;
+                showDebugWelcomeMessage = value;
+                LogUtils.ShowDebugWelcomeMessage = true;
+                LogUtils.DebugLogVersion();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether to bind this control to the application log.
         /// </summary>
         public bool BoundToApplicationLog
         {
-            get;
-            internal set;
+            get
+            {
+                return boundToApplicationLog;
+            }
+
+            set
+            {
+                if (boundToApplicationLog == value)
+                    return;
+                if (value)
+                    BindApplicationLog();
+                else
+                    UnbindApplicationLog();
+            }
         }
 
         /// <summary>
@@ -95,7 +127,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Same as <see cref="BaseApplication.LogReplace"/> but
+        /// Same as <see cref="App.LogReplace"/> but
         /// uses only this control for the logging.
         /// </summary>
         /// <param name="message">Message text.</param>
@@ -118,19 +150,35 @@ namespace Alternet.UI
 
         /// <summary>
         /// Binds this control to show messages which are logged with
-        /// <see cref="BaseApplication.Log"/>.
+        /// <see cref="App.Log"/>.
         /// </summary>
         public virtual void BindApplicationLog()
         {
-            BoundToApplicationLog = true;
+            if (boundToApplicationLog)
+                return;
+
+            boundToApplicationLog = true;
             ContextMenu.Required();
-            BaseApplication.LogMessage += Application_LogMessage;
-            BaseApplication.LogRefresh += Application_LogRefresh;
+            App.LogMessage += Application_LogMessage;
+            App.LogRefresh += Application_LogRefresh;
             LogUtils.DebugLogVersion();
         }
 
         /// <summary>
-        /// Same as <see cref="BaseApplication.Log"/> but
+        /// Unbinds this control from the application log.
+        /// </summary>
+        public virtual void UnbindApplicationLog()
+        {
+            if (!boundToApplicationLog)
+                return;
+            boundToApplicationLog = false;
+
+            App.LogMessage -= Application_LogMessage;
+            App.LogRefresh -= Application_LogRefresh;
+        }
+
+        /// <summary>
+        /// Same as <see cref="App.Log"/> but
         /// uses only this control for the logging.
         /// </summary>
         /// <param name="message">Message text.</param>
@@ -168,9 +216,20 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void DisposeManaged()
         {
-            BaseApplication.LogMessage -= Application_LogMessage;
-            BaseApplication.LogRefresh -= Application_LogRefresh;
+            UnbindApplicationLog();
             base.DisposeManaged();
+        }
+
+        /// <inheritdoc/>
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            if(e.KeyData == (Keys.Control | Keys.C))
+            {
+                SelectedItemsToClipboard();
+                e.Handled = true;
+            }
         }
 
         /// <summary>
@@ -178,17 +237,10 @@ namespace Alternet.UI
         /// </summary>
         protected virtual void InitContextMenu()
         {
-            void Copy()
-            {
-                var text = SelectedItemsAsText();
-                if (string.IsNullOrEmpty(text))
-                    return;
-                Clipboard.SetText(text!);
-            }
-
             ContextMenu.Add(new(CommonStrings.Default.ButtonClear, RemoveAll));
 
-            ContextMenu.Add(new(CommonStrings.Default.ButtonCopy, Copy));
+            ContextMenu.Add(new(CommonStrings.Default.ButtonCopy, () => SelectedItemsToClipboard()))
+                .SetShortcutKeys(Keys.Control | Keys.C);
 
             ContextMenu.Add(new("Open log file", AppUtils.OpenLogFile));
 
@@ -200,16 +252,16 @@ namespace Alternet.UI
 
             void AlsoLogToFile()
             {
-                if (BaseApplication.LogFileIsEnabled)
+                if (App.LogFileIsEnabled)
                     return;
-                BaseApplication.LogFileIsEnabled = true;
+                App.LogFileIsEnabled = true;
                 logToFileItem.Checked = true;
                 logToFileItem.Enabled = false;
             }
 
             void ShowDevTools()
             {
-                NativePlatform.Default.ShowDeveloperTools();
+                DialogFactory.ShowDeveloperTools();
             }
         }
 
@@ -219,7 +271,7 @@ namespace Alternet.UI
 
             void Fn()
             {
-                if (!BaseApplication.LogInUpdates() || !BoundToApplicationLog)
+                if (!App.LogInUpdates() || !BoundToApplicationLog)
                 {
                     var index = Items.Count - 1;
                     SelectedIndex = index;
@@ -245,6 +297,9 @@ namespace Alternet.UI
             item.Text = ConstructLogMessage(message);
             item.Kind = kind;
             Add(item);
+            SelectedIndex = Count - 1;
+            RefreshRow(Count - 1);
+            EnsureVisible(Count - 1);
             return item;
         }
 
@@ -271,6 +326,9 @@ namespace Alternet.UI
                 var item = (LogListBoxItem)LastItem!;
                 item.Text = ConstructLogMessage(message);
                 item.Kind = kind;
+                SelectedIndex = Count - 1;
+                RefreshRow(Count - 1);
+                EnsureVisible(Count - 1);
                 return item;
             }
             else

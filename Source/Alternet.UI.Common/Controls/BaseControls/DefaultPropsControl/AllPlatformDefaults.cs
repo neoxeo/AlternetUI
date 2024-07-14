@@ -42,21 +42,21 @@ namespace Alternet.UI
 
         static AllPlatformDefaults()
         {
-            if (BaseApplication.IsWindowsOS)
+            if (App.IsWindowsOS)
             {
                 PlatformCurrent = PlatformWindows;
                 InitWindows();
                 return;
             }
 
-            if (BaseApplication.IsLinuxOS)
+            if (App.IsLinuxOS)
             {
                 PlatformCurrent = PlatformLinux;
                 InitLinux();
                 return;
             }
 
-            if (BaseApplication.IsMacOS)
+            if (App.IsMacOS)
             {
                 PlatformCurrent = PlatformMacOs;
                 InitMacOs();
@@ -78,9 +78,9 @@ namespace Alternet.UI
 
                 if (SystemSettings.AppearanceIsDark)
                 {
-                    platform.RichToolTipBackgroundColor = Color.FromArgb(39, 39, 39);
+                    platform.RichToolTipBackgroundColor = new(39, 39, 39);
                     platform.RichToolTipForegroundColor = Color.White;
-                    platform.RichToolTipTitleForegroundColor = Color.FromRgb(156, 220, 254);
+                    platform.RichToolTipTitleForegroundColor = new(156, 220, 254);
                 }
                 else
                 {
@@ -140,6 +140,15 @@ namespace Alternet.UI
             return result;
         }
 
+        /// <summary>
+        /// Returns default property value for the control on the
+        /// specific platform.
+        /// </summary>
+        /// <param name="control">Control which default property value
+        /// is returned.</param>
+        /// <param name="prop">Property identifier.</param>
+        /// <returns></returns>
+        /// <param name="platform">Platform.</param>
         public static object? GetPropValue(
             PlatformDefaults platform,
             ControlTypeId control,
@@ -149,6 +158,14 @@ namespace Alternet.UI
             return result;
         }
 
+        /// <summary>
+        /// Returns default property value as <see cref="Thickness"/> for the control on the
+        /// specific platform.
+        /// </summary>
+        /// <param name="control">Control which default property value
+        /// is returned.</param>
+        /// <param name="prop">Property identifier.</param>
+        /// <returns></returns>
         public static Thickness GetAsThickness(
             ControlTypeId control,
             ControlDefaultsId prop)

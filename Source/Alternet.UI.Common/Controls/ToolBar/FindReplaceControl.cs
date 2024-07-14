@@ -128,7 +128,7 @@ namespace Alternet.UI
                     OnClickMatchCase);
                 OptionsToolBar.SetToolShortcut(
                     IdMatchCase,
-                    KnownKeys.FindReplaceControlKeys.MatchCase);
+                    KnownShortcuts.FindReplaceControlKeys.MatchCase);
 
                 IdMatchWholeWord = OptionsToolBar.AddStickyBtn(
                     CommonStrings.Default.FindOptionMatchWholeWord,
@@ -137,7 +137,7 @@ namespace Alternet.UI
                     OnClickMatchWholeWord);
                 OptionsToolBar.SetToolShortcut(
                     IdMatchWholeWord,
-                    KnownKeys.FindReplaceControlKeys.MatchWholeWord);
+                    KnownShortcuts.FindReplaceControlKeys.MatchWholeWord);
 
                 IdUseRegularExpressions = OptionsToolBar.AddStickyBtn(
                     CommonStrings.Default.FindOptionUseRegularExpressions,
@@ -146,7 +146,7 @@ namespace Alternet.UI
                     OnClickUseRegularExpressions);
                 OptionsToolBar.SetToolShortcut(
                     IdUseRegularExpressions,
-                    KnownKeys.FindReplaceControlKeys.UseRegularExpressions);
+                    KnownShortcuts.FindReplaceControlKeys.UseRegularExpressions);
 
                 IdScopeEdit = OptionsToolBar.AddControl(scopeEdit);
 
@@ -163,14 +163,14 @@ namespace Alternet.UI
                 IdFindNext = FindToolBar.AddSpeedBtn(
                     CommonStrings.Default.ButtonFindNext,
                     KnownSvgImages.ImgArrowDown);
-                FindToolBar.SetToolShortcut(IdFindNext, KnownKeys.FindReplaceControlKeys.FindNext);
+                FindToolBar.SetToolShortcut(IdFindNext, KnownShortcuts.FindReplaceControlKeys.FindNext);
 
                 IdFindPrevious = FindToolBar.AddSpeedBtn(
                     CommonStrings.Default.ButtonFindPrevious,
                     KnownSvgImages.ImgArrowUp);
                 FindToolBar.SetToolShortcut(
                     IdFindPrevious,
-                    KnownKeys.FindReplaceControlKeys.FindPrevious);
+                    KnownShortcuts.FindReplaceControlKeys.FindPrevious);
 
                 IdFindClose = FindToolBar.AddSpeedBtn(
                     CommonStrings.Default.ButtonClose,
@@ -186,14 +186,14 @@ namespace Alternet.UI
                 IdReplace = ReplaceToolBar.AddSpeedBtn(
                     CommonStrings.Default.ButtonReplace,
                     KnownSvgImages.ImgReplace);
-                ReplaceToolBar.SetToolShortcut(IdReplace, KnownKeys.FindReplaceControlKeys.Replace);
+                ReplaceToolBar.SetToolShortcut(IdReplace, KnownShortcuts.FindReplaceControlKeys.Replace);
 
                 IdReplaceAll = ReplaceToolBar.AddSpeedBtn(
                     CommonStrings.Default.ButtonReplaceAll,
                     KnownSvgImages.ImgReplaceAll);
                 ReplaceToolBar.SetToolShortcut(
                     IdReplaceAll,
-                    KnownKeys.FindReplaceControlKeys.ReplaceAll);
+                    KnownShortcuts.FindReplaceControlKeys.ReplaceAll);
 
                 ReplaceToolBar.Visible = false;
 
@@ -808,7 +808,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets whether keys specified in <see cref="KnownKeys.FindReplaceControlKeys"/>
+        /// Gets or sets whether keys specified in <see cref="KnownShortcuts.FindReplaceControlKeys"/>
         /// are automatically handled.
         /// </summary>
         public bool WantKeys { get; set; } = true;
@@ -901,7 +901,7 @@ namespace Alternet.UI
 
             static void ParentWindow_Disposed(object? sender, EventArgs e)
             {
-                BaseApplication.DebugLogIf("FindReplace window disposed", false);
+                App.DebugLogIf("FindReplace window disposed", false);
             }
         }
 
@@ -915,7 +915,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Handles keys specified in <see cref="KnownKeys.FindReplaceControlKeys"/>.
+        /// Handles keys specified in <see cref="KnownShortcuts.FindReplaceControlKeys"/>.
         /// </summary>
         /// <param name="e">Event arguments.</param>
         /// <remarks>
@@ -930,19 +930,19 @@ namespace Alternet.UI
                 return KeyInfo.Run(keys, e, action);
             }
 
-            if (CanFindNext && Run(KnownKeys.FindReplaceControlKeys.FindNext, OnClickFindNext))
+            if (CanFindNext && Run(KnownShortcuts.FindReplaceControlKeys.FindNext, OnClickFindNext))
                 return true;
-            if (CanFindPrevious && Run(KnownKeys.FindReplaceControlKeys.FindPrevious, OnClickFindPrevious))
+            if (CanFindPrevious && Run(KnownShortcuts.FindReplaceControlKeys.FindPrevious, OnClickFindPrevious))
                 return true;
-            if (CanReplace && Run(KnownKeys.FindReplaceControlKeys.Replace, OnClickReplace))
+            if (CanReplace && Run(KnownShortcuts.FindReplaceControlKeys.Replace, OnClickReplace))
                 return true;
-            if (CanReplaceAll && Run(KnownKeys.FindReplaceControlKeys.ReplaceAll, OnClickReplaceAll))
+            if (CanReplaceAll && Run(KnownShortcuts.FindReplaceControlKeys.ReplaceAll, OnClickReplaceAll))
                 return true;
-            if (CanMatchCase && Run(KnownKeys.FindReplaceControlKeys.MatchCase, OnClickMatchCase))
+            if (CanMatchCase && Run(KnownShortcuts.FindReplaceControlKeys.MatchCase, OnClickMatchCase))
                 return true;
-            if (CanMatchWholeWord && Run(KnownKeys.FindReplaceControlKeys.MatchWholeWord, OnClickMatchWholeWord))
+            if (CanMatchWholeWord && Run(KnownShortcuts.FindReplaceControlKeys.MatchWholeWord, OnClickMatchWholeWord))
                 return true;
-            if (CanUseRegularExpressions && Run(KnownKeys.FindReplaceControlKeys.UseRegularExpressions, OnClickUseRegularExpressions))
+            if (CanUseRegularExpressions && Run(KnownShortcuts.FindReplaceControlKeys.UseRegularExpressions, OnClickUseRegularExpressions))
                 return true;
             return false;
         }
@@ -1117,52 +1117,52 @@ namespace Alternet.UI
 
             public void FindNext()
             {
-                BaseApplication.Log("FindReplaceControl.FindNext");
+                App.Log("FindReplaceControl.FindNext");
             }
 
             public void FindPrevious()
             {
-                BaseApplication.Log("FindReplaceControl.FindPrevious");
+                App.Log("FindReplaceControl.FindPrevious");
             }
 
             public void Replace()
             {
-                BaseApplication.Log("FindReplaceControl.Replace");
+                App.Log("FindReplaceControl.Replace");
             }
 
             public void ReplaceAll()
             {
-                BaseApplication.Log("FindReplaceControl.ReplaceAll");
+                App.Log("FindReplaceControl.ReplaceAll");
             }
 
             public void SetFindText(string text)
             {
-                BaseApplication.Log($"FindReplaceControl.FindText = '{text}'");
+                App.Log($"FindReplaceControl.FindText = '{text}'");
             }
 
             public void SetMatchCase(bool value)
             {
-                BaseApplication.Log($"FindReplaceControl.MatchCase = {value}");
+                App.Log($"FindReplaceControl.MatchCase = {value}");
             }
 
             public void SetMatchWholeWord(bool value)
             {
-                BaseApplication.Log($"FindReplaceControl.MatchWholeWord = {value}");
+                App.Log($"FindReplaceControl.MatchWholeWord = {value}");
             }
 
             public void SetReplaceText(string text)
             {
-                BaseApplication.Log($"FindReplaceControl.ReplaceText = '{text}'");
+                App.Log($"FindReplaceControl.ReplaceText = '{text}'");
             }
 
             public void SetUseRegularExpressions(bool value)
             {
-                BaseApplication.Log($"FindReplaceControl.UseRegularExpressions = {value}");
+                App.Log($"FindReplaceControl.UseRegularExpressions = {value}");
             }
 
             public void SetReplaceVisible(bool value)
             {
-                BaseApplication.Log($"FindReplaceControl.ReplaceVisible = {value}");
+                App.Log($"FindReplaceControl.ReplaceVisible = {value}");
             }
         }
     }

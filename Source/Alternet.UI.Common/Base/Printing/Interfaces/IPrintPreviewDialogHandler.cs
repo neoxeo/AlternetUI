@@ -8,7 +8,7 @@ using Alternet.UI;
 
 namespace Alternet.Drawing.Printing
 {
-    public interface IPrintPreviewDialogHandler : ICustomPrintDialogHandler
+    public interface IPrintPreviewDialogHandler : IBasePrintDialogHandler
     {
     }
 }

@@ -24,21 +24,6 @@ namespace Alternet.UI.Native
         {
         }
         
-        public string Text
-        {
-            get
-            {
-                CheckDisposed();
-                return NativeApi.RadioButton_GetText_(NativePointer);
-            }
-            
-            set
-            {
-                CheckDisposed();
-                NativeApi.RadioButton_SetText_(NativePointer, value);
-            }
-        }
-        
         public bool IsChecked
         {
             get
@@ -76,14 +61,7 @@ namespace Alternet.UI.Native
         
         IntPtr OnEvent(NativeApi.RadioButtonEvent e, IntPtr parameter)
         {
-            switch (e)
-            {
-                case NativeApi.RadioButtonEvent.CheckedChanged:
-                {
-                    CheckedChanged?.Invoke(); return IntPtr.Zero;
-                }
-                default: throw new Exception("Unexpected RadioButtonEvent value: " + e);
-            }
+            CheckedChanged?.Invoke(); return IntPtr.Zero;
         }
         
         public Action? CheckedChanged;
@@ -106,12 +84,6 @@ namespace Alternet.UI.Native
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern IntPtr RadioButton_Create_();
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern string RadioButton_GetText_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void RadioButton_SetText_(IntPtr obj, string value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern bool RadioButton_GetIsChecked_(IntPtr obj);

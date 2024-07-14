@@ -17,9 +17,7 @@ namespace NativeApi.Api
         public event EventHandler? Closing;
 
         public event EventHandler StateChanged;
-        public event EventHandler SizeChanged;
         public event NativeEventHandler<CommandEventData>? InputBindingCommandExecuted;
-        public event EventHandler LocationChanged;
 
         public string Title { get; set; }
         public WindowStartLocation WindowStartLocation { get; set; }
@@ -46,7 +44,6 @@ namespace NativeApi.Api
         public WindowState State { get; set; }
         public IconSet? Icon { get; set; }
         public MainMenu? Menu { get; set; }
-        public Toolbar? Toolbar { get; set; }
         public IntPtr WxStatusBar { get; set; }
 
         public void AddInputBinding(string managedCommandId, Key key, ModifierKeys modifiers) { }

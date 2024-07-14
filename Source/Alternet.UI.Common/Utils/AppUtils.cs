@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Alternet.UI.Extensions;
@@ -14,16 +15,59 @@ namespace Alternet.UI
     /// </summary>
     public static class AppUtils
     {
+        private static NetFrameworkIdentifier? frameworkIdentifier;
+
         /// <summary>
-        /// Opens log file <see cref="BaseApplication.LogFilePath"/> in the default editor
+        /// Gets identifier for the net framework used in the application.
+        /// </summary>
+        public static NetFrameworkIdentifier FrameworkIdentifier
+        {
+            get
+            {
+                if (frameworkIdentifier is not null)
+                    return frameworkIdentifier.Value;
+
+                var description = RuntimeInformation.FrameworkDescription;
+
+                if (description.StartsWith(".NET Core"))
+                {
+                    frameworkIdentifier = NetFrameworkIdentifier.NetCore;
+                    return NetFrameworkIdentifier.NetCore;
+                }
+
+                if (description.StartsWith(".NET Framework"))
+                {
+                    frameworkIdentifier = NetFrameworkIdentifier.NetFramework;
+                    return NetFrameworkIdentifier.NetFramework;
+                }
+
+                if (description.StartsWith(".NET Native"))
+                {
+                    frameworkIdentifier = NetFrameworkIdentifier.NetNative;
+                    return NetFrameworkIdentifier.NetNative;
+                }
+
+                if (description.StartsWith(".NET"))
+                {
+                    frameworkIdentifier = NetFrameworkIdentifier.Net;
+                    return NetFrameworkIdentifier.Net;
+                }
+
+                frameworkIdentifier = NetFrameworkIdentifier.Other;
+                return NetFrameworkIdentifier.Other;
+            }
+        }
+
+        /// <summary>
+        /// Opens log file <see cref="App.LogFilePath"/> in the default editor
         /// of the operating system.
         /// </summary>
         public static void OpenLogFile()
         {
-            if (!File.Exists(BaseApplication.LogFilePath))
+            if (!File.Exists(App.LogFilePath))
                 LogUtils.LogToFileAppStarted();
 
-            ShellExecute(BaseApplication.LogFilePath);
+            ShellExecute(App.LogFilePath);
         }
 
         /// <summary>
@@ -44,17 +88,19 @@ namespace Alternet.UI
         public static string GetMyTargetFrameworkName()
         {
             var version = Environment.Version;
-#if NETFRAMEWORK
-            var result = $"net{version.Major}{version.Minor}";
-#else
-            var result = $"net{version.Major}.{version.Minor}";
-#endif
+
+            string result;
+
+            if(FrameworkIdentifier == NetFrameworkIdentifier.NetFramework)
+                result = $"net{version.Major}{version.Minor}";
+            else
+                result = $"net{version.Major}.{version.Minor}";
             return result;
         }
 
         /// <summary>
         /// Executes terminal command redirecting output and error streams
-        /// to <see cref="BaseApplication.Log"/>.
+        /// to <see cref="App.Log"/>.
         /// </summary>
         /// <param name="waitResult">Whether to wait until command finishes its execution.</param>
         /// <param name="command">Terminal command.</param>
@@ -70,7 +116,7 @@ namespace Alternet.UI
             bool waitResult = false,
             bool logStdOut = true)
         {
-            if (BaseApplication.IsWindowsOS)
+            if (App.IsWindowsOS)
                 return ExecuteApp("cmd.exe", "/c " + command, folder, waitResult, logStdOut);
             else
                 return ExecuteApp("/bin/bash", "-c \"" + command + "\"", folder, waitResult, logStdOut);
@@ -91,7 +137,7 @@ namespace Alternet.UI
 
             Process process = new();
             if(logStdOut)
-                BaseApplication.IdleLog("Run: " + fileName + " " + arguments);
+                App.IdleLog("Run: " + fileName + " " + arguments);
             ProcessStartInfo processInfo = new(fileName, arguments)
             {
                 // If the UseShellExecute property is true,
@@ -115,7 +161,7 @@ namespace Alternet.UI
                     return;
                 if (logStdOut)
                 {
-                    BaseApplication.IdleLog($"Output> {y.Data}");
+                    App.IdleLog($"Output> {y.Data}");
                 }
             };
             process.ErrorDataReceived += (x, y) =>
@@ -125,7 +171,7 @@ namespace Alternet.UI
                     return;
                 if (logStdOut)
                 {
-                    BaseApplication.IdleLog($"Error> {y.Data}");
+                    App.IdleLog($"Error> {y.Data}");
                 }
             };
             process.Start();
@@ -268,28 +314,29 @@ namespace Alternet.UI
         /// Splits command line string into array.
         /// </summary>
         /// <param name="cmdLine">Command line string.</param>
+        /// <param name="useSplit">Specifies whether to use simple string.Split.</param>
         /// <returns></returns>
-        public static string[] SegmentCommandLine(string? cmdLine)
+        public static string[] SegmentCommandLine(string? cmdLine, bool useSplit = false)
         {
             if (cmdLine is null)
                 return Array.Empty<string>();
 
             var s = cmdLine.Trim();
 
-#if NET6_0_OR_GREATER
-            unsafe
+            if(useSplit)
+                return cmdLine.Split(' ');
+            else
             {
-                fixed (char* p = s)
+                unsafe
                 {
-                    return SegmentCommandLineChar(p);
+                    fixed (char* p = s)
+                    {
+                        return SegmentCommandLineChar(p);
+                    }
                 }
             }
-#else
-            return cmdLine.Split(' ');
-#endif
         }
 
-#if NET6_0_OR_GREATER
         private static unsafe string[] SegmentCommandLineChar(char* cmdLine)
         {
             ArrayBuilder<string> arrayBuilder = default;
@@ -425,6 +472,5 @@ namespace Alternet.UI
 
             return arrayBuilder.ToArray();
         }
-#endif
     }
 }

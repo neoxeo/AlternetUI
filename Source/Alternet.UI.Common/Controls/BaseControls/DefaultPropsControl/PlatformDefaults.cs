@@ -42,7 +42,7 @@ namespace Alternet.UI
         /// to height of the <see cref="ComboBox"/> control.
         /// </summary>
         /// <remarks>
-        /// Used in <see cref="LayoutFactory.AdjustTextBoxesHeight"/>.
+        /// Used in <see cref="TextBoxUtils.AdjustTextBoxesHeight"/>.
         /// </remarks>
         public bool AdjustTextBoxesHeight { get; set; } = false;
 
@@ -53,10 +53,10 @@ namespace Alternet.UI
         /// Used in <see cref="PropertyGrid.SetVerticalSpacing"/>.
         /// </remarks>
         public int PropertyGridVerticalSpacing { get; set; } =
-            BaseApplication.IsWindowsOS ? 3 : 2;
+            App.IsWindowsOS ? 3 : 2;
 
         /// <summary>
-        /// Gets or sets minimum splitter sash size in dips (1/96 inch).
+        /// Gets or sets minimum splitter sash size in device-independent units.
         /// </summary>
         public int MinSplitterSashSize { get; set; } = 7;
 

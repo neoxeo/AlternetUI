@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
+
 using Alternet.Drawing;
 using Alternet.UI;
 using Alternet.UI.Markup.Xaml.XamlIl.CompilerExtensions.AstNodes;
@@ -79,7 +81,7 @@ namespace Alternet.UI.Markup.Xaml.XamlIl.CompilerExtensions
                 }
             }
             
-            if (type.Equals(types.Vector))
+            /*if (type.Equals(types.Vector))
             {
                 try
                 {
@@ -94,7 +96,7 @@ namespace Alternet.UI.Markup.Xaml.XamlIl.CompilerExtensions
                 {
                     throw new XamlX.XamlLoadException($"Unable to parse \"{text}\" as a vector", node);
                 }
-            }
+            }*/
             
             if (type.Equals(types.Size))
             {

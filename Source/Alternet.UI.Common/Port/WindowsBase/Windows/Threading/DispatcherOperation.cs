@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
 
-namespace Alternet.UI.Threading
+namespace Alternet.UI.Port
 {
     /// <summary>
     ///     DispatcherOperation represents a delegate that has been
@@ -497,13 +497,13 @@ namespace Alternet.UI.Threading
                 // SynchronizationContext must be for the correct dispatcher and
                 // priority.
                 DispatcherSynchronizationContext newSynchronizationContext;
-                if(BaseCompatibilityPreferences.GetReuseDispatcherSynchronizationContextInstance())
+                if(BaseCompatibilityPreferences.ReuseDispatcherSynchronizationContextInstance)
                 {
                     newSynchronizationContext = Dispatcher._defaultDispatcherSynchronizationContext;
                 }
                 else
                 {
-                    if(BaseCompatibilityPreferences.GetFlowDispatcherSynchronizationContextPriority())
+                    if(BaseCompatibilityPreferences.FlowDispatcherSynchronizationContextPriority)
                     {
                         newSynchronizationContext = new DispatcherSynchronizationContext(_dispatcher, _priority);
                     }

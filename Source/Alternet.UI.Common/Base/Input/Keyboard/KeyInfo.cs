@@ -8,14 +8,27 @@ namespace Alternet.UI
     /// </summary>
     public class KeyInfo
     {
+        /// <summary>
+        /// Gets an empty <see cref="KeyInfo"/> object.
+        /// </summary>
+        public static readonly KeyInfo Empty = new();
+
         private static AdvDictionary<Key, string>? customKeyLabels;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KeyInfo"/> class.
+        /// </summary>
+        public KeyInfo()
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="KeyInfo"/> class.
         /// </summary>
         /// <param name="key">Key value.</param>
         /// <param name="modifiers">Key modifier.</param>
-        /// <param name="os"><see cref="OperatingSystems"/> in which this key combination is available.</param>
+        /// <param name="os"><see cref="OperatingSystems"/> in which this key combination
+        /// is available.</param>
         public KeyInfo(
             Key key,
             ModifierKeys modifiers = ModifierKeys.None,
@@ -78,7 +91,7 @@ namespace Alternet.UI
 
             foreach (var key in keys)
             {
-                if (key.BackendOS.HasFlag(BaseApplication.BackendOS))
+                if (key.BackendOS.HasFlag(App.BackendOS))
                     result.Add(key);
             }
 
@@ -108,6 +121,11 @@ namespace Alternet.UI
             SetCustomKeyLabel(Key.Backslash, @"\");
         }
 
+        /// <summary>
+        /// Sets custom key label.
+        /// </summary>
+        /// <param name="key">Key.</param>
+        /// <param name="label">Key label.</param>
         public static void SetCustomKeyLabel(Key key, string label)
         {
             customKeyLabels ??= new();
@@ -157,7 +175,7 @@ namespace Alternet.UI
         /// <returns><c>true</c> if key is pressed; <c>false</c> otherwise.</returns>
         public bool Run(KeyEventArgs e, Action? action = null, bool setHandled = true)
         {
-            if (!BackendOS.HasFlag(BaseApplication.BackendOS))
+            if (!BackendOS.HasFlag(App.BackendOS))
                 return false;
 
             var result = IsPressed(e);

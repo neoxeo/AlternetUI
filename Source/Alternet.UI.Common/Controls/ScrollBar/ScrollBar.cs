@@ -34,11 +34,14 @@ namespace Alternet.UI
     [ControlCategory("Common")]
     public partial class ScrollBar : Control
     {
+        private static MetricsInfo? defaultMetrics;
+
         private int minimum;
         private int maximum = 100;
         private int smallChange = 1;
         private int largeChange = 10;
         private int value;
+        private MetricsInfo? metrics;
 
         /// <summary>
         /// Occurs when the <see cref="Value" /> property is changed, either
@@ -51,6 +54,40 @@ namespace Alternet.UI
         /// Occurs when the <see cref="IsVertical" /> property is changed.
         /// </summary>
         public event EventHandler? IsVerticalChanged;
+
+        /// <summary>
+        /// Gets or sets default metrics used to paint non-system scrollbars.
+        /// </summary>
+        public static MetricsInfo DefaultMetrics
+        {
+            get
+            {
+                return defaultMetrics ??= new MetricsInfo();
+            }
+
+            set
+            {
+                defaultMetrics = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets metrics used to paint this scrollbar when it's style is non-system.
+        /// </summary>
+        [Browsable(false)]
+        public MetricsInfo Metrics
+        {
+            get
+            {
+                return metrics ?? DefaultMetrics;
+            }
+
+            set
+            {
+                metrics = value;
+                PerformLayout();
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value to be added to or subtracted from the
@@ -293,6 +330,41 @@ namespace Alternet.UI
             set => base.Text = value;
         }
 
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
+        [Browsable(false)]
+        internal new bool ParentFont
+        {
+            get => base.ParentFont;
+            set => base.ParentFont = value;
+        }
+
+        [Browsable(false)]
+        internal new string Title
+        {
+            get => base.Title;
+            set => base.Title = value;
+        }
+
+        [Browsable(false)]
+        internal new bool ParentForeColor
+        {
+            get => base.ParentForeColor;
+            set => base.ParentForeColor = value;
+        }
+
+        [Browsable(false)]
+        internal new bool ParentBackColor
+        {
+            get => base.ParentBackColor;
+            set => base.ParentBackColor = value;
+        }
+
         /// <summary>
         /// Returns a string that represents the <see cref="ScrollBar" /> control.
         /// </summary>
@@ -311,7 +383,12 @@ namespace Alternet.UI
         /// </summary>
         public virtual void LogInfo()
         {
-            Handler.Log();
+            App.Log(ToString());
+            var position = $"Position: {Handler.ThumbPosition}";
+            var thumbSize = $"ThumbSize: {Handler.ThumbSize}";
+            var range = $"Range: {Handler.Range}";
+            var pageSize = $"PageSize: {Handler.PageSize}";
+            App.Log($"Native: {position}, {thumbSize}, {range}, {pageSize}");
         }
 
         /// <summary>
@@ -339,8 +416,8 @@ namespace Alternet.UI
                 return;
             value = pos;
             var eventType = Handler.EventTypeID;
-            var orientation = Handler.IsVertical ? ScrollOrientation.VerticalScroll
-                : ScrollOrientation.HorizontalScroll;
+            var orientation = Handler.IsVertical ? ScrollBarOrientation.Vertical
+                : ScrollBarOrientation.Horizontal;
             RaiseScroll(new ScrollEventArgs(eventType, oldPos, pos, orientation));
             OnValueChanged(EventArgs.Empty);
         }
@@ -348,7 +425,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateScrollBarHandler(this);
+            return ControlFactory.Handler.CreateScrollBarHandler(this);
         }
 
         /// <summary>
@@ -397,6 +474,161 @@ namespace Alternet.UI
         protected virtual void OnValueChanged(EventArgs e)
         {
             ValueChanged?.Invoke(this, e);
+        }
+
+        /// <inheritdoc/>
+        protected override void BindHandlerEvents()
+        {
+            base.BindHandlerEvents();
+            UpdateScrollInfo();
+            Handler.Scroll = RaiseScroll;
+        }
+
+        /// <inheritdoc/>
+        protected override void UnbindHandlerEvents()
+        {
+            base.UnbindHandlerEvents();
+            Handler.Scroll = null;
+        }
+
+        /// <summary>
+        /// Gets size of the scrollbar from the system metrics.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual SizeD SizeFromMetrics()
+        {
+            Coord width;
+            Coord height;
+
+            if (IsVertical)
+            {
+                width = PixelToDip(Metrics.VScrollX);
+                height = Coord.NaN;
+            }
+            else
+            {
+                width = Coord.NaN;
+                height = PixelToDip(Metrics.HScrollY);
+            }
+
+            return new(width, height);
+        }
+
+        /// <summary>
+        /// Gets size of the arrow bitmap from the system metrics.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual SizeD ArrowBitmapSizeFromMetrics()
+        {
+            Coord width;
+            Coord height;
+
+            if (IsVertical)
+            {
+                width = PixelToDip(Metrics.VScrollArrowX);
+                height = PixelToDip(Metrics.VScrollArrowY);
+            }
+            else
+            {
+                width = PixelToDip(Metrics.HScrollArrowX);
+                height = PixelToDip(Metrics.HScrollArrowY);
+            }
+
+            return new(width, height);
+        }
+
+        /// <summary>
+        /// Gets size of the scroll thumb from the system metrics.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual SizeD ThumbSizeFromMetrics()
+        {
+            Coord width;
+            Coord height;
+
+            var clientSize = ClientSize;
+
+            if (IsVertical)
+            {
+                width = clientSize.Width;
+                height = PixelToDip(Metrics.VThumbY);
+            }
+            else
+            {
+                width = PixelToDip(Metrics.HThumbX);
+                height = clientSize.Height;
+            }
+
+            return new(width, height);
+        }
+
+        /// <summary>
+        /// Contains properties which specify different scrollbar metrics.
+        /// </summary>
+        public struct MetricsInfo
+        {
+            /// <summary>
+            /// Height of horizontal scrollbar in pixels.
+            /// </summary>
+            public int HScrollY;
+
+            /// <summary>
+            /// Width of vertical scrollbar in pixels.
+            /// </summary>
+            public int VScrollX;
+
+            /// <summary>
+            /// Width of arrow bitmap on a vertical scrollbar.
+            /// </summary>
+            public int VScrollArrowX;
+
+            /// <summary>
+            /// Height of arrow bitmap on a vertical scrollbar.
+            /// </summary>
+            public int VScrollArrowY;
+
+            /// <summary>
+            /// Height of vertical scrollbar thumb.
+            /// </summary>
+            public int VThumbY;
+
+            /// <summary>
+            /// Width of arrow bitmap on horizontal scrollbar.
+            /// </summary>
+            public int HScrollArrowX;
+
+            /// <summary>
+            /// Height of arrow bitmap on horizontal scrollbar.
+            /// </summary>
+            public int HScrollArrowY;
+
+            /// <summary>
+            /// Width of horizontal scrollbar thumb.
+            /// </summary>
+            public int HThumbX;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="MetricsInfo"/> struct.
+            /// </summary>
+            public MetricsInfo()
+            {
+                Reset();
+            }
+
+            /// <summary>
+            /// Resets all properties, reloading them from the system settings.
+            /// </summary>
+            public void Reset()
+            {
+                HScrollY = SystemSettings.GetMetric(SystemSettingsMetric.HScrollY);
+                VScrollX = SystemSettings.GetMetric(SystemSettingsMetric.VScrollX);
+                VScrollArrowX = SystemSettings.GetMetric(SystemSettingsMetric.VScrollArrowX);
+                VScrollArrowY = SystemSettings.GetMetric(SystemSettingsMetric.VScrollArrowY);
+                VThumbY = SystemSettings.GetMetric(SystemSettingsMetric.VThumbY);
+                HScrollArrowX = SystemSettings.GetMetric(SystemSettingsMetric.HScrollArrowX);
+                HScrollArrowY = SystemSettings.GetMetric(SystemSettingsMetric.HScrollArrowY);
+                HThumbX = SystemSettings.GetMetric(SystemSettingsMetric.HThumbX);
+            }
         }
     }
 }

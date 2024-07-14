@@ -17,6 +17,11 @@ namespace Alternet.UI
     public static class AssemblyUtils
     {
         /// <summary>
+        /// Gets initialized instance of the <see cref="BaseObject"/> for the different purposes.
+        /// </summary>
+        public static readonly BaseObject Default = new();
+
+        /// <summary>
         /// Gets <c>true</c> value as <see cref="object"/>.
         /// </summary>
         public static readonly object True = true;
@@ -229,6 +234,9 @@ namespace Alternet.UI
         /// Gets default value for the <see cref="DateTime"/> type as <see cref="object"/>.
         /// </summary>
         public static readonly object DefaultDateTime = default(DateTime);
+
+        private static AdvDictionary<string, Assembly>? resNameToAssembly;
+        private static int resNameToAssemblySavedLength = 0;
 
         /// <summary>
         /// Creates <see cref="Action"/> for the specified <see cref="MethodInfo"/>.
@@ -860,6 +868,39 @@ namespace Alternet.UI
             result.Sort(StringUtils.ComparerObjectUsingToString);
 
             return result;
+        }
+
+        /// <summary>
+        /// Finds assembly for the specified resource name.
+        /// </summary>
+        /// <param name="resName">Resource name.</param>
+        /// <returns></returns>
+        public static Assembly? FindAssemblyForResource(string resName)
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            if (resNameToAssembly is null || assemblies.Length != resNameToAssemblySavedLength)
+            {
+                resNameToAssembly ??= new();
+                resNameToAssemblySavedLength = assemblies.Length;
+
+                foreach (var assembly in assemblies)
+                {
+                    var resources = assembly.GetManifestResourceNames();
+
+                    if (resources.Length == 0)
+                        continue;
+
+                    foreach (var resource in resources)
+                    {
+                        resNameToAssembly.TryAdd(resource, assembly);
+                    }
+                }
+            }
+
+            if (resNameToAssembly.TryGetValue(resName, out var result))
+                return result;
+            return null;
         }
     }
 }

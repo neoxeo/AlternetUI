@@ -204,6 +204,41 @@ namespace Alternet.UI.Native
             }
         }
         
+        public Alternet.Drawing.SizeI EventOldDpi
+        {
+            get
+            {
+                CheckDisposed();
+                return NativeApi.Control_GetEventOldDpi_(NativePointer);
+            }
+            
+        }
+        
+        public Alternet.Drawing.SizeI EventNewDpi
+        {
+            get
+            {
+                CheckDisposed();
+                return NativeApi.Control_GetEventNewDpi_(NativePointer);
+            }
+            
+        }
+        
+        public string Text
+        {
+            get
+            {
+                CheckDisposed();
+                return NativeApi.Control_GetText_(NativePointer);
+            }
+            
+            set
+            {
+                CheckDisposed();
+                NativeApi.Control_SetText_(NativePointer, value);
+            }
+        }
+        
         public bool IsActive
         {
             get
@@ -412,6 +447,16 @@ namespace Alternet.UI.Native
             }
         }
         
+        public Alternet.Drawing.RectD EventBounds
+        {
+            get
+            {
+                CheckDisposed();
+                return NativeApi.Control_GetEventBounds_(NativePointer);
+            }
+            
+        }
+        
         public Alternet.Drawing.SizeD ClientSize
         {
             get
@@ -590,6 +635,90 @@ namespace Alternet.UI.Native
             }
         }
         
+        public void BeginUpdate()
+        {
+            CheckDisposed();
+            NativeApi.Control_BeginUpdate_(NativePointer);
+        }
+        
+        public void EndUpdate()
+        {
+            CheckDisposed();
+            NativeApi.Control_EndUpdate_(NativePointer);
+        }
+        
+        public void RecreateWindow()
+        {
+            CheckDisposed();
+            NativeApi.Control_RecreateWindow_(NativePointer);
+        }
+        
+        public void ResetBackgroundColor()
+        {
+            CheckDisposed();
+            NativeApi.Control_ResetBackgroundColor_(NativePointer);
+        }
+        
+        public void ResetForegroundColor()
+        {
+            CheckDisposed();
+            NativeApi.Control_ResetForegroundColor_(NativePointer);
+        }
+        
+        public Alternet.Drawing.PointD ClientToScreen(Alternet.Drawing.PointD point)
+        {
+            CheckDisposed();
+            return NativeApi.Control_ClientToScreen_(NativePointer, point);
+        }
+        
+        public Alternet.Drawing.PointD ScreenToClient(Alternet.Drawing.PointD point)
+        {
+            CheckDisposed();
+            return NativeApi.Control_ScreenToClient_(NativePointer, point);
+        }
+        
+        public Alternet.Drawing.PointI ScreenToDevice(Alternet.Drawing.PointD point)
+        {
+            CheckDisposed();
+            return NativeApi.Control_ScreenToDevice_(NativePointer, point);
+        }
+        
+        public Alternet.Drawing.PointD DeviceToScreen(Alternet.Drawing.PointI point)
+        {
+            CheckDisposed();
+            return NativeApi.Control_DeviceToScreen_(NativePointer, point);
+        }
+        
+        public bool SetFocus()
+        {
+            CheckDisposed();
+            return NativeApi.Control_SetFocus_(NativePointer);
+        }
+        
+        public void FocusNextControl(bool forward, bool nested)
+        {
+            CheckDisposed();
+            NativeApi.Control_FocusNextControl_(NativePointer, forward, nested);
+        }
+        
+        public void BeginInit()
+        {
+            CheckDisposed();
+            NativeApi.Control_BeginInit_(NativePointer);
+        }
+        
+        public void EndInit()
+        {
+            CheckDisposed();
+            NativeApi.Control_EndInit_(NativePointer);
+        }
+        
+        public void Destroy()
+        {
+            CheckDisposed();
+            NativeApi.Control_Destroy_(NativePointer);
+        }
+        
         public void SaveScreenshot(string fileName)
         {
             CheckDisposed();
@@ -644,31 +773,31 @@ namespace Alternet.UI.Native
             NativeApi.Control_SetSizerAndFit_(NativePointer, sizer, deleteOld);
         }
         
-        public void SetScrollBar(ScrollBarOrientation orientation, bool visible, int value, int largeChange, int maximum)
+        public void SetScrollBar(Alternet.UI.ScrollBarOrientation orientation, bool visible, int value, int largeChange, int maximum)
         {
             CheckDisposed();
             NativeApi.Control_SetScrollBar_(NativePointer, orientation, visible, value, largeChange, maximum);
         }
         
-        public bool IsScrollBarVisible(ScrollBarOrientation orientation)
+        public bool IsScrollBarVisible(Alternet.UI.ScrollBarOrientation orientation)
         {
             CheckDisposed();
             return NativeApi.Control_IsScrollBarVisible_(NativePointer, orientation);
         }
         
-        public int GetScrollBarValue(ScrollBarOrientation orientation)
+        public int GetScrollBarValue(Alternet.UI.ScrollBarOrientation orientation)
         {
             CheckDisposed();
             return NativeApi.Control_GetScrollBarValue_(NativePointer, orientation);
         }
         
-        public int GetScrollBarLargeChange(ScrollBarOrientation orientation)
+        public int GetScrollBarLargeChange(Alternet.UI.ScrollBarOrientation orientation)
         {
             CheckDisposed();
             return NativeApi.Control_GetScrollBarLargeChange_(NativePointer, orientation);
         }
         
-        public int GetScrollBarMaximum(ScrollBarOrientation orientation)
+        public int GetScrollBarMaximum(Alternet.UI.ScrollBarOrientation orientation)
         {
             CheckDisposed();
             return NativeApi.Control_GetScrollBarMaximum_(NativePointer, orientation);
@@ -779,7 +908,13 @@ namespace Alternet.UI.Native
             return NativeApi.Control_GetPreferredSize_(NativePointer, availableSize);
         }
         
-        public DragDropEffects DoDragDrop(UnmanagedDataObject data, DragDropEffects allowedEffects)
+        public void SetFocusFlags(bool canSelect, bool tabStop, bool acceptsFocusRecursively)
+        {
+            CheckDisposed();
+            NativeApi.Control_SetFocusFlags_(NativePointer, canSelect, tabStop, acceptsFocusRecursively);
+        }
+        
+        public Alternet.UI.DragDropEffects DoDragDrop(UnmanagedDataObject data, Alternet.UI.DragDropEffects allowedEffects)
         {
             CheckDisposed();
             return NativeApi.Control_DoDragDrop_(NativePointer, data.NativePointer, allowedEffects);
@@ -801,90 +936,6 @@ namespace Alternet.UI.Native
             var _mmm = NativeObject.GetFromNativePointer<DrawingContext>(_nnn, p => new DrawingContext(p))!;
             ReleaseNativeObjectPointer(_nnn);
             return _mmm;
-        }
-        
-        public void BeginUpdate()
-        {
-            CheckDisposed();
-            NativeApi.Control_BeginUpdate_(NativePointer);
-        }
-        
-        public void EndUpdate()
-        {
-            CheckDisposed();
-            NativeApi.Control_EndUpdate_(NativePointer);
-        }
-        
-        public void RecreateWindow()
-        {
-            CheckDisposed();
-            NativeApi.Control_RecreateWindow_(NativePointer);
-        }
-        
-        public void ResetBackgroundColor()
-        {
-            CheckDisposed();
-            NativeApi.Control_ResetBackgroundColor_(NativePointer);
-        }
-        
-        public void ResetForegroundColor()
-        {
-            CheckDisposed();
-            NativeApi.Control_ResetForegroundColor_(NativePointer);
-        }
-        
-        public Alternet.Drawing.PointD ClientToScreen(Alternet.Drawing.PointD point)
-        {
-            CheckDisposed();
-            return NativeApi.Control_ClientToScreen_(NativePointer, point);
-        }
-        
-        public Alternet.Drawing.PointD ScreenToClient(Alternet.Drawing.PointD point)
-        {
-            CheckDisposed();
-            return NativeApi.Control_ScreenToClient_(NativePointer, point);
-        }
-        
-        public Alternet.Drawing.PointI ScreenToDevice(Alternet.Drawing.PointD point)
-        {
-            CheckDisposed();
-            return NativeApi.Control_ScreenToDevice_(NativePointer, point);
-        }
-        
-        public Alternet.Drawing.PointD DeviceToScreen(Alternet.Drawing.PointI point)
-        {
-            CheckDisposed();
-            return NativeApi.Control_DeviceToScreen_(NativePointer, point);
-        }
-        
-        public bool SetFocus()
-        {
-            CheckDisposed();
-            return NativeApi.Control_SetFocus_(NativePointer);
-        }
-        
-        public void FocusNextControl(bool forward, bool nested)
-        {
-            CheckDisposed();
-            NativeApi.Control_FocusNextControl_(NativePointer, forward, nested);
-        }
-        
-        public void BeginInit()
-        {
-            CheckDisposed();
-            NativeApi.Control_BeginInit_(NativePointer);
-        }
-        
-        public void EndInit()
-        {
-            CheckDisposed();
-            NativeApi.Control_EndInit_(NativePointer);
-        }
-        
-        public void Destroy()
-        {
-            CheckDisposed();
-            NativeApi.Control_Destroy_(NativePointer);
         }
         
         public bool BeginRepositioningChildren()
@@ -1112,6 +1163,10 @@ namespace Alternet.UI.Native
                 {
                     MouseCaptureLost?.Invoke(); return IntPtr.Zero;
                 }
+                case NativeApi.ControlEvent.DpiChanged:
+                {
+                    DpiChanged?.Invoke(); return IntPtr.Zero;
+                }
                 case NativeApi.ControlEvent.Destroyed:
                 {
                     {
@@ -1119,6 +1174,10 @@ namespace Alternet.UI.Native
                         Destroyed?.Invoke(this, cea);
                         return cea.Cancel ? new IntPtr(1) : IntPtr.Zero;
                     }
+                }
+                case NativeApi.ControlEvent.TextChanged:
+                {
+                    TextChanged?.Invoke(); return IntPtr.Zero;
                 }
                 case NativeApi.ControlEvent.GotFocus:
                 {
@@ -1159,6 +1218,10 @@ namespace Alternet.UI.Native
                 {
                     SizeChanged?.Invoke(); return IntPtr.Zero;
                 }
+                case NativeApi.ControlEvent.LocationChanged:
+                {
+                    LocationChanged?.Invoke(); return IntPtr.Zero;
+                }
                 case NativeApi.ControlEvent.Activated:
                 {
                     Activated?.Invoke(); return IntPtr.Zero;
@@ -1175,6 +1238,10 @@ namespace Alternet.UI.Native
                 {
                     HandleDestroyed?.Invoke(); return IntPtr.Zero;
                 }
+                case NativeApi.ControlEvent.SystemColorsChanged:
+                {
+                    SystemColorsChanged?.Invoke(); return IntPtr.Zero;
+                }
                 default: throw new Exception("Unexpected ControlEvent value: " + e);
             }
         }
@@ -1186,7 +1253,9 @@ namespace Alternet.UI.Native
         public Action? MouseClick;
         public Action? VisibleChanged;
         public Action? MouseCaptureLost;
+        public Action? DpiChanged;
         public event EventHandler<CancelEventArgs>? Destroyed;
+        public Action? TextChanged;
         public Action? GotFocus;
         public Action? LostFocus;
         public Action? DragLeave;
@@ -1196,10 +1265,12 @@ namespace Alternet.UI.Native
         public Action? VerticalScrollBarValueChanged;
         public Action? HorizontalScrollBarValueChanged;
         public Action? SizeChanged;
+        public Action? LocationChanged;
         public Action? Activated;
         public Action? Deactivated;
         public Action? HandleCreated;
         public Action? HandleDestroyed;
+        public Action? SystemColorsChanged;
         
         [SuppressUnmanagedCodeSecurity]
         public class NativeApi : NativeApiProvider
@@ -1218,7 +1289,9 @@ namespace Alternet.UI.Native
                 MouseClick,
                 VisibleChanged,
                 MouseCaptureLost,
+                DpiChanged,
                 Destroyed,
+                TextChanged,
                 GotFocus,
                 LostFocus,
                 DragLeave,
@@ -1228,10 +1301,12 @@ namespace Alternet.UI.Native
                 VerticalScrollBarValueChanged,
                 HorizontalScrollBarValueChanged,
                 SizeChanged,
+                LocationChanged,
                 Activated,
                 Deactivated,
                 HandleCreated,
                 HandleDestroyed,
+                SystemColorsChanged,
             }
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -1310,6 +1385,18 @@ namespace Alternet.UI.Native
             public static extern void Control_SetId_(IntPtr obj, int value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.SizeI Control_GetEventOldDpi_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.SizeI Control_GetEventNewDpi_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern string Control_GetText_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_SetText_(IntPtr obj, string value);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern bool Control_GetIsActive_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -1382,6 +1469,9 @@ namespace Alternet.UI.Native
             public static extern void Control_SetBounds_(IntPtr obj, Alternet.Drawing.RectD value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.RectD Control_GetEventBounds_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern Alternet.Drawing.SizeD Control_GetClientSize_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -1448,6 +1538,48 @@ namespace Alternet.UI.Native
             public static extern void Control_SetMaximumSize_(IntPtr obj, Alternet.Drawing.SizeD value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_BeginUpdate_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_EndUpdate_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_RecreateWindow_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_ResetBackgroundColor_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_ResetForegroundColor_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.PointD Control_ClientToScreen_(IntPtr obj, Alternet.Drawing.PointD point);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.PointD Control_ScreenToClient_(IntPtr obj, Alternet.Drawing.PointD point);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.PointI Control_ScreenToDevice_(IntPtr obj, Alternet.Drawing.PointD point);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.Drawing.PointD Control_DeviceToScreen_(IntPtr obj, Alternet.Drawing.PointI point);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern bool Control_SetFocus_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_FocusNextControl_(IntPtr obj, bool forward, bool nested);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_BeginInit_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_EndInit_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern void Control_Destroy_(IntPtr obj);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void Control_SaveScreenshot_(IntPtr obj, string fileName);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
@@ -1475,19 +1607,19 @@ namespace Alternet.UI.Native
             public static extern void Control_SetSizerAndFit_(IntPtr obj, System.IntPtr sizer, bool deleteOld);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_SetScrollBar_(IntPtr obj, ScrollBarOrientation orientation, bool visible, int value, int largeChange, int maximum);
+            public static extern void Control_SetScrollBar_(IntPtr obj, Alternet.UI.ScrollBarOrientation orientation, bool visible, int value, int largeChange, int maximum);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern bool Control_IsScrollBarVisible_(IntPtr obj, ScrollBarOrientation orientation);
+            public static extern bool Control_IsScrollBarVisible_(IntPtr obj, Alternet.UI.ScrollBarOrientation orientation);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern int Control_GetScrollBarValue_(IntPtr obj, ScrollBarOrientation orientation);
+            public static extern int Control_GetScrollBarValue_(IntPtr obj, Alternet.UI.ScrollBarOrientation orientation);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern int Control_GetScrollBarLargeChange_(IntPtr obj, ScrollBarOrientation orientation);
+            public static extern int Control_GetScrollBarLargeChange_(IntPtr obj, Alternet.UI.ScrollBarOrientation orientation);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern int Control_GetScrollBarMaximum_(IntPtr obj, ScrollBarOrientation orientation);
+            public static extern int Control_GetScrollBarMaximum_(IntPtr obj, Alternet.UI.ScrollBarOrientation orientation);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern int Control_GetScrollBarEvtKind_(IntPtr obj);
@@ -1541,55 +1673,16 @@ namespace Alternet.UI.Native
             public static extern Alternet.Drawing.SizeD Control_GetPreferredSize_(IntPtr obj, Alternet.Drawing.SizeD availableSize);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern DragDropEffects Control_DoDragDrop_(IntPtr obj, IntPtr data, DragDropEffects allowedEffects);
+            public static extern void Control_SetFocusFlags_(IntPtr obj, bool canSelect, bool tabStop, bool acceptsFocusRecursively);
+            
+            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
+            public static extern Alternet.UI.DragDropEffects Control_DoDragDrop_(IntPtr obj, IntPtr data, Alternet.UI.DragDropEffects allowedEffects);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern IntPtr Control_OpenPaintDrawingContext_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern IntPtr Control_OpenClientDrawingContext_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_BeginUpdate_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_EndUpdate_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_RecreateWindow_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_ResetBackgroundColor_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_ResetForegroundColor_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern Alternet.Drawing.PointD Control_ClientToScreen_(IntPtr obj, Alternet.Drawing.PointD point);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern Alternet.Drawing.PointD Control_ScreenToClient_(IntPtr obj, Alternet.Drawing.PointD point);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern Alternet.Drawing.PointI Control_ScreenToDevice_(IntPtr obj, Alternet.Drawing.PointD point);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern Alternet.Drawing.PointD Control_DeviceToScreen_(IntPtr obj, Alternet.Drawing.PointI point);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern bool Control_SetFocus_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_FocusNextControl_(IntPtr obj, bool forward, bool nested);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_BeginInit_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_EndInit_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Control_Destroy_(IntPtr obj);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern bool Control_BeginRepositioningChildren_(IntPtr obj);

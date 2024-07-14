@@ -85,13 +85,6 @@ namespace Alternet.UI
         {
             Items.ItemInserted += Items_ItemInserted;
             Items.ItemRemoved += Items_ItemRemoved;
-            if (BaseApplication.IsWindowsOS && BaseApplication.PlatformKind == UIPlatformKind.WxWidgets)
-                UserPaint = true;
-
-            bool? hasBorder = AllPlatformDefaults.GetHasBorderOverride(ControlKind);
-
-            if (hasBorder is not null)
-                HasBorder = hasBorder.Value;
         }
 
         /// <summary>
@@ -650,6 +643,13 @@ namespace Alternet.UI
         }
 
         [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
+        [Browsable(false)]
         internal new string Text
         {
             get => base.Text;
@@ -657,7 +657,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="TreeViewHandler"/> associated with this class.
+        /// Gets a <see cref="ITreeViewHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         internal new ITreeViewHandler Handler
@@ -698,8 +698,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Provides tree view item information, at a given client point, in
-        /// device-independent units (1/96th inch per
-        /// unit).
+        /// device-independent units.
         /// </summary>
         /// <param name="point">The <see cref="PointD"/> at which to retrieve
         /// item information.</param>
@@ -789,7 +788,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="EventArgs"/> that contains the event data.
         /// </param>
-        public virtual void RaiseSelectionChanged(EventArgs e)
+        public void RaiseSelectionChanged(EventArgs e)
         {
             OnSelectionChanged(e);
             SelectionChanged?.Invoke(this, e);
@@ -840,7 +839,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseAfterCollapse(TreeViewEventArgs e)
+        public void RaiseAfterCollapse(TreeViewEventArgs e)
         {
             e.Item.IsExpanded = false;
             OnAfterCollapse(e);
@@ -853,7 +852,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseAfterExpand(TreeViewEventArgs e)
+        public void RaiseAfterExpand(TreeViewEventArgs e)
         {
             e.Item.IsExpanded = true;
             OnAfterExpand(e);
@@ -866,7 +865,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewCancelEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseBeforeCollapse(TreeViewCancelEventArgs e)
+        public void RaiseBeforeCollapse(TreeViewCancelEventArgs e)
         {
             OnBeforeCollapse(e);
             BeforeCollapse?.Invoke(this, e);
@@ -878,7 +877,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewEditEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseBeforeLabelEdit(TreeViewEditEventArgs e)
+        public void RaiseBeforeLabelEdit(TreeViewEditEventArgs e)
         {
             OnBeforeLabelEdit(e);
             BeforeLabelEdit?.Invoke(this, e);
@@ -890,7 +889,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewEditEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseAfterLabelEdit(TreeViewEditEventArgs e)
+        public void RaiseAfterLabelEdit(TreeViewEditEventArgs e)
         {
             OnAfterLabelEdit(e);
             AfterLabelEdit?.Invoke(this, e);
@@ -978,7 +977,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewCancelEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseBeforeExpand(TreeViewCancelEventArgs e)
+        public void RaiseBeforeExpand(TreeViewCancelEventArgs e)
         {
             OnBeforeExpand(e);
             BeforeExpand?.Invoke(this, e);
@@ -990,7 +989,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewEventArgs"/>
         /// that contains the event data.</param>
-        public virtual void RaiseExpandedChanged(TreeViewEventArgs e)
+        public void RaiseExpandedChanged(TreeViewEventArgs e)
         {
             OnExpandedChanged(e);
             ExpandedChanged?.Invoke(this, e);
@@ -1017,7 +1016,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateTreeViewHandler(this);
+            return ControlFactory.Handler.CreateTreeViewHandler(this);
         }
 
         /// <summary>

@@ -10,55 +10,33 @@ using namespace Alternet::UI;
 
 ALTERNET_UI_API GroupBox* GroupBox_Create_()
 {
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     return MarshalExceptions<GroupBox*>([&](){
     #endif
         return new GroupBox();
-    #if !defined(__WXMSW__)
-    });
-    #endif
-}
-
-ALTERNET_UI_API char16_t* GroupBox_GetTitle_(GroupBox* obj)
-{
-    #if !defined(__WXMSW__)
-    return MarshalExceptions<char16_t*>([&](){
-    #endif
-        return AllocPInvokeReturnString(obj->GetTitle());
-    #if !defined(__WXMSW__)
-    });
-    #endif
-}
-
-ALTERNET_UI_API void GroupBox_SetTitle_(GroupBox* obj, const char16_t* value)
-{
-    #if !defined(__WXMSW__)
-    MarshalExceptions<void>([&](){
-    #endif
-        obj->SetTitle(ToOptional(value));
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     });
     #endif
 }
 
 ALTERNET_UI_API int GroupBox_GetTopBorderForSizer_(GroupBox* obj)
 {
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     return MarshalExceptions<int>([&](){
     #endif
         return obj->GetTopBorderForSizer();
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     });
     #endif
 }
 
 ALTERNET_UI_API int GroupBox_GetOtherBorderForSizer_(GroupBox* obj)
 {
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     return MarshalExceptions<int>([&](){
     #endif
         return obj->GetOtherBorderForSizer();
-    #if !defined(__WXMSW__)
+    #if !defined(__WXMSW__) || defined(_DEBUG)
     });
     #endif
 }

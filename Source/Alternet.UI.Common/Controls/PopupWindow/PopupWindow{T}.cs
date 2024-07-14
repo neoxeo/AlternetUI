@@ -55,7 +55,7 @@ namespace Alternet.UI
             KeyDown += PopupWindow_KeyDown;
             MainControl.Required();
             Disposed += PopupWindow_Disposed;
-            HideOnDeactivate = !BaseApplication.IsLinuxOS;
+            HideOnDeactivate = !App.IsLinuxOS;
         }
 
         /// <summary>
@@ -302,13 +302,11 @@ namespace Alternet.UI
         {
             if (mainControl is not null)
             {
-                if (mainControl.IsFocusable)
-                    mainControl.SetFocus();
+                mainControl.SetFocusIfPossible();
             }
             else
             {
-                if (IsFocusable)
-                    SetFocus();
+                SetFocusIfPossible();
             }
         }
 
@@ -329,7 +327,7 @@ namespace Alternet.UI
             ClientSize = newSize + new SizeD(1, 0);
             ClientSize = newSize;
             Refresh();
-            SendSizeEvent();
+            PerformLayout();
         }
 
         /// <summary>
@@ -361,7 +359,7 @@ namespace Alternet.UI
         /// </remarks>
         /// <remarks>
         /// <paramref name="ptOrigin"/> and <paramref name="sizePopup"/> are specified in
-        /// device-inpependent units (1/96 inch).
+        /// device-inpependent units.
         /// </remarks>
         public virtual void ShowPopup(PointD ptOrigin, SizeD sizePopup)
         {
@@ -377,7 +375,7 @@ namespace Alternet.UI
             Show();
             WasShown = true;
             FocusMainControl();
-            if (BaseApplication.IsLinuxOS || ModalPopups)
+            if (App.IsLinuxOS || ModalPopups)
             {
                 if (ShowModal() == ModalResult.Accepted)
                     HidePopup(ModalResult.Accepted);
@@ -402,12 +400,11 @@ namespace Alternet.UI
                     ModalResult = result;
                 else
                     Hide();
-                BaseApplication.DoEvents();
+                App.DoEvents();
                 if (PopupOwner is not null && FocusPopupOwnerOnHide)
                 {
                     PopupOwner.ParentWindow?.Activate();
-                    if (PopupOwner.CanAcceptFocus)
-                        PopupOwner.SetFocus();
+                    PopupOwner.SetFocusIfPossible();
                 }
 
                 PopupOwner = null;
@@ -425,7 +422,7 @@ namespace Alternet.UI
         /// </remarks>
         /// <remarks>
         /// <paramref name="ptOrigin"/> and <paramref name="size"/> are specified in
-        /// device-inpependent units (1/96 inch).
+        /// device-inpependent units.
         /// </remarks>
         internal virtual void SetPositionInDips(PointD ptOrigin, SizeD size)
         {
@@ -470,7 +467,7 @@ namespace Alternet.UI
             // now check left/right too
             double x = ptOrigin.X;
 
-            if (BaseApplication.Current.LangDirection == LangDirection.RightToLeft)
+            if (App.Current.LangDirection == LangDirection.RightToLeft)
             {
                 // shift the window to the left instead of the right.
                 x -= size.Width;

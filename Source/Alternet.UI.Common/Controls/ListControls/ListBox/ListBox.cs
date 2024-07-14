@@ -37,13 +37,6 @@ namespace Alternet.UI
         /// </summary>
         public ListBox()
         {
-            if (BaseApplication.IsWindowsOS && BaseApplication.PlatformKind == UIPlatformKind.WxWidgets)
-                UserPaint = true;
-
-            bool? hasBorder = AllPlatformDefaults.GetHasBorderOverride(ControlKind);
-
-            if (hasBorder is not null)
-                HasBorder = hasBorder.Value;
         }
 
         /// <summary>
@@ -382,7 +375,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="ListBoxHandler"/> associated with this class.
+        /// Gets a <see cref="IListBoxHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         internal new IListBoxHandler Handler
@@ -445,6 +438,18 @@ namespace Alternet.UI
             }
 
             return validIndexes;
+        }
+
+        /// <summary>
+        /// Copies result of the <see cref="SelectedItemsAsText"/> to clipboard.
+        /// </summary>
+        public virtual bool SelectedItemsToClipboard(string? separator = default)
+        {
+            var text = SelectedItemsAsText();
+            if (string.IsNullOrEmpty(text))
+                return false;
+            Clipboard.SetText(text ?? string.Empty);
+            return true;
         }
 
         /// <summary>
@@ -572,7 +577,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateListBoxHandler(this);
+            return ControlFactory.Handler.CreateListBoxHandler(this);
         }
 
         /// <summary>

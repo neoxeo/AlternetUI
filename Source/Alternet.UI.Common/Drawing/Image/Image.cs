@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 
 using Alternet.UI;
 
+using SkiaSharp;
+
 namespace Alternet.Drawing
 {
     /// <summary>
@@ -14,204 +16,106 @@ namespace Alternet.Drawing
     /// displayed in a UI control.
     /// </summary>
     [TypeConverter(typeof(ImageConverter))]
-    public class Image : DisposableObject, IDisposable
+    public partial class Image : HandledObject<IImageHandler>
     {
+        /// <summary>
+        /// Gets or sets default quality used when images are saved and quality parameter is omitted.
+        /// </summary>
+        public static int DefaultSaveQuality = 70;
+
         /// <summary>
         /// Occurs when <see cref="ToGrayScale"/> is called. Used to override default
         /// grayscale method.
         /// </summary>
         public static EventHandler<BaseEventArgs<Image>>? GrayScale;
 
-        private object nativeImage;
+        internal string? url;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class from a stream.
-        /// </summary>
-        /// <param name="stream">Stream with bitmap.</param>
-        /// <param name="bitmapType">Type of the bitmap.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Image(Stream stream, BitmapType bitmapType = BitmapType.Any)
+        private static readonly string[] DefaultExtensionsForLoad =
         {
-            nativeImage = NativeDrawing.Default.CreateImage();
-            Load(stream, bitmapType);
-        }
+            ".bmp",
+            ".png",
+            ".jpeg",
+            ".jpg",
+            ".pcx",
+            ".pnm",
+            ".tiff",
+            ".tga",
+            ".xpm",
+            ".gif",
+            ".ico",
+            ".cur",
+            ".iff",
+            ".ani",
+        };
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class with the image from
-        /// <see cref="ImageSet"/>.
-        /// </summary>
-        /// <param name="imageSet">Source of the image.</param>
-        /// <param name="size">Size of the image in device pixels.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Image(ImageSet imageSet, SizeI size)
+        private static readonly string[] DefaultExtensionsForSave =
         {
-            nativeImage = NativeDrawing.Default.CreateImage(imageSet, size);
-        }
+            ".bmp",
+            ".png",
+            ".jpeg",
+            ".jpg",
+            ".pcx",
+            ".pnm",
+            ".tiff",
+            ".tga",
+            ".xpm",
+        };
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class with the image from
-        /// <see cref="ImageSet"/>.
-        /// </summary>
-        /// <param name="imageSet">Source of the image.</param>
-        /// <param name="control">Control used to get dpi.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Image(ImageSet imageSet, IControl control)
-        {
-            nativeImage = NativeDrawing.Default.CreateImage(imageSet, control);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Bitmap"/> class from the specified
-        /// existing image.
-        /// </summary>
-        /// <param name="image">The <see cref="Image"/> from which to create the
-        /// new <see cref="Bitmap"/>.</param>
-        /// <remarks>
-        /// Full image data is copied from the original image.
-        /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Image(Image original)
-        {
-            nativeImage = NativeDrawing.Default.CreateImageFromImage(original);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image" /> class from the specified
-        /// existing image, scaled to the specified size.
-        /// </summary>
-        /// <param name="original">The <see cref="Image" /> from which to create the new image.</param>
-        /// <param name="newSize">The <see cref="SizeI" /> structure that represent the
-        /// size of the new image.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(Image original, SizeI newSize)
-        {
-            nativeImage = NativeDrawing.Default.CreateImageFromImage(original, newSize);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class from
-        /// the specified <see cref="GenericImage"/>.
-        /// </summary>
-        /// <param name="genericImage">Generic image.</param>
-        /// <param name="depth">Specifies the depth of the bitmap.
-        /// Some platforms only support (1) for monochrome and (-1) for the current color setting.
-        /// A depth of 32 including an alpha channel is supported under MSW, Mac and Linux.
-        /// If this parameter is omitted
-        /// (= -1), the display depth of the screen is used.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(GenericImage genericImage, int depth = -1)
-        {
-            nativeImage = NativeDrawing.Default.CreateImageFromGenericImage(genericImage, depth);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class from
-        /// the specified data stream.
-        /// </summary>
-        /// <param name="stream">The data stream used to load the image.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(Stream? stream)
-        {
-            nativeImage = NativeDrawing.Default.CreateImage();
-            if (stream is null)
-                return;
-
-            NativeDrawing.Default.ImageLoadFromStream(this, stream);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// with the specified size in device pixels.
-        /// </summary>
-        /// <param name="width">The width used to create the image</param>
-        /// <param name="height">The height used to create the image</param>
-        /// <param name="depth">Specifies the depth of the bitmap.
-        /// Some platforms only support (1) for monochrome and (-1) for the current color setting.
-        /// A depth of 32 including an alpha channel is supported under MSW, Mac and Linux.
-        /// If this parameter is omitted
-        /// (= -1), the display depth of the screen is used.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(int width, int height, int depth = 32)
-            : this(new SizeI(width, height), depth)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// with the specified size in device pixels.
-        /// </summary>
-        /// <param name="width">The width used to create the image</param>
-        /// <param name="height">The height used to create the image</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(double width, double height)
-            : this((int)width, (int)height)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class
-        /// with the specified size in device pixels.
-        /// </summary>
-        /// <param name="size">The size in device pixels used to create the image.</param>
-        /// <param name="depth">Specifies the depth of the bitmap.
-        /// Some platforms only support (1) for monochrome and (-1) for the current color setting.
-        /// A depth of 32 including an alpha channel is supported under MSW, Mac and Linux.
-        /// If this parameter is omitted
-        /// (= -1), the display depth of the screen is used.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(SizeI size, int depth = 32)
-        {
-            nativeImage = NativeDrawing.Default.CreateImageWithSizeAndDepth(size, depth);
-        }
+        private static IEnumerable<string>? extensionsForLoad;
+        private static IEnumerable<string>? extensionsForSave;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
-        /// <param name="url">Url to the image.</param>
+        /// <param name="handler">Image handler.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(string url)
+        protected Image(IImageHandler handler)
         {
-            nativeImage = NativeDrawing.Default.CreateImage();
-            using var stream = ResourceLoader.StreamFromUrl(url);
-            if (stream is null)
-            {
-                BaseApplication.LogError($"Image not loaded from: {url}");
-                return;
-            }
-
-            var result = NativeDrawing.Default.ImageLoadFromStream(this, stream);
-
-            if (!result)
-            {
-                BaseApplication.LogError($"Image not loaded from: {url}");
-                return;
-            }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image()
-            : this(SizeI.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image"/> class.
-        /// </summary>
-        /// <param name="nativeImage">Native image instance.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Image(object nativeImage)
-        {
-            this.nativeImage = nativeImage;
+            Handler = handler;
         }
 
         /// <summary>
         /// Gets default <see cref="BitmapType"/> value for the current operating system.
         /// </summary>
         /// <returns></returns>
-        public static BitmapType DefaultBitmapType => NativeDrawing.Default.GetDefaultBitmapType();
+        public static BitmapType DefaultBitmapType => GraphicsFactory.Handler.GetDefaultBitmapType();
+
+        /// <summary>
+        /// Gets or sets list of extensions (including ".") which can be used to filter out
+        /// supported image formats when using
+        /// <see cref="OpenFileDialog"/>.
+        /// </summary>
+        public static IEnumerable<string> ExtensionsForLoad
+        {
+            get
+            {
+                return extensionsForLoad ?? DefaultExtensionsForLoad;
+            }
+
+            set
+            {
+                extensionsForLoad = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets list of extensions (including ".") which can be used to filter out
+        /// supported image formats when using
+        /// <see cref="SaveFileDialog"/>.
+        /// </summary>
+        public static IEnumerable<string> ExtensionsForSave
+        {
+            get
+            {
+                return extensionsForSave ?? DefaultExtensionsForSave;
+            }
+
+            set
+            {
+                extensionsForSave = value;
+            }
+        }
 
         /// <summary>
         /// Converts this object to <see cref="GenericImage"/>.
@@ -221,20 +125,35 @@ namespace Alternet.Drawing
         {
             get
             {
-                var nativeGenericImage = NativeDrawing.Default.ImageConvertToGenericImage(this);
-                return new GenericImage(nativeGenericImage);
+                return Handler.ToGenericImage();
             }
         }
 
         /// <summary>
+        /// Gets or sets source url of this image. This is informational property and
+        /// doesn't reload the image.
+        /// </summary>
+        public virtual string? Url
+        {
+            get => url;
+
+            set => url = value;
+        }
+
+        /// <summary>
+        /// Gets whether this image has mask.
+        /// </summary>
+        public virtual bool HasMask => Handler.HasMask;
+
+        /// <summary>
         /// Gets the size of the image in pixels.
         /// </summary>
-        public virtual SizeI PixelSize => NativeDrawing.Default.GetImagePixelSize(this);
+        public virtual SizeI PixelSize => Handler.PixelSize;
 
         /// <summary>
         /// Gets whether image is ok (is not disposed and has non-zero width and height).
         /// </summary>
-        public virtual bool IsOk => !IsDisposed && NativeDrawing.Default.GetImageIsOk(this);
+        public virtual bool IsOk => !IsDisposed && Handler.IsOk;
 
         /// <summary>
         /// Creates texture brush with this image.
@@ -245,7 +164,22 @@ namespace Alternet.Drawing
         /// <summary>
         /// Gets whether image is empty (is disposed or has an empty width or height).
         /// </summary>
+        [Browsable(false)]
         public virtual bool IsEmpty => !IsOk || Size.AnyIsEmpty;
+
+        /// <summary>
+        /// Gets <see cref="ImageBitsFormat"/> for this image.
+        /// </summary>
+        [Browsable(false)]
+        public virtual ImageBitsFormat BitsFormat
+        {
+            get
+            {
+                var formatKind = Handler.BitsFormat;
+                var format = GraphicsFactory.GetBitsFormat(formatKind);
+                return format;
+            }
+        }
 
         /// <summary>
         /// Gets or sets whether this image has an alpha channel.
@@ -254,24 +188,24 @@ namespace Alternet.Drawing
         {
             get
             {
-                return NativeDrawing.Default.GetImageHasAlpha(this);
+                return Handler.HasAlpha;
             }
 
             set
             {
-                NativeDrawing.Default.SetImageHasAlpha(this, value);
+                Handler.HasAlpha = value;
             }
         }
 
         /// <summary>
         /// Gets image width in pixels.
         /// </summary>
-        public virtual int Width => NativeDrawing.Default.GetImagePixelSize(this).Width;
+        public virtual int Width => Handler.PixelSize.Width;
 
         /// <summary>
         /// Gets image height in pixels.
         /// </summary>
-        public virtual int Height => NativeDrawing.Default.GetImagePixelSize(this).Height;
+        public virtual int Height => Handler.PixelSize.Height;
 
         /// <summary>
         /// Gets image bounds in pixels. This method returns (0, 0, Width, Height).
@@ -317,16 +251,16 @@ namespace Alternet.Drawing
         /// or its contents, but changes its scale factor, so that it appears in a smaller
         /// size when it is drawn on screen.
         /// </remarks>
-        public virtual double ScaleFactor
+        public virtual Coord ScaleFactor
         {
             get
             {
-                return NativeDrawing.Default.GetImageScaleFactor(this);
+                return Handler.ScaleFactor;
             }
 
             set
             {
-                NativeDrawing.Default.SetImageScaleFactor(this, value);
+                Handler.ScaleFactor = value;
             }
         }
 
@@ -343,18 +277,18 @@ namespace Alternet.Drawing
         {
             get
             {
-                return NativeDrawing.Default.GetImageDipSize(this);
+                return Handler.DipSize;
             }
         }
 
         /// <summary>
         /// Gets the height of the bitmap in logical pixels.
         /// </summary>
-        public virtual double ScaledHeight
+        public virtual Coord ScaledHeight
         {
             get
             {
-                return NativeDrawing.Default.GetImageScaledHeight(this);
+                return Handler.ScaledHeight;
             }
         }
 
@@ -365,18 +299,18 @@ namespace Alternet.Drawing
         {
             get
             {
-                return NativeDrawing.Default.GetImageScaledSize(this);
+                return Handler.ScaledSize;
             }
         }
 
         /// <summary>
         /// Gets the width of the bitmap in logical pixels.
         /// </summary>
-        public virtual double ScaledWidth
+        public virtual Coord ScaledWidth
         {
             get
             {
-                return NativeDrawing.Default.GetImageScaledWidth(this);
+                return Handler.ScaledWidth;
             }
         }
 
@@ -387,24 +321,7 @@ namespace Alternet.Drawing
         {
             get
             {
-                return NativeDrawing.Default.GetImageDepth(this);
-            }
-        }
-
-        /// <summary>
-        /// Gets native image.
-        /// </summary>
-        public object NativeObject
-        {
-            get
-            {
-                CheckDisposed();
-                return nativeImage;
-            }
-
-            protected set
-            {
-                nativeImage = value;
+                return Handler.Depth;
             }
         }
 
@@ -416,10 +333,28 @@ namespace Alternet.Drawing
         public virtual Graphics Canvas => GetDrawingContext();
 
         /// <summary>
+        /// Converts the specified <see cref='SKBitmap'/> to a <see cref='Image'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator Image(SKBitmap bitmap)
+        {
+            return FromSkia(bitmap);
+        }
+
+        /// <summary>
+        /// Converts the specified <see cref='SKBitmap'/> to a <see cref='Image'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator SKBitmap(Image bitmap)
+        {
+            return ToSkia(bitmap);
+        }
+
+        /// <summary>
         /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Image(GenericImage image) => new(image);
+        public static explicit operator Image(GenericImage image) => new Bitmap(image);
 
         /// <summary>
         /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
@@ -437,6 +372,34 @@ namespace Alternet.Drawing
         public static bool IsNullOrEmpty([NotNullWhen(false)] Image? image)
         {
             return (image is null) || image.IsEmpty;
+        }
+
+        /// <summary>
+        /// Creates image with the specified size, filled with <paramref name="color"/>.
+        /// </summary>
+        /// <param name="width">Image width.</param>
+        /// <param name="height">Image height.</param>
+        /// <param name="color">Color to fill.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Image Create(int width, int height, Color color)
+        {
+            var image = GenericImage.Create(width, height, color);
+            return (Image)image;
+        }
+
+        /// <summary>
+        /// Creates image with the specified size and pixel data.
+        /// </summary>
+        /// <param name="width">Image width.</param>
+        /// <param name="height">Image height.</param>
+        /// <param name="pixels">Pixel data.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Image Create(int width, int height, SKColor[] pixels)
+        {
+            var image = new GenericImage(width, height, pixels);
+            return (Image)image;
         }
 
         /// <summary>
@@ -466,10 +429,13 @@ namespace Alternet.Drawing
         /// button1.Image = Bitmap.FromUrl(url);
         /// </code>
         /// </example>
-        public static Image FromUrl(string url)
+        /// <param name="bitmapType">Type of the bitmap. Optional.</param>
+        public static Image FromUrl(string url, BitmapType bitmapType = BitmapType.Any)
         {
             using var stream = ResourceLoader.StreamFromUrl(url);
-            return new Image(stream);
+            var result = new Bitmap(stream, bitmapType);
+            result.url = url;
+            return result;
         }
 
         /// <summary>
@@ -502,6 +468,7 @@ namespace Alternet.Drawing
         {
             using var stream = ResourceLoader.StreamFromUrl(url);
             var result = FromSvgStream(stream, width, height, color);
+            result.url = url;
             return result;
         }
 
@@ -511,8 +478,8 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public static Image? FromScreen()
         {
-            var nativeImage = NativeDrawing.Default.CreateImageFromScreen();
-            return new Image(nativeImage);
+            var handler = GraphicsFactory.Handler.CreateImageHandlerFromScreen();
+            return new Image(handler);
         }
 
         /// <summary>
@@ -523,7 +490,7 @@ namespace Alternet.Drawing
         /// <returns>The <see cref="Image" /> this method creates.</returns>
         public static Image FromStream(Stream stream)
         {
-            return new Image(stream);
+            return new Bitmap(stream);
         }
 
         /// <summary>
@@ -539,7 +506,7 @@ namespace Alternet.Drawing
         /// If provided, svg fill color is changed to the specified value.</param>
         public static Image FromSvgStream(Stream stream, int width, int height, Color? color = null)
         {
-            var nativeImage = NativeDrawing.Default.CreateImageFromSvgStream(
+            var nativeImage = GraphicsFactory.Handler.CreateImageHandlerFromSvg(
                 stream,
                 width,
                 height,
@@ -561,62 +528,10 @@ namespace Alternet.Drawing
         /// If provided, svg fill color is changed to the specified value.</param>
         public static Image FromSvgString(string s, int width, int height, Color? color = null)
         {
-            var nativeImage = NativeDrawing.Default.CreateImageFromSvgString(s, width, height, color);
+            var nativeImage = GraphicsFactory.Handler.CreateImageHandlerFromSvg(s, width, height, color);
             var result = new Image(nativeImage);
             return result;
         }
-
-        /// <summary>
-        /// Gets list of extensions (including ".") which can be used to filter out
-        /// supported image formats when using
-        /// <see cref="OpenFileDialog"/> and <see cref="SaveFileDialog"/>.
-        /// </summary>
-        public static IEnumerable<string> GetExtensionsForLoadSave()
-        {
-            string[] ext =
-            {
-                ".bmp",
-                ".png",
-                ".jpeg",
-                ".jpg",
-                ".pcx",
-                ".pnm",
-                ".tiff",
-                ".tga",
-                ".xpm",
-            };
-
-            return ext;
-        }
-
-        /// <summary>
-        /// Gets list of extensions (including ".") which can be used to filter out
-        /// supported image formats when using
-        /// <see cref="OpenFileDialog"/>.
-        /// </summary>
-        public static IEnumerable<string> GetExtensionsForLoad()
-        {
-            string[] ext =
-            {
-                ".gif",
-                ".ico",
-                ".cur",
-                ".iff",
-                ".ani",
-            };
-
-            var result = new List<string>();
-            result.AddRange(GetExtensionsForLoadSave());
-            result.AddRange(ext);
-            return result;
-        }
-
-        /// <summary>
-        /// Gets list of extensions (including ".") which can be used to filter out
-        /// supported image formats when using
-        /// <see cref="SaveFileDialog"/>.
-        /// </summary>
-        public static IEnumerable<string> GetExtensionsForSave() => GetExtensionsForLoadSave();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class
@@ -624,7 +539,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <remarks>
         /// This is similar to <see cref="Image.FromSvgUrl"/> but uses
-        /// <see cref="Control.GetDPI"/> and <see cref="ToolBarUtils.GetDefaultImageSize(double)"/>
+        /// <see cref="Control.GetDPI"/> and <see cref="ToolBarUtils.GetDefaultImageSize(Coord)"/>
         /// to get appropriate image size which is best suitable for toolbars.
         /// </remarks>
         /// <param name="url">The file or embedded resource url with Svg data used
@@ -645,10 +560,89 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Creates <see cref="Image"/> from <see cref="SKBitmap"/>.
+        /// </summary>
+        /// <param name="bitmap"><see cref="SKBitmap"/> with image data.</param>
+        /// <returns></returns>
+        public static Image FromSkia(SKBitmap bitmap)
+        {
+            var genericImage = GenericImage.FromSkia(bitmap);
+            return (Image)genericImage;
+        }
+
+        /// <summary>
+        /// Creates <see cref="SKBitmap"/> from <see cref="Image"/>.
+        /// </summary>
+        /// <param name="bitmap"><see cref="SKBitmap"/> with image data.</param>
+        /// <param name="assignPixels">Whether to assign pixel data to the result image.
+        /// Optional. Default is true</param>
+        /// <returns></returns>
+        public static SKBitmap ToSkia(Image bitmap, bool assignPixels = true)
+        {
+            if (bitmap.Handler is SkiaImageHandler skiaHandler)
+                return skiaHandler.Bitmap;
+
+            if (assignPixels)
+            {
+                var genericImage = (GenericImage)bitmap;
+                return GenericImage.ToSkia(genericImage, assignPixels);
+            }
+            else
+                return GenericImage.CreateSkiaBitmapForImage(bitmap.Width, bitmap.Height, bitmap.HasAlpha);
+        }
+
+        /// <summary>
+        /// Gets <see cref="BitmapType"/> from the extension of the <paramref name="fileName"/>.
+        /// </summary>
+        /// <param name="fileName">Path to file.</param>
+        /// <returns></returns>
+        public static BitmapType GetBitmapTypeFromFileName(string fileName)
+        {
+            var ext = PathUtils.GetExtensionLower(fileName);
+            if (string.IsNullOrEmpty(ext))
+                return BitmapType.Invalid;
+            switch (ext)
+            {
+                case "bmp":
+                    return BitmapType.Bmp;
+                case "ico":
+                    return BitmapType.Ico;
+                case "cur":
+                    return BitmapType.Cur;
+                case "xbm":
+                    return BitmapType.Xbm;
+                case "xpm":
+                    return BitmapType.Xpm;
+                case "tiff":
+                    return BitmapType.Tiff;
+                case "gif":
+                    return BitmapType.Gif;
+                case "png":
+                    return BitmapType.Png;
+                case "jpeg":
+                case "jpg":
+                    return BitmapType.Jpeg;
+                case "pnm":
+                    return BitmapType.Pnm;
+                case "pcx":
+                    return BitmapType.Pcx;
+                case "pict":
+                    return BitmapType.Pict;
+                case "ani":
+                    return BitmapType.Ani;
+                case "iff":
+                    return BitmapType.Iff;
+                case "tga":
+                    return BitmapType.Tga;
+                default:
+                    return BitmapType.Invalid;
+            }
+        }
+
+        /// <summary>
         /// Loads an image from a file or resource.
         /// </summary>
-        /// <param name="name">Either a filename or a resource name. The meaning of name
-        /// is determined by the type parameter.</param>
+        /// <param name="url">Path to file or url with the image data.</param>
         /// <param name="type">One of the <see cref="BitmapType"/> values</param>
         /// <returns><c>true</c> if the operation succeeded, <c>false</c> otherwise.</returns>
         /// <remarks>
@@ -658,11 +652,20 @@ namespace Alternet.Drawing
         /// <remarks>
         /// You can specify <see cref="BitmapType.Any"/> to guess image type using file extension.
         /// </remarks>
-        /// <remarks>Use <see cref="GetExtensionsForLoad"/> to get supported formats
+        /// <remarks>Use <see cref="ExtensionsForLoad"/> to get supported formats
         /// for the load operation.</remarks>
-        public virtual bool Load(string name, BitmapType type)
+        public virtual bool Load(string url, BitmapType type = BitmapType.Any)
         {
-            return NativeDrawing.Default.ImageLoad(this, name, type);
+            return InsideTryCatch(() =>
+            {
+                using var stream = ResourceLoader.StreamFromUrl(url);
+                if (stream is null)
+                    return false;
+                var result = Handler.LoadFromStream(stream, type);
+                if(result)
+                    this.url = url;
+                return result;
+            });
         }
 
         /// <summary>
@@ -677,11 +680,22 @@ namespace Alternet.Drawing
         /// may be supported by the library and operating system for the save operation.
         /// </remarks>
         /// <returns><c>true</c> if the operation succeeded, <c>false</c> otherwise.</returns>
-        /// <remarks>Use <see cref="GetExtensionsForSave"/> to get supported formats for
+        /// <remarks>Use <see cref="ExtensionsForSave"/> to get supported formats for
         /// the save operation.</remarks>
-        public virtual bool Save(string name, BitmapType type)
+        /// <param name="quality">Image quality. Optional. If not specified,
+        /// <see cref="DefaultSaveQuality"/> is used. Can be ignored on some platforms.</param>
+        public virtual bool Save(string name, BitmapType type, int? quality = null)
         {
-            return NativeDrawing.Default.ImageSaveToFile(this, name, type);
+            quality ??= DefaultSaveQuality;
+
+            return InsideTryCatch(() =>
+            {
+                using var stream = FileSystem.Default.Create(name);
+                var result = Save(stream, type, quality.Value);
+                if (result)
+                    url = name;
+                return result;
+            });
         }
 
         /// <summary>
@@ -697,11 +711,14 @@ namespace Alternet.Drawing
         /// may be supported by the library and operating system for the save operation.
         /// </remarks>
         /// <returns><c>true</c> if the operation succeeded, <c>false</c> otherwise.</returns>
-        /// <remarks>Use <see cref="GetExtensionsForSave"/> to get supported formats for
+        /// <remarks>Use <see cref="ExtensionsForSave"/> to get supported formats for
         /// the save operation.</remarks>
-        public virtual bool Save(Stream stream, BitmapType type)
+        /// <param name="quality">Image quality. Optional. If not specified,
+        /// <see cref="DefaultSaveQuality"/> is used. Can be ignored on some platforms.</param>
+        public virtual bool Save(Stream stream, BitmapType type, int? quality = null)
         {
-            return NativeDrawing.Default.ImageSaveToStream(this, stream, type);
+            quality ??= DefaultSaveQuality;
+            return Handler.SaveToStream(stream, type, quality.Value);
         }
 
         /// <summary>
@@ -715,11 +732,11 @@ namespace Alternet.Drawing
         /// may be supported by the library and operating system for the load operation.
         /// </remarks>
         /// <returns><c>true</c> if the operation succeeded, <c>false</c> otherwise.</returns>
-        /// <remarks>Use <see cref="GetExtensionsForLoad"/> to get supported formats
+        /// <remarks>Use <see cref="ExtensionsForLoad"/> to get supported formats
         /// for the load operation.</remarks>
         public virtual bool Load(Stream stream, BitmapType type)
         {
-            return NativeDrawing.Default.ImageLoadFromStream(this, stream, type);
+            return Handler.LoadFromStream(stream, type);
         }
 
         /// <summary>
@@ -730,7 +747,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public virtual Image GetSubBitmap(RectI rect)
         {
-            var converted = NativeDrawing.Default.ImageGetSubBitmap(this, rect);
+            var converted = Handler.GetSubBitmap(rect);
             return new Image(converted);
         }
 
@@ -744,6 +761,14 @@ namespace Alternet.Drawing
             this.ScaleFactor = factor;
         }
 
+        public virtual Image ChangeLightness(int ialpha)
+        {
+            GenericImage image = (GenericImage)this;
+            var converted = image.ConvertLightness(ialpha);
+            var result = (Image)converted;
+            return result;
+        }
+
         /// <summary>
         /// Returns disabled (dimmed) version of the image.
         /// </summary>
@@ -751,8 +776,9 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public virtual Image ConvertToDisabled(byte brightness = 255)
         {
-            var converted = NativeDrawing.Default.ImageConvertToDisabled(this, brightness);
-            return new Image(converted);
+            GenericImage image = (GenericImage)this;
+            image.ChangeToDisabled(brightness);
+            return (Image)image;
         }
 
         /// <summary>
@@ -767,17 +793,17 @@ namespace Alternet.Drawing
         /// directly instead. Size must be valid.
         /// </remarks>
         /// <param name="sizeNeeded"></param>
-        public virtual void Rescale(SizeI sizeNeeded)
+        public virtual bool Rescale(SizeI sizeNeeded)
         {
-            NativeDrawing.Default.ImageRescale(this, sizeNeeded);
+            return Handler.Rescale(sizeNeeded);
         }
 
         /// <summary>
         /// Resets alpha channel.
         /// </summary>
-        public virtual void ResetAlpha()
+        public virtual bool ResetAlpha()
         {
-            NativeDrawing.Default.ImageResetAlpha(this);
+            return Handler.ResetAlpha();
         }
 
         /// <summary>
@@ -786,7 +812,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public virtual Image Clone()
         {
-            return new Image(this);
+            return new Bitmap(this);
         }
 
         /// <summary>
@@ -820,15 +846,19 @@ namespace Alternet.Drawing
         /// There are other save methods in the <see cref="Image"/> that support image formats not
         /// included in <see cref="ImageFormat"/>.
         /// </remarks>
-        public virtual bool Save(Stream stream, ImageFormat format)
+        /// <param name="quality">Image quality. Optional. If not specified,
+        /// <see cref="DefaultSaveQuality"/> is used. Can be ignored on some platforms.</param>
+        public virtual bool Save(Stream stream, ImageFormat format, int? quality = null)
         {
             if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
+                return false;
 
             if (format is null)
-                throw new ArgumentNullException(nameof(format));
+                return false;
 
-            return NativeDrawing.Default.ImageSave(this, stream, format);
+            quality ??= DefaultSaveQuality;
+
+            return Handler.SaveToStream(stream, format.AsBitmapType(), quality.Value);
         }
 
         /// <summary>
@@ -836,30 +866,66 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="fileName">A string that contains the name of the file
         /// to which to save this <see cref="Image"/>.</param>
-        /// <remarks>Use <see cref="GetExtensionsForSave"/> to get supported formats
+        /// <remarks>Use <see cref="ExtensionsForSave"/> to get supported formats
         /// for the save operation.</remarks>
-        public virtual bool Save(string fileName)
+        /// <param name="quality">Image quality. Optional. If not specified,
+        /// <see cref="DefaultSaveQuality"/> is used. Can be ignored on some platforms.</param>
+        public virtual bool Save(string fileName, int? quality = null)
         {
             if (fileName is null)
-                throw new ArgumentNullException(nameof(fileName));
+                return false;
 
-            return NativeDrawing.Default.ImageSave(this, fileName);
+            quality ??= DefaultSaveQuality;
+
+            return InsideTryCatch(() =>
+            {
+                using var stream = FileSystem.Default.Create(fileName);
+                var bitmapType = Image.GetBitmapTypeFromFileName(fileName);
+                return Save(stream, bitmapType, quality.Value);
+            });
         }
 
         /// <summary>
-        /// Gets the size of the image in device-independent units (1/96th inch
-        /// per unit).
+        /// Gets the size of the image in device-independent units.
         /// </summary>
-        public virtual SizeD SizeDip(IControl control)
+        public virtual SizeD SizeDip(Control control)
             => control.PixelToDip(PixelSize);
 
         /// <summary>
         /// Gets image rect as (0, 0, SizeDip().Width, SizeDip().Height).
         /// </summary>
-        public virtual RectD BoundsDip(IControl control)
+        public virtual RectD BoundsDip(Control control)
         {
             var size = SizeDip(control);
             return (0, 0, size.Width, size.Height);
+        }
+
+        /// <summary>
+        /// Gets <see cref="ISkiaSurface"/> for this image.
+        /// </summary>
+        /// <param name="lockMode">Lock mode.</param>
+        /// <returns></returns>
+        public virtual ISkiaSurface LockSurface(ImageLockMode lockMode = ImageLockMode.ReadWrite)
+        {
+            return GraphicsFactory.CreateSkiaSurface(this, lockMode);
+        }
+
+        /// <summary>
+        /// Assigns <see cref="SKBitmap"/> to this image.
+        /// </summary>
+        /// <param name="bitmap">Bitmap to assign.</param>
+        public virtual void Assign(SKBitmap bitmap)
+        {
+            Handler.Assign(bitmap);
+        }
+
+        /// <summary>
+        /// Assigns <see cref="GenericImage"/> to this image.
+        /// </summary>
+        /// <param name="genericImage">Image to assign.</param>
+        public virtual void Assign(GenericImage genericImage)
+        {
+            Handler.Assign(genericImage);
         }
 
         /// <summary>
@@ -872,11 +938,19 @@ namespace Alternet.Drawing
             return dc;
         }
 
-        /// <inheritdoc/>
-        protected override void DisposeManaged()
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string? ToString()
         {
-            (nativeImage as IDisposable)?.Dispose();
-            nativeImage = null!;
+            return url ?? base.ToString();
+        }
+
+        /// <inheritdoc/>
+        protected override IImageHandler CreateHandler()
+        {
+            return GraphicsFactory.Handler.CreateImageHandler();
         }
     }
 }

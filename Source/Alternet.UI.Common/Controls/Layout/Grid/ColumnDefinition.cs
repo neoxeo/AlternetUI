@@ -15,7 +15,8 @@ namespace Alternet.UI
 
         /// <summary>Initializes a new instance of the <see cref="ColumnDefinition" />
         /// class.</summary>
-        public ColumnDefinition() : base(true)
+        public ColumnDefinition()
+            : base(true)
         {
         }
 
@@ -32,10 +33,11 @@ namespace Alternet.UI
             {
                 return width;
             }
+
             set
             {
                 if (!IsUserSizePropertyValueValid(value))
-                    throw new ArgumentException();
+                    throw new ArgumentException(nameof(Width));
 
                 var oldValue = width;
                 width = value;
@@ -54,10 +56,11 @@ namespace Alternet.UI
             {
                 return minWidth;
             }
+
             set
             {
                 if (!IsUserMinSizePropertyValueValid(value))
-                    throw new ArgumentException();
+                    throw new ArgumentException(nameof(MinWidth));
 
                 minWidth = value;
                 OnUserMinSizePropertyChanged(value);
@@ -67,7 +70,7 @@ namespace Alternet.UI
         /// <summary>Gets or sets a value that represents the maximum width of a
         /// <see cref="ColumnDefinition" />.   </summary>
         /// <returns>A <see cref="double" /> that represents the maximum width.
-        /// The default value is <see cref="F:System.Double.PositiveInfinity" />.</returns>
+        /// The default value is <see cref="double.PositiveInfinity" />.</returns>
         [TypeConverter(typeof(LengthConverter))]
         public double MaxWidth
         {
@@ -79,7 +82,7 @@ namespace Alternet.UI
             set
             {
                 if (!IsUserMaxSizePropertyValueValid(value))
-                    throw new ArgumentException();
+                    throw new ArgumentException(nameof(MaxWidth));
 
                 maxWidth = value;
                 OnUserMaxSizePropertyChanged(value);
@@ -95,10 +98,11 @@ namespace Alternet.UI
             get
             {
                 double result = 0;
-                if (base.InParentLogicalTree)
+                if (InParentLogicalTree)
                 {
-                    result = ((Grid)base.LogicalParent).GetFinalColumnDefinitionWidth(base.Index);
+                    result = ((Grid)LogicalParent).GetFinalColumnDefinitionWidth(Index);
                 }
+
                 return result;
             }
         }
@@ -112,10 +116,11 @@ namespace Alternet.UI
             get
             {
                 double result = 0;
-                if (base.Index != 0)
+                if (Index != 0)
                 {
-                    result = base.FinalOffset;
+                    result = FinalOffset;
                 }
+
                 return result;
             }
         }

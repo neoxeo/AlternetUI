@@ -75,10 +75,6 @@ MainMenu* GetMenu();
 void SetMenu(MainMenu* value);
 
 
-Toolbar* GetToolbar();
-void SetToolbar(Toolbar* value);
-
-
 void* GetWxStatusBar();
 void SetWxStatusBar(void* value);
 
@@ -99,9 +95,7 @@ enum class WindowEvent
 {
     Closing,
     StateChanged,
-    SizeChanged,
     InputBindingCommandExecuted,
-    LocationChanged,
 };
 typedef void* (*WindowEventCallbackType)(Window* obj, WindowEvent event, void* param);
 static void SetEventCallback(WindowEventCallbackType value) { eventCallback = value; }

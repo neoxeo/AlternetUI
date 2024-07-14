@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -15,8 +16,10 @@ namespace Alternet.UI
     /// </summary>
     [ControlCategory("Hidden")]
     public abstract class CustomTextBox
-        : Control, ICustomTextBox, IReadOnlyStrings, IValidatorReporter, IObjectToStringOptions
+        : Control, ICustomTextBox, IReadOnlyStrings, IValidatorReporter, IObjectToStringOptions,
+        INotifyDataErrorInfo
     {
+        private int oldErrorCount;
         private StringSearch? search;
         private int minLength;
         private int maxLength;
@@ -83,6 +86,15 @@ namespace Alternet.UI
         /// property.
         /// </summary>
         public static ResetColorType DefaultResetErrorForegroundMethod { get; set; } = ResetColorType.Auto;
+
+        /// <inheritdoc/>
+        public override bool HasErrors
+        {
+            get
+            {
+                return GetErrors().Any();
+            }
+        }
 
         /// <inheritdoc cref="IObjectToStringOptions.NumberStyles"/>
         /// <remarks>
@@ -410,6 +422,20 @@ namespace Alternet.UI
 
         int IReadOnlyStrings.Count => GetNumberOfLines();
 
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
+        [Browsable(false)]
+        internal new string Title
+        {
+            get => base.Title;
+            set => base.Title = value;
+        }
+
         string? IReadOnlyStrings.this[int index]
         {
             get
@@ -522,25 +548,35 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Reports an error if <see cref="Control.Text"/> property is empty
-        /// and it is not allowed (<see cref="CustomTextBox.AllowEmptyText"/> is <c>false</c>).
+        /// Gets 'Empty Text' error status if empty text is not allowed.
         /// </summary>
-        public virtual bool ReportErrorEmptyText()
+        /// <returns></returns>
+        public virtual bool HasErrorEmptyText()
         {
             if (string.IsNullOrEmpty(Text))
             {
                 if (AllowEmptyText)
-                {
                     return false;
-                }
                 else
-                {
-                    ReportValidatorError(true);
                     return true;
-                }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Reports an error if <see cref="Control.Text"/> property is empty
+        /// and it is not allowed (<see cref="CustomTextBox.AllowEmptyText"/> is <c>false</c>).
+        /// </summary>
+        public virtual bool ReportErrorEmptyText(Action<string>? errorEnumerator = null)
+        {
+            var result = HasErrorEmptyText();
+            if (result)
+            {
+                ReportValidatorError(true, null, errorEnumerator);
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -554,7 +590,7 @@ namespace Alternet.UI
         /// <see cref="CustomTextBox.DataType"/> is assigned, it is also used to get possible min and max
         /// values.
         /// </remarks>
-        public virtual bool ReportErrorMinMaxValue(object? value)
+        public virtual bool ReportErrorMinMaxValue(object? value, Action<string>? errorEnumerator = null)
         {
             if (value is null)
                 return false;
@@ -567,12 +603,14 @@ namespace Alternet.UI
                 case ValueInRangeResult.Less:
                     ReportValidatorError(
                         true,
-                        GetKnownErrorText(ValueValidatorKnownError.MinimumValue));
+                        GetKnownErrorText(ValueValidatorKnownError.MinimumValue),
+                        errorEnumerator);
                     return true;
                 case ValueInRangeResult.Greater:
                     ReportValidatorError(
                         true,
-                        GetKnownErrorText(ValueValidatorKnownError.MaximumValue));
+                        GetKnownErrorText(ValueValidatorKnownError.MaximumValue),
+                        errorEnumerator);
                     return true;
             }
 
@@ -588,19 +626,53 @@ namespace Alternet.UI
         /// <remarks>
         /// <see cref="ReportValidatorError"/> is used to report the error.
         /// </remarks>
-        public virtual bool ReportErrorBadNumber()
+        public virtual bool ReportErrorBadNumber(Action<string>? errorEnumerator = null)
         {
             if (DataTypeIsNumber() && !string.IsNullOrEmpty(Text))
             {
                 var value = TextAsNumber;
                 if (value is null)
                 {
-                    ReportValidatorError(true);
+                    ReportValidatorError(true, null, errorEnumerator);
                     return true;
                 }
 
-                if (ReportErrorMinMaxValue(value))
+                if (ReportErrorMinMaxValue(value, errorEnumerator))
                     return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets 'Min Length' error status if <see cref="MinLength"/> is specified.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasErrorMinLength()
+        {
+            if (MinLength > 0)
+            {
+                if (Text.Length < MinLength)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets 'Max Length' error status if <see cref="MaxLength"/> is specified.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasErrorMaxLength()
+        {
+            if (MaxLength > 0)
+            {
+                if (Text.Length > MaxLength)
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -615,49 +687,95 @@ namespace Alternet.UI
         /// <remarks>
         /// <see cref="ReportValidatorError"/> is used to report the error.
         /// </remarks>
-        public virtual bool ReportErrorMinMaxLength()
+        public virtual bool ReportErrorMinMaxLength(Action<string>? errorEnumerator = null)
         {
-            if (MinLength > 0)
+            var hasErrorMinLength = HasErrorMinLength();
+
+            if (hasErrorMinLength)
             {
-                if (Text.Length < MinLength)
-                {
-                    ReportValidatorError(
-                        true,
-                        GetKnownErrorText(ValueValidatorKnownError.MinimumLength));
-                    return true;
-                }
+                ReportValidatorError(
+                    true,
+                    GetKnownErrorText(ValueValidatorKnownError.MinimumLength),
+                    errorEnumerator);
             }
 
-            if (MaxLength > 0)
+            var hasErrorMaxLength = HasErrorMaxLength();
+
+            if (hasErrorMaxLength)
             {
-                if (Text.Length > MaxLength)
-                {
-                    ReportValidatorError(
-                        true,
-                        GetKnownErrorText(ValueValidatorKnownError.MaximumLength));
-                    return true;
-                }
+                ReportValidatorError(
+                    true,
+                    GetKnownErrorText(ValueValidatorKnownError.MaximumLength),
+                    errorEnumerator);
             }
 
-            return false;
+            return hasErrorMinLength || hasErrorMaxLength;
+        }
+
+        /// <summary>
+        /// Gets the validation errors.
+        /// </summary>
+        /// <returns>The validation errors.</returns>
+        public virtual IEnumerable<string> GetErrors()
+        {
+            List<string> result = new();
+
+            if (RunDefaultValidation(ErrorEnumerator))
+                return Array.Empty<string>();
+
+            return result;
+
+            void ErrorEnumerator(string s)
+            {
+                if (result.IndexOf(s) < 0)
+                    result.Add(s);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override IEnumerable GetErrors(string? propertyName)
+        {
+            return GetErrors();
         }
 
         /// <summary>
         /// Runs default validation of the <see cref="Control.Text"/> property.
         /// </summary>
+        /// <remarks>
         /// Validation errors are reported using <see cref="ReportValidatorError"/>.
-        public virtual void RunDefaultValidation()
+        /// </remarks>
+        /// <returns>
+        /// <c>true</c> if no validation errors were reported; <c>false</c> otrherwise.
+        /// </returns>
+        public virtual bool RunDefaultValidation(Action<string>? errorEnumerator = null)
         {
-            if (ReportErrorEmptyText())
-                return;
+            var errorCount = 0;
 
-            if (ReportErrorBadNumber())
-                return;
+            var hasErrorEmptyText = ReportErrorEmptyText(ErrorEnumerator);
+            var hasErrorBadNumber = ReportErrorBadNumber(ErrorEnumerator);
+            var hasErrorMinMaxLength = ReportErrorMinMaxLength(ErrorEnumerator);
 
-            if (ReportErrorMinMaxLength())
-                return;
+            var hasError = hasErrorEmptyText || hasErrorBadNumber || hasErrorMinMaxLength;
 
-            ReportValidatorError(false);
+            if (!hasError)
+                ReportValidatorError(false);
+            RaiseErrorsChanged();
+            return !hasError;
+
+            void RaiseErrorsChanged()
+            {
+                if (errorCount != oldErrorCount)
+                {
+                    oldErrorCount = errorCount;
+                    BubbleErrorsChanged(new DataErrorsChangedEventArgs(null));
+                }
+            }
+
+            void ErrorEnumerator(string s)
+            {
+                errorCount++;
+                errorEnumerator?.Invoke(s);
+            }
         }
 
         /// <summary>
@@ -845,6 +963,7 @@ namespace Alternet.UI
         /// Reports text validation error.
         /// </summary>
         /// <param name="showError">Indicates whether to show/hide error.</param>
+        /// <param name="errorEnumerator">Optional action which is called for every error.</param>
         /// <param name="errorText">Specifies error text.</param>
         /// <remarks>
         /// Uses <see cref="CustomTextBox.DefaultErrorBackgroundColor"/>,
@@ -859,7 +978,10 @@ namespace Alternet.UI
         /// interface in order to be used in this method. <see cref="PictureBox"/> supports
         /// this interface.
         /// </remarks>
-        public virtual void ReportValidatorError(bool showError, string? errorText = null)
+        public virtual string? ReportValidatorError(
+            bool showError,
+            string? errorText = null,
+            Action<string>? errorEnumerator = null)
         {
             var hint = string.Empty;
             if (!showError)
@@ -881,6 +1003,11 @@ namespace Alternet.UI
 
             Report(ValidatorReporter as IValidatorReporter);
             Report(this);
+
+            if (!string.IsNullOrEmpty(hint))
+                errorEnumerator?.Invoke(hint!);
+
+            return hint;
 
             void Report(IValidatorReporter? reporter)
             {

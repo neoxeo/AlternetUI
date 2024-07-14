@@ -19,43 +19,51 @@ namespace Alternet.UI
     /// </summary>
     public class KeyEventArgs : KeyboardEventArgs
     {
-        private readonly ModifierKeys modifiers;
-        private readonly Key key;
-        private readonly bool isRepeat;
-        private readonly KeyStates keyStates;
+        private ModifierKeys modifiers;
+        private Key key;
+        private KeyStates keyStates;
         private Keys? keyData;
         private bool suppressKeyPress;
+        private uint repeatCount;
 
         /// <summary>
-        /// Constructs an instance of the KeyEventArgs class.
+        /// Constructs an instance of the <see cref="KeyEventArgs"/> class.
+        /// </summary>
+        public KeyEventArgs()
+        {
+        }
+
+        /// <summary>
+        /// Constructs an instance of the <see cref="KeyEventArgs"/> class.
         /// </summary>
         /// <param name="key">
         /// The key referenced by the event.
         /// </param>
-        /// <param name="isRepeat">Whether the key pressed is a repeated key or not.</param>
+        /// <param name="repeatCount">Number of repeated key presses.</param>
         /// <param name="originalTarget"></param>
-        /// <param name="keyboardDevice"></param>
-        public KeyEventArgs(
-            object originalTarget,
-            Key key,
-            bool isRepeat,
-            KeyboardDevice keyboardDevice)
-            : base(originalTarget, keyboardDevice)
+        public KeyEventArgs(object originalTarget, Key key, uint repeatCount)
+            : base(originalTarget)
         {
             this.key = key;
-            this.isRepeat = isRepeat;
-            keyStates = this.KeyboardDevice.GetKeyStates(key);
-            modifiers = KeyboardDevice.Modifiers;
+            this.repeatCount = repeatCount;
+            keyStates = Keyboard.GetKeyStates(key);
+            modifiers = Keyboard.Modifiers;
         }
 
         /// <summary>
         /// The Key referenced by the event, if the key is not being handled specially.
         /// </summary>
-        public Key Key
+        public virtual Key Key
         {
             get
             {
                 return key;
+            }
+
+            set
+            {
+                key = value;
+                keyData = null;
             }
         }
 
@@ -64,16 +72,22 @@ namespace Alternet.UI
         /// The flags indicate which combination of CTRL, SHIFT, and ALT keys was pressed.
         /// </summary>
         /// <returns>A <see cref="Keys" /> value representing one or more modifier flags.</returns>
-        public Keys Modifiers => KeyData & Keys.Modifiers;
+        public virtual Keys Modifiers => KeyData & Keys.Modifiers;
 
         /// <summary>
         /// Returns the set of modifier keys currently pressed.
         /// </summary>
-        public ModifierKeys ModifierKeys
+        public virtual ModifierKeys ModifierKeys
         {
             get
             {
                 return modifiers;
+            }
+
+            set
+            {
+                modifiers = value;
+                keyData = null;
             }
         }
 
@@ -85,7 +99,7 @@ namespace Alternet.UI
         /// <see langword="true" /> if the key event should not be sent
         /// to the control; otherwise, <see langword="false" />.
         /// </returns>
-        public bool SuppressKeyPress
+        public virtual bool SuppressKeyPress
         {
             get
             {
@@ -107,12 +121,12 @@ namespace Alternet.UI
         /// <returns>
         /// A <see cref="Keys" /> value that is the key code for the event.
         /// </returns>
-        public Keys KeyCode
+        public virtual Keys KeyCode
         {
             get
             {
                 Keys keys = KeyData & Keys.KeyCode;
-                if (!Enum.IsDefined(typeof(Keys), (int)keys))
+                if (keys < 0 || keys > Keys.OemClear)
                 {
                     return Keys.None;
                 }
@@ -124,7 +138,7 @@ namespace Alternet.UI
         /// <summary>Gets the keyboard value for a <see cref="Control.KeyDown" /> event.</summary>
         /// <returns>The integer representation of the
         /// <see cref="KeyEventArgs.KeyCode" /> property.</returns>
-        public int KeyValue => (int)(KeyData & Keys.KeyCode);
+        public virtual int KeyValue => (int)(KeyData & Keys.KeyCode);
 
         /// <summary>
         /// Gets the key data for a <see cref="Control.KeyDown"/> event.
@@ -138,7 +152,7 @@ namespace Alternet.UI
         /// with modifier flags that indicate which combination
         /// of CTRL, SHIFT, and ALT keys was pressed at the same time.
         /// </returns>
-        public Keys KeyData => keyData ??= key.ToKeys(modifiers);
+        public virtual Keys KeyData => keyData ??= key.ToKeys(modifiers);
 
         /// <summary>
         /// Gets a value indicating whether the ALT key was pressed.
@@ -170,38 +184,63 @@ namespace Alternet.UI
         /// <summary>
         /// The state of the key referenced by the event.
         /// </summary>
-        public KeyStates KeyStates
+        public virtual KeyStates KeyStates
         {
             get
             {
                 return keyStates;
             }
+
+            set
+            {
+                keyStates = value;
+                keyData = null;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets key repeat count.
+        /// </summary>
+        public virtual uint RepeatCount
+        {
+            get => repeatCount;
+            set => repeatCount = value;
         }
 
         /// <summary>
         /// Whether the key pressed is a repeated key or not.
         /// </summary>
-        public bool IsRepeat
+        public virtual bool IsRepeat
         {
             get
             {
-                return isRepeat;
+                return repeatCount > 0;
             }
         }
 
         /// <summary>
         /// Whether or not the key referenced by the event is down.
         /// </summary>
-        public bool IsDown => keyStates == KeyStates.Down;
+        public virtual bool IsDown => keyStates == KeyStates.Down;
 
         /// <summary>
         /// Whether or not the key referenced by the event is up.
         /// </summary>
-        public bool IsUp => !IsDown;
+        public virtual bool IsUp => !IsDown;
 
         /// <summary>
         /// Whether or not the key referenced by the event is toggled.
         /// </summary>
-        public bool IsToggled => keyStates == KeyStates.Toggled;
+        public virtual bool IsToggled => keyStates == KeyStates.Toggled;
+
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
+        {
+            KeyInfo keyInfo = new(Key, ModifierKeys);
+            return $"{{{base.ToString()}: {keyInfo}}}";
+        }
     }
 }

@@ -443,6 +443,8 @@ namespace Alternet::UI
         if (!IsRecreatingWxWindow())
             _wxWindow = nullptr;
 
+        wxWindow->Unbind(wxEVT_DPI_CHANGED, &Control::OnDpiChanged, this);
+        wxWindow->Unbind(wxEVT_TEXT, &Control::OnTextChanged, this);
         wxWindow->Unbind(wxEVT_IDLE, &Control::OnIdle, this);
         wxWindow->Unbind(wxEVT_PAINT, &Control::OnPaint, this);
         //wxWindow->Unbind(wxEVT_ERASE_BACKGROUND, &Control::OnEraseBackground, this);
@@ -453,9 +455,11 @@ namespace Alternet::UI
         wxWindow->Unbind(wxEVT_LEAVE_WINDOW, &Control::OnMouseLeave, this);
         wxWindow->Unbind(wxEVT_ACTIVATE, &Control::OnActivate, this);
         wxWindow->Unbind(wxEVT_SIZE, &Control::OnSizeChanged, this);
+        wxWindow->Unbind(wxEVT_MOVE, &Control::OnLocationChanged, this);
         wxWindow->Unbind(wxEVT_SET_FOCUS, &Control::OnGotFocus, this);
         wxWindow->Unbind(wxEVT_KILL_FOCUS, &Control::OnLostFocus, this);
         wxWindow->Unbind(wxEVT_LEFT_UP, &Control::OnMouseLeftUp, this);
+        wxWindow->Unbind(wxEVT_SYS_COLOUR_CHANGED, &Control::OnSysColorChanged, this);
 
         if (bindScrollEvents) 
         {
@@ -477,6 +481,12 @@ namespace Alternet::UI
         if (IsRecreatingWxWindow())
             SetRecreatingWxWindow(false);
         RaiseEvent(ControlEvent::HandleDestroyed);
+    }
+
+    void Control::OnSysColorChanged(wxSysColourChangedEvent& event)
+    {
+        event.Skip();
+        RaiseEvent(ControlEvent::SystemColorsChanged);
     }
 
     bool Control::GetIsActive()
@@ -886,7 +896,24 @@ namespace Alternet::UI
 
     bool Control::GetAcceptsFocus()
     {
-        return _acceptsFocus;
+        auto wxWindow = GetWxWindow();
+        return wxWindow->AcceptsFocus();
+    }
+
+    void Control::SetTabStop(bool value)
+    {
+        _flags.Set(ControlFlags::TabStop, value);
+        RecreateWxWindowIfNeeded();
+    }
+
+    void Control::SetFocusFlags(bool canSelect, bool tabStop, bool canSelectChildren)
+    {
+        if (_acceptsFocus == canSelect && GetTabStop() == tabStop)
+            return;
+        _acceptsFocus = canSelect;
+        _acceptsFocusFromKeyboard = tabStop;
+        _acceptsFocusRecursively = canSelect;
+        SetTabStop(tabStop);
     }
 
     void Control::SetAcceptsFocus(bool value)
@@ -899,7 +926,7 @@ namespace Alternet::UI
 
     bool Control::GetAcceptsFocusAll()
     {
-        return _acceptsFocus && _acceptsFocusFromKeyboard && _acceptsFocusRecursively;
+        return GetAcceptsFocus() && GetAcceptsFocusFromKeyboard() && GetAcceptsFocusRecursively();
     }
 
     void Control::SetAcceptsFocusAll(bool value)
@@ -915,7 +942,8 @@ namespace Alternet::UI
 
     bool Control::GetAcceptsFocusFromKeyboard()
     {
-        return _acceptsFocusFromKeyboard;
+        auto wxWindow = GetWxWindow();
+        return wxWindow->AcceptsFocusFromKeyboard();
     }
 
     void Control::SetAcceptsFocusFromKeyboard(bool value)
@@ -928,7 +956,8 @@ namespace Alternet::UI
 
     bool Control::GetAcceptsFocusRecursively()
     {
-        return _acceptsFocusRecursively;
+        auto wxWindow = GetWxWindow();
+        return wxWindow->AcceptsFocusRecursively();
     }
 
     void Control::SetAcceptsFocusRecursively(bool value)
@@ -969,6 +998,8 @@ namespace Alternet::UI
         if (!GetTabStop())
             _wxWindow->DisableFocusFromKeyboard();
 
+        _wxWindow->Bind(wxEVT_DPI_CHANGED, &Control::OnDpiChanged, this);
+        _wxWindow->Bind(wxEVT_TEXT, &Control::OnTextChanged, this);
         _wxWindow->Bind(wxEVT_ACTIVATE, &Control::OnActivate, this);
         _wxWindow->Bind(wxEVT_PAINT, &Control::OnPaint, this);
         //_wxWindow->Bind(wxEVT_ERASE_BACKGROUND, &Control::OnEraseBackground, this);
@@ -978,10 +1009,12 @@ namespace Alternet::UI
         _wxWindow->Bind(wxEVT_ENTER_WINDOW, &Control::OnMouseEnter, this);
         _wxWindow->Bind(wxEVT_LEAVE_WINDOW, &Control::OnMouseLeave, this);
         _wxWindow->Bind(wxEVT_SIZE, &Control::OnSizeChanged, this);
+        _wxWindow->Bind(wxEVT_MOVE, &Control::OnLocationChanged, this);
         _wxWindow->Bind(wxEVT_SET_FOCUS, &Control::OnGotFocus, this);
         _wxWindow->Bind(wxEVT_KILL_FOCUS, &Control::OnLostFocus, this);
         _wxWindow->Bind(wxEVT_LEFT_UP, &Control::OnMouseLeftUp, this);
         _wxWindow->Bind(wxEVT_IDLE, &Control::OnIdle, this);
+        _wxWindow->Bind(wxEVT_SYS_COLOUR_CHANGED, &Control::OnSysColorChanged, this);
 
         if (bindScrollEvents)
         {
@@ -1493,11 +1526,37 @@ namespace Alternet::UI
         RaiseEvent(ControlEvent::VisibleChanged);
     }
 
+    RectD Control::GetEventBounds()
+    {
+        return _eventBounds;
+    }
+
+    void Control::OnLocationChanged(wxMoveEvent& event)
+    {
+        event.Skip();
+
+        auto wxWindow = GetWxWindow();
+
+        auto location = event.GetPosition();
+        auto size = wxWindow->GetSize();
+        auto rect = RectI(location.x, location.y, size.x, size.y);
+        _eventBounds = toDip(rect, wxWindow);
+
+        RaiseEvent(ControlEvent::LocationChanged);
+    }
+
     void Control::OnSizeChanged(wxSizeEvent& event)
     {
         event.Skip();
 
         _flags.Set(ControlFlags::ClientSizeCacheValid, false);
+
+        auto wxWindow = GetWxWindow();
+
+        auto location = wxWindow->GetPosition();
+        auto size = event.GetSize();
+        auto rect = RectI(location.x, location.y, size.x, size.y);
+        _eventBounds = toDip(rect, wxWindow);
 
         RaiseEvent(ControlEvent::SizeChanged);
     }
@@ -1787,12 +1846,6 @@ namespace Alternet::UI
     bool Control::GetTabStop()
     {
         return _flags.IsSet(ControlFlags::TabStop);
-    }
-
-    void Control::SetTabStop(bool value)
-    {
-        _flags.Set(ControlFlags::TabStop, value);
-        RecreateWxWindowIfNeeded();
     }
 
     bool Control::GetIsFocused()
@@ -2209,6 +2262,40 @@ namespace Alternet::UI
         default:
             return NullVisualAttributes;
         }
+    }
+
+    SizeI Control::GetEventOldDpi()
+    {
+        return _eventOldDpi;
+    }
+
+    SizeI Control::GetEventNewDpi()
+    {
+        return _eventNewDpi;
+    }
+
+    void Control::OnDpiChanged(wxDPIChangedEvent& event)
+    {
+        event.Skip();
+        _eventOldDpi = event.GetOldDPI();
+        _eventNewDpi = event.GetNewDPI();
+        RaiseEvent(ControlEvent::DpiChanged);
+    }
+
+    void Control::OnTextChanged(wxCommandEvent& event)
+    {
+        event.Skip();
+        RaiseEvent(ControlEvent::TextChanged);
+    }
+
+    string Control::GetText()
+    {
+        return _textValue;
+    }
+
+    void Control::SetText(const string& value)
+    {
+        _textValue = value;
     }
 
     Color Control::GetClassDefaultAttributesBgColor(int controlType, int windowVariant)

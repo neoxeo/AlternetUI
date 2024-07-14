@@ -80,7 +80,7 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Reload()
         {
-            BaseApplication.DoInsideBusyCursor(ReloadInternal);
+            App.DoInsideBusyCursor(ReloadInternal);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace Alternet.UI
                     UixmlLoader.LoadExistingEx(
                         stream,
                         previewWindow,
-                        false,
+                        0,
                         fileName);
                 }
                 finally
@@ -171,7 +171,7 @@ namespace Alternet.UI
 
         private void PreviewWindow_Disposed(object? sender, EventArgs e)
         {
-            BaseApplication.LogIf("PreviewWindow.Disposed", false);
+            App.LogIf("PreviewWindow.Disposed", false);
         }
     }
 }

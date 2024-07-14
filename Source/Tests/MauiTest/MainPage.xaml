@@ -2,12 +2,13 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             xmlns:alternet="clr-namespace:Alternet.UI;assembly=Alternet.UI.Maui"
              x:Class="SpinPaint.MainPage"
-             Title="Spin Paint">
+             Title="Alternet.UI MauiTest">
     <Grid RowDefinitions="Auto,*,Auto">
-        <ListView x:Name="ListView1" 
+        <ListView x:Name="logControl" 
                            Grid.Row="0"
-                  HeightRequest="200"
+                  HeightRequest="100"
                   >
             <ListView.ItemTemplate>
                 <DataTemplate>
@@ -15,11 +16,27 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <FlexLayout x:Name="panel"
-                           Grid.Row="1"/>
-        <Button Grid.Row="3"
+        <StackLayout x:Name="panel" Grid.Row="1">
+            <alternet:SkiaContainer x:Name="skiaContainer" SampleProp="5"/>
+        </StackLayout>
+
+        <HorizontalStackLayout x:Name="buttonPanel"
+                           Grid.Row="2">
+            <Entry Text="" x:Name="entryToFocus"></Entry>
+            <Button
                 Margin="0,20"
-                Text="Action"
+                FontSize="12"
+                Text="1"
+                x:Name="button1"
                 HorizontalOptions="Center" />
+            <Button
+                Margin="0,20"
+                FontSize="12"
+                Text="2"
+                x:Name="button2"
+                HorizontalOptions="Center" />
+        </HorizontalStackLayout>
+
+
     </Grid>
 </ContentPage>

@@ -28,8 +28,7 @@ namespace Alternet.UI
         {
             Layout = LayoutStyle.Horizontal;
             itemSize = Math.Max(DefaultSize, 24);
-            TabStop = false;
-            AcceptsFocusAll = false;
+            IsGraphicControl = true;
         }
 
         /// <summary>
@@ -697,6 +696,16 @@ namespace Alternet.UI
                     return AddSpeedBtn(strings.ButtonItalic, KnownSvgImages.ImgItalic, action);
                 case KnownButton.Underline:
                     return AddSpeedBtn(strings.ButtonUnderline, KnownSvgImages.ImgUnderline, action);
+                case KnownButton.Back:
+                    return AddSpeedBtn(strings.ButtonBack, KnownSvgImages.ImgBrowserBack, action);
+                case KnownButton.Forward:
+                    return AddSpeedBtn(strings.ButtonForward, KnownSvgImages.ImgBrowserForward, action);
+                case KnownButton.ZoomIn:
+                    return AddSpeedBtn(strings.ButtonZoomIn, KnownSvgImages.ImgZoomIn, action);
+                case KnownButton.ZoomOut:
+                    return AddSpeedBtn(strings.ButtonZoomOut, KnownSvgImages.ImgZoomOut, action);
+                case KnownButton.BrowserGo:
+                    return AddSpeedBtn(strings.ButtonGo, KnownSvgImages.ImgBrowserGo, action);
             }
         }
 
@@ -762,7 +771,7 @@ namespace Alternet.UI
         {
             PictureBox picture = new()
             {
-                AcceptsFocusAll = false,
+                IsGraphicControl = true,
                 ImageStretch = false,
                 ImageSet = image,
                 ToolTip = toolTip ?? string.Empty,
@@ -873,9 +882,11 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <param name="enabled">New property value.</param>
-        public virtual void SetToolEnabled(ObjectUniqueId id, bool enabled = true)
+        public virtual void SetToolEnabled(ObjectUniqueId? id, bool enabled = true)
         {
-            var item = GetToolControl(id);
+            if (id is null)
+                return;
+            var item = GetToolControl(id.Value);
             if (item is null)
                 return;
             item.Enabled = enabled;
@@ -955,8 +966,7 @@ namespace Alternet.UI
         /// Returns the specified tool rectangle in the toolbar.
         /// </summary>
         /// <param name="toolId">ID of a previously added tool.</param>
-        /// <returns>Position and size of the tool in the toolbar in device-independent units
-        /// (1/96 inch).</returns>
+        /// <returns>Position and size of the tool in the toolbar in device-independent units.</returns>
         public RectD GetToolRect(ObjectUniqueId toolId)
         {
             var item = GetToolControl(toolId);

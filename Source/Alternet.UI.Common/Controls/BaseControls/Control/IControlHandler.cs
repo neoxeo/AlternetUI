@@ -8,8 +8,22 @@ using Alternet.Drawing;
 
 namespace Alternet.UI
 {
-    public interface IControlHandler : IDisposableObject
+    public partial interface IControlHandler : IDisposableObject
     {
+        SizeI EventOldDpi { get; }
+
+        SizeI EventNewDpi { get; }
+
+        Action<DragEventArgs>? DragDrop { get; set; }
+
+        Action<DragEventArgs>? DragOver { get; set; }
+
+        Action<DragEventArgs>? DragEnter { get; set; }
+
+        Action? SystemColorsChanged { get; set; }
+
+        Action? DpiChanged { get; set; }
+
         Action? Idle { get; set; }
 
         Action? Paint { get; set; }
@@ -22,11 +36,9 @@ namespace Alternet.UI
 
         Action? VisibleChanged { get; set; }
 
+        Action? TextChanged { get; set; }
+
         Action? MouseCaptureLost { get; set; }
-
-        Action? GotFocus { get; set; }
-
-        Action? LostFocus { get; set; }
 
         Action? DragLeave { get; set; }
 
@@ -36,6 +48,8 @@ namespace Alternet.UI
 
         Action? SizeChanged { get; set; }
 
+        Action? LocationChanged { get; set; }
+
         Action? Activated { get; set; }
 
         Action? Deactivated { get; set; }
@@ -44,13 +58,21 @@ namespace Alternet.UI
 
         Action? HandleDestroyed { get; set; }
 
+        string Text { get; set; }
+
         bool WantChars { get; set; }
 
         bool ShowHorzScrollBar { get; set; }
 
         bool ShowVertScrollBar { get; set; }
 
+        bool TabStop { get; }
+
+        bool CanSelect { get; }
+
         bool ScrollBarAlwaysVisible { get; set; }
+
+        RectD EventBounds { get; }
 
         LangDirection LangDirection { get; set; }
 
@@ -68,8 +90,6 @@ namespace Alternet.UI
         bool IsAttached { get; }
 
         bool IsNativeControlCreated { get; }
-
-        bool IsFocused { get; }
 
         Thickness IntrinsicLayoutPadding { get; }
 
@@ -95,19 +115,9 @@ namespace Alternet.UI
 
         bool IsBold { get; set; }
 
-        bool TabStop { get; set; }
-
         bool AllowDrop { get; set; }
 
-        bool AcceptsFocus { get; set; }
-
         ControlBackgroundStyle BackgroundStyle { get; set; }
-
-        bool AcceptsFocusFromKeyboard { get; set; }
-
-        bool AcceptsFocusRecursively { get; set; }
-
-        bool AcceptsFocusAll { get; set; }
 
         bool ProcessIdle { get; set; }
 
@@ -115,17 +125,11 @@ namespace Alternet.UI
 
         SizeD ClientSize { get; set; }
 
-        bool CanAcceptFocus { get; }
-
-        bool IsMouseOver { get; }
-
         bool ProcessUIUpdates { get; set; }
 
         bool IsMouseCaptured { get; }
 
         bool IsHandleCreated { get; }
-
-        bool IsFocusable { get; }
 
         void Raise();
 
@@ -137,8 +141,6 @@ namespace Alternet.UI
 
         void Lower();
 
-        void SendSizeEvent();
-
         void UnsetToolTip();
 
         void RefreshRect(RectD rect, bool eraseBackground = true);
@@ -149,21 +151,11 @@ namespace Alternet.UI
 
         void ReleaseMouseCapture();
 
-        void DisableRecreate();
-
-        void EnableRecreate();
-
         Graphics CreateDrawingContext();
 
         PointD ScreenToClient(PointD point);
 
         PointD ClientToScreen(PointD point);
-
-        PointI ScreenToDevice(PointD point);
-
-        PointD DeviceToScreen(PointI point);
-
-        void FocusNextControl(bool forward = true, bool nested = true);
 
         DragDropEffects DoDragDrop(object data, DragDropEffects allowedEffects);
 
@@ -173,36 +165,19 @@ namespace Alternet.UI
 
         void EndUpdate();
 
-        void SetBounds(RectD rect, SetBoundsFlags flags);
-
         void BeginInit();
 
         void EndInit();
 
-        bool SetFocus();
-
         void SaveScreenshot(string fileName);
-
-        SizeD GetDPI();
 
         bool IsTransparentBackgroundSupported();
 
-        void EndIgnoreRecreate();
-
-        void BeginIgnoreRecreate();
-
-        double GetPixelScaleFactor();
+        Coord GetPixelScaleFactor();
 
         RectI GetUpdateClientRectI();
 
-        double PixelToDip(int value);
-
-        int PixelFromDip(double value);
-
-        double PixelFromDipF(double value);
-
         void SetScrollBar(
-            IControl control,
             bool isVertical,
             bool visible,
             int value,
@@ -229,14 +204,6 @@ namespace Alternet.UI
 
         Font? GetDefaultAttributesFont();
 
-        void SendMouseDownEvent(int x, int y);
-
-        void SendMouseUpEvent(int x, int y);
-
-        bool BeginRepositioningChildren();
-
-        void EndRepositioningChildren();
-
         void AlwaysShowScrollbars(bool hflag = true, bool vflag = true);
 
         void Update();
@@ -255,9 +222,9 @@ namespace Alternet.UI
 
         object GetNativeControl();
 
-        void RaiseChildInserted(Control childControl);
+        void OnChildInserted(Control childControl);
 
-        void RaiseChildRemoved(Control childControl);
+        void OnChildRemoved(Control childControl);
 
         /// <summary>
         /// Attaches this handler to the specified <see cref="Control"/>.

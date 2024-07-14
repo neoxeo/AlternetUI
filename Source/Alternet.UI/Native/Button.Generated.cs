@@ -37,21 +37,6 @@ namespace Alternet.UI.Native
             }
         }
         
-        public string Text
-        {
-            get
-            {
-                CheckDisposed();
-                return NativeApi.Button_GetText_(NativePointer);
-            }
-            
-            set
-            {
-                CheckDisposed();
-                NativeApi.Button_SetText_(NativePointer, value);
-            }
-        }
-        
         public bool ExactFit
         {
             get
@@ -266,14 +251,7 @@ namespace Alternet.UI.Native
         
         IntPtr OnEvent(NativeApi.ButtonEvent e, IntPtr parameter)
         {
-            switch (e)
-            {
-                case NativeApi.ButtonEvent.Click:
-                {
-                    Click?.Invoke(); return IntPtr.Zero;
-                }
-                default: throw new Exception("Unexpected ButtonEvent value: " + e);
-            }
+            Click?.Invoke(); return IntPtr.Zero;
         }
         
         public Action? Click;
@@ -302,12 +280,6 @@ namespace Alternet.UI.Native
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern void Button_SetImagesEnabled_(bool value);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern string Button_GetText_(IntPtr obj);
-            
-            [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
-            public static extern void Button_SetText_(IntPtr obj, string value);
             
             [DllImport(NativeModuleName, CallingConvention = CallingConvention.Cdecl)]
             public static extern bool Button_GetExactFit_(IntPtr obj);

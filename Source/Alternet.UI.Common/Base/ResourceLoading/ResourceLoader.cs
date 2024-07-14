@@ -72,10 +72,11 @@ namespace Alternet.UI
         /// </code>
         /// </example>
         /// <remarks>
+        /// <param name="baseUri">Specifies base url if <paramref name="url"/> is not absolute.</param>
         /// <paramref name="url"/> with "embres" protocol can include assembly name. Example:
         /// "embres:Alternet.UI.Resources.Svg.ImageName.svg?assembly=Alternet.UI"
         /// </remarks>
-        public static Stream StreamFromUrl(string url)
+        public static Stream StreamFromUrl(string url, Uri? baseUri = null)
         {
             if(CustomStreamFromUrl is not null)
             {
@@ -91,15 +92,38 @@ namespace Alternet.UI
                 }
             }
 
-            return DefaultStreamFromUrl(url);
+            return DefaultStreamFromUrl(url, baseUri);
+        }
+
+        /// <summary>
+        /// Calls <see cref="StreamFromUrlOrDefault"/> and if it returns <c>null</c>,
+        /// calls <paramref name="func"/>.
+        /// </summary>
+        /// <param name="url">Url used to load the data. By default "file" and "embres"
+        /// protocols are supported but you can extend it with <see cref="CustomStreamFromUrl"/>
+        /// event.
+        /// </param>
+        /// <param name="func">Function used to get stream from url in case if
+        /// <see cref="StreamFromUrl"/> returns <c>null</c>.</param>
+        /// <returns></returns>
+        public static Stream? StreamFromUrlOrDefault(string url, Func<Stream?>? func = null)
+        {
+            var result = BaseObject.InsideTryCatch(() => StreamFromUrl(url));
+            result ??= func?.Invoke();
+            return result;
         }
 
         /// <summary>
         /// Default implementation of <see cref="StreamFromUrl"/>.
         /// See <see cref="StreamFromUrl"/> for details.
         /// </summary>
+        /// <param name="url">Url used to load the data. By default "file" and "embres"
+        /// protocols are supported but you can extend it with <see cref="CustomStreamFromUrl"/>
+        /// event.
+        /// </param>
+        /// <param name="baseUri">Specifies base url if <paramref name="url"/> is not absolute.</param>
         /// <returns></returns>
-        public static Stream DefaultStreamFromUrl(string url)
+        public static Stream DefaultStreamFromUrl(string url, Uri? baseUri = null)
         {
             var s = url.Trim();
 
@@ -112,12 +136,22 @@ namespace Alternet.UI
             if (hasScheme)
             {
                 var uri = new Uri(s, UriKind.Absolute);
-                return DefaultStreamFromUri(uri);
+                return DefaultStreamFromUri(uri, baseUri);
             }
             else
             {
-                var fullPath = PathUtils.GetFullPath(s, PathUtils.GetAppFolder());
-                var stream = File.OpenRead(fullPath);
+                string path;
+
+                if (baseUri is null)
+                {
+                    path = PathUtils.GetFullPath(s, PathUtils.GetAppFolder());
+                }
+                else
+                {
+                    path = PathUtils.GetFullPath(s, baseUri.LocalPath);
+                }
+
+                var stream = FileSystem.Default.OpenRead(path);
                 return stream;
             }
         }
@@ -127,16 +161,17 @@ namespace Alternet.UI
         /// Used in <see cref="DefaultStreamFromUrl"/>.
         /// </summary>
         /// <param name="uri"></param>
+        /// <param name="baseUri"></param>
         /// <returns></returns>
-        public static Stream DefaultStreamFromUri(Uri uri)
+        public static Stream DefaultStreamFromUri(Uri uri, Uri? baseUri = null)
         {
             if (uri.IsAbsoluteUri && uri.IsFile)
             {
-                var stream = File.OpenRead(uri.LocalPath);
+                var stream = FileSystem.OpenRead(uri.LocalPath);
                 return stream;
             }
 
-            var result = ResourceLoader.Default.Open(uri);
+            var result = ResourceLoader.Default.Open(uri, baseUri);
             return result;
         }
 
@@ -291,8 +326,10 @@ namespace Alternet.UI
                 if (uri.IsEmbres())
                 {
                     var assemblyName = uri.GetAssemblyNameFromQuery();
-                    if (assemblyName.Length > 0)
+                    if (!string.IsNullOrEmpty(assemblyName))
                         return assemblyDescriptorResolver.GetAssembly(assemblyName);
+                    else
+                        return assemblyDescriptorResolver.GetAssemblyFromUrl(uri);
                 }
             }
 

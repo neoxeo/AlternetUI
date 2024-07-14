@@ -7,6 +7,8 @@ using Alternet.UI;
 using Alternet.UI.Localization;
 using Alternet.UI.Markup;
 
+using SkiaSharp;
+
 namespace Alternet.Drawing
 {
     /*
@@ -18,18 +20,24 @@ namespace Alternet.Drawing
     /// Stores the location and size of a rectangular region.
     /// </summary>
     [Serializable]
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct RectI : IEquatable<RectI>
     {
         /// <summary>
         /// Represents a <see cref="RectI"/> structure with its properties left uninitialized.
         /// </summary>
         public static readonly RectI Empty;
+#pragma warning disable
+        [FieldOffset(0)] private int x;
+        [FieldOffset(4)] private int y;
+        [FieldOffset(0)] private PointI location;
+        [FieldOffset(0)] private ulong xy;
 
-        private int x; // Do not rename (binary serialization)
-        private int y; // Do not rename (binary serialization)
-        private int width; // Do not rename (binary serialization)
-        private int height; // Do not rename (binary serialization)
+        [FieldOffset(8)] private int width;
+        [FieldOffset(12)] private int height;
+        [FieldOffset(8)] private SizeI size;
+        [FieldOffset(8)] private ulong wh;
+#pragma warning restore
 
         /// <summary>
         /// Initializes a new instance of the <see cref='Drawing.RectI'/> class with the
@@ -52,10 +60,8 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RectI(PointI location, SizeI size)
         {
-            x = location.X;
-            y = location.Y;
-            width = size.Width;
-            height = size.Height;
+            this.location = location;
+            this.size = size;
         }
 
         /// <summary>
@@ -66,11 +72,10 @@ namespace Alternet.Drawing
         [Browsable(false)]
         public PointI Location
         {
-            readonly get => new(x, y);
+            readonly get => location;
             set
             {
-                x = value.X;
-                y = value.Y;
+                location = value;
             }
         }
 
@@ -80,11 +85,10 @@ namespace Alternet.Drawing
         [Browsable(false)]
         public SizeI Size
         {
-            readonly get => new(width, height);
+            readonly get => size;
             set
             {
-                width = value.Width;
-                height = value.Height;
+                size = value;
             }
         }
 
@@ -101,8 +105,7 @@ namespace Alternet.Drawing
 
         /// <summary>
         /// Gets or sets the y-coordinate of the upper-left corner of the rectangular region
-        /// defined by this
-        /// <see cref='Drawing.RectI'/>.
+        /// defined by this <see cref='Drawing.RectI'/>.
         /// </summary>
         public int Y
         {
@@ -167,7 +170,7 @@ namespace Alternet.Drawing
         {
             get
             {
-                return new(x, y);
+                return location;
             }
         }
 
@@ -215,11 +218,10 @@ namespace Alternet.Drawing
         public readonly int Bottom => unchecked(y + height);
 
         /// <summary>
-        /// Tests whether this <see cref='RectI'/> has
-        /// all properties equal to 0.
+        /// Tests whether this <see cref='RectI'/> has all properties equal to 0.
         /// </summary>
         [Browsable(false)]
-        public readonly bool IsEmpty => height == 0 && width == 0 && x == 0 && y == 0;
+        public readonly bool IsEmpty => xy == 0UL && wh == 0UL;
 
         /// <summary>
         /// Tests whether this <see cref='RectI'/> has a <see cref='Width'/>
@@ -245,6 +247,20 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectI((PointI, SizeI) d) => new(d.Item1, d.Item2);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator SKRectI(RectI rect)
+        {
+            SKRectI result = SKRectI.Create(rect.Width, rect.Height);
+            result.Offset(rect.X, rect.Y);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator RectI(SKRectI rect)
+        {
+            return new(rect.Left, rect.Top, rect.Width, rect.Height);
+        }
+
         /// <summary>
         /// Creates a <see cref='System.Drawing.Rectangle'/> with the coordinates of the
         /// specified <see cref='RectI'/>
@@ -266,8 +282,7 @@ namespace Alternet.Drawing
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(RectI left, RectI right) =>
-            left.x == right.x && left.y == right.y && left.width == right.width
-            && left.height == right.height;
+            left.xy == right.xy && left.wh == right.wh;
 
         /// <summary>
         /// Tests whether two <see cref='Drawing.RectI'/> objects differ in location or size.
@@ -302,7 +317,7 @@ namespace Alternet.Drawing
         /// </summary>
         public static RectI Parse(string source)
         {
-            IFormatProvider formatProvider = BaseApplication.InvariantEnglishUS;
+            IFormatProvider formatProvider = App.InvariantEnglishUS;
 
             TokenizerHelper th = new(source, formatProvider);
 
@@ -329,6 +344,18 @@ namespace Alternet.Drawing
             th.LastTokenRequired();
 
             return value;
+        }
+
+        /// <summary>
+        /// Creates new rectangle with the specified width and height.
+        /// </summary>
+        /// <param name="width">Rectangle width.</param>
+        /// <param name="height">Rectangle height.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RectI Create(int width, int height)
+        {
+            return new(0, 0, width, height);
         }
 
         /// <summary>
@@ -549,6 +576,11 @@ namespace Alternet.Drawing
             int[] values = { x, y, width, height };
 
             return StringUtils.ToString<int>(names, values);
+        }
+
+        public readonly RectD PixelToDip(Coord? scaleFactor = null)
+        {
+            return GraphicsFactory.PixelToDip(this, scaleFactor);
         }
 
         /// <summary>

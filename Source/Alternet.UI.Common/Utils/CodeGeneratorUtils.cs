@@ -115,7 +115,7 @@ namespace Alternet.UI
             // be used. In order to create the delegate that will
             // handle the event, a MethodInfo from the finished type
             // is required.
-            Type? finished = tb.CreateType();
+            Type? finished = tb.CreateTypeInfo();
             MethodInfo? eventHandler = finished?.GetMethod(dynamicHandlerName);
 
             // Use the MethodInfo to create a delegate of the correct
@@ -144,7 +144,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Emits <see cref="BaseApplication.Log"/> with <paramref name="value"/> parameter.
+        /// Emits <see cref="App.Log"/> with <paramref name="value"/> parameter.
         /// </summary>
         /// <param name="il">Code generator.</param>
         /// <param name="value">Text string.</param>
@@ -161,7 +161,7 @@ namespace Alternet.UI
         /// <param name="text">Text string.</param>
         public static void Log(string text)
         {
-            BaseApplication.Log(text);
+            App.Log(text);
         }
 
         /// <summary>
@@ -172,7 +172,7 @@ namespace Alternet.UI
         public static void LogEvent(string eventId, string text)
         {
             if(LogUtils.IsEventLogged(eventId))
-                BaseApplication.Log(text);
+                App.Log(text);
         }
 
         internal static void EmitEventLog(ILGenerator il, string eventId, string value)

@@ -20,26 +20,9 @@ namespace Alternet.UI
     [ControlCategory("Common")]
     public partial class CheckBox : ButtonBase
     {
-        /// <summary>
-        /// Identifies the <see cref="IsChecked"/> dependency property.
-        /// </summary>
-        public static readonly DependencyProperty IsCheckedProperty =
-            DependencyProperty.Register(
-                    "IsChecked",
-                    typeof(bool),
-                    typeof(CheckBox),
-                    new FrameworkPropertyMetadata(
-                            false,
-                            PropMetadataOption.BindsTwoWayByDefault | PropMetadataOption.AffectsPaint,
-                            new PropertyChangedCallback(OnIsCheckedPropertyChanged),
-                            new CoerceValueCallback(CoerceIsChecked),
-                            isAnimationProhibited: true,
-                            UpdateSourceTrigger.PropertyChanged));
-
         private bool allowAllStatesForUser;
         private bool alignRight;
         private bool threeState;
-        private bool ignoreEvent;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CheckBox"/> class with the specified text.
@@ -56,8 +39,6 @@ namespace Alternet.UI
         /// </summary>
         public CheckBox()
         {
-            if (BaseApplication.IsWindowsOS && BaseApplication.PlatformKind == UIPlatformKind.WxWidgets)
-                UserPaint = true;
         }
 
         /// <summary>
@@ -88,7 +69,7 @@ namespace Alternet.UI
                 if (CheckState == value)
                     return;
                 Handler.CheckState = value;
-                RaiseCheckedChanged(EventArgs.Empty);
+                RaiseCheckedChanged();
             }
         }
 
@@ -198,8 +179,22 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.CheckBox;
 
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
+        [Browsable(false)]
+        internal new string Title
+        {
+            get => base.Title;
+            set => base.Title = value;
+        }
+
         /// <summary>
-        /// Gets a <see cref="WxControlHandler"/> associated with this class.
+        /// Gets a <see cref="ICheckBoxHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         internal new ICheckBoxHandler Handler => (ICheckBoxHandler)base.Handler;
@@ -233,41 +228,19 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Binds <see cref="IsChecked"/> to the specified property of the
-        /// <see cref="FrameworkElement.DataContext"/>
-        /// </summary>
-        /// <param name="propName">Property name.</param>
-        public void BindIsChecked(string propName)
-        {
-            Binding myBinding = new(propName) { Mode = BindingMode.TwoWay };
-            BindingOperations.SetBinding(this, CheckBox.IsCheckedProperty, myBinding);
-        }
-
-        /// <summary>
         /// Raises the <see cref="CheckedChanged"/> event and calls
         /// <see cref="OnCheckedChanged(EventArgs)"/>.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        public void RaiseCheckedChanged(EventArgs e)
+        public void RaiseCheckedChanged()
         {
-            OnCheckedChanged(e);
-            CheckedChanged?.Invoke(this, e);
-            ignoreEvent = true;
-            try
-            {
-                SetValue(IsCheckedProperty, IsChecked);
-            }
-            finally
-            {
-                ignoreEvent = false;
-            }
+            OnCheckedChanged(EventArgs.Empty);
+            CheckedChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateCheckBoxHandler(this);
+            return ControlFactory.Handler.CreateCheckBoxHandler(this);
         }
 
         /// <summary>
@@ -279,19 +252,16 @@ namespace Alternet.UI
         {
         }
 
-        /// <summary>
-        /// Callback for changes to the IsChecked property
-        /// </summary>
-        private static void OnIsCheckedPropertyChanged(
-            DependencyObject d,
-            DependencyPropertyChangedEventArgs e)
+        /// <inheritdoc/>
+        protected override void BindHandlerEvents()
         {
-            CheckBox control = (CheckBox)d;
-            if (control.ignoreEvent)
-                return;
-            control.IsChecked = (bool)e.NewValue;
+            base.BindHandlerEvents();
         }
 
-        private static object CoerceIsChecked(DependencyObject d, object value) => value;
+        /// <inheritdoc/>
+        protected override void UnbindHandlerEvents()
+        {
+            base.UnbindHandlerEvents();
+        }
     }
 }

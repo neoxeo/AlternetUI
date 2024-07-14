@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using Alternet.Drawing;
 
@@ -8,6 +9,18 @@ namespace Alternet.UI
     /// </summary>
     public static class Clipboard
     {
+        private static IClipboardHandler? handler;
+
+        /// <summary>
+        /// Gets or sets <see cref="IClipboardHandler"/> used by the <see cref="Clipboard"/>.
+        /// </summary>
+        public static IClipboardHandler Handler
+        {
+            get => handler ??= App.Handler.CreateClipboardHandler();
+
+            set => handler = value;
+        }
+
         /// <summary>
         /// Gets a value indicating whether there is data on the
         /// <see cref='Clipboard'/> that is in the
@@ -45,16 +58,31 @@ namespace Alternet.UI
         /// </summary>
         public static IDataObject? GetDataObject()
         {
-            return NativePlatform.Default.ClipboardGetDataObject();
+            return Handler.GetData();
         }
 
         /// <summary>
         /// Clears the Clipboard and then adds data to it.
         /// </summary>
         /// <param name="value">The data to place on the Clipboard.</param>
-        public static void SetDataObject(IDataObject value)
+        public static void SetDataObject(IDataObject? value)
         {
-            NativePlatform.Default.ClipboardSetDataObject(value);
+            SetDataObject(value, copy: false);
+        }
+
+        /// <summary>
+        /// Places a specified data object on the system Clipboard and accepts a Boolean
+        /// parameter that indicates whether the data object should be left on the Clipboard
+        /// when the application exits.</summary>
+        /// <param name="data">A data object (an object that implements <see cref="IDataObject" />)
+        /// to place on the system Clipboard.</param>
+        /// <param name="copy">
+        ///   <see langword="true" /> to leave the data on the system Clipboard when
+        ///   the application exits; <see langword="false" /> to clear the data
+        ///   from the system Clipboard when the application exits.</param>
+        public static void SetDataObject(IDataObject? data, bool copy)
+        {
+            Handler.SetData(data ?? DataObject.Empty);
         }
 
         /// <summary>

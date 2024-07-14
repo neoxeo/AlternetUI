@@ -29,11 +29,11 @@ namespace Alternet.UI
 
         static TextBox()
         {
-            var choices = BasePropertyGrid.CreateChoices();
+            var choices = PropertyGrid.CreateChoices();
             choices.Add(PropNameStrings.Default.Left, GenericAlignment.Left);
             choices.Add(PropNameStrings.Default.Right, GenericAlignment.Right);
             choices.Add(PropNameStrings.Default.Center, GenericAlignment.CenterHorizontal);
-            var prm = BasePropertyGrid.GetNewItemParams(typeof(TextBox), nameof(TextBox.TextAlign));
+            var prm = PropertyGrid.GetNewItemParams(typeof(TextBox), nameof(TextBox.TextAlign));
             prm.EnumIsFlags = false;
             prm.Choices = choices;
 
@@ -47,8 +47,6 @@ namespace Alternet.UI
         /// </summary>
         public TextBox()
         {
-            if (BaseApplication.IsWindowsOS && BaseApplication.PlatformKind == UIPlatformKind.WxWidgets)
-                UserPaint = true;
         }
 
         /// <summary>
@@ -66,7 +64,7 @@ namespace Alternet.UI
         /// </summary>
         /// <remarks>
         /// You need to call <see cref="IdleAction"/> in the
-        /// <see cref="BaseApplication.Idle"/> event handler in order to enable
+        /// <see cref="App.Idle"/> event handler in order to enable
         /// <see cref="CurrentPositionChanged"/> event firing.
         /// </remarks>
         public event EventHandler? CurrentPositionChanged;
@@ -137,7 +135,7 @@ namespace Alternet.UI
         /// </summary>
         /// <remarks>
         /// <see cref="IValueValidator"/> allows to set limitations on possible values of
-        /// the <see cref="Text"/> property. See <see cref="IValueValidatorText"/> and
+        /// the <see cref="Control.Text"/> property. See <see cref="IValueValidatorText"/> and
         /// <see cref="ValueValidatorFactory.CreateValueValidatorText"/>.
         /// </remarks>
         [Browsable(false)]
@@ -182,6 +180,7 @@ namespace Alternet.UI
                 if (multiline == value)
                     return;
                 multiline = value;
+                Handler.Multiline = value;
                 MultilineChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -272,7 +271,7 @@ namespace Alternet.UI
         /// When this property is set to <see langword="true"/>, the contents
         /// of the control cannot be changed by the user at runtime.
         /// With this property set to <see langword="true"/>, you can still
-        /// set the value of the <see cref="Text"/> property in code.
+        /// set the value of the <see cref="Control.Text"/> property in code.
         /// </remarks>
         public virtual bool ReadOnly
         {
@@ -287,6 +286,7 @@ namespace Alternet.UI
                     return;
 
                 readOnly = value;
+                Handler.ReadOnly = value;
                 ReadOnlyChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -324,6 +324,7 @@ namespace Alternet.UI
                 if (hasBorder == value)
                     return;
                 hasBorder = value;
+                Handler.HasBorder = value;
                 HasBorderChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -889,12 +890,9 @@ namespace Alternet.UI
         /// <summary>
         ///     Raises the <see cref="TextMaxLength"/> event.
         /// </summary>
-        /// <param name="e">
-        ///     An <see cref="EventArgs"/> that contains the event data.
-        /// </param>
-        public virtual void OnTextMaxLength(EventArgs e)
+        public virtual void OnTextMaxLength()
         {
-            TextMaxLength?.Invoke(this, e);
+            TextMaxLength?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -907,7 +905,7 @@ namespace Alternet.UI
         {
             // Under MacOs url parameter of the event data is always empty,
             // so event is not fired. Also on MacOs url is opened automatically.
-            if (BaseApplication.IsMacOS)
+            if (App.IsMacOS)
                 return;
             TextUrl?.Invoke(this, e);
             if (e.Cancel)
@@ -925,12 +923,9 @@ namespace Alternet.UI
         /// <summary>
         ///     Raises the <see cref="EnterPressed"/> event.
         /// </summary>
-        /// <param name="e">
-        ///     An <see cref="EventArgs"/> that contains the event data.
-        /// </param>
-        public virtual void OnEnterPressed(EventArgs e)
+        public virtual void OnEnterPressed()
         {
-            EnterPressed?.Invoke(this, e);
+            EnterPressed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <inheritdoc/>
@@ -1183,7 +1178,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Call this method in <see cref="BaseApplication.Idle"/> event handler
+        /// Call this method in <see cref="App.Idle"/> event handler
         /// in order to update information related to the current selection and caret position.
         /// </summary>
         public virtual void IdleAction()
@@ -1518,7 +1513,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateTextBoxHandler(this);
+            return ControlFactory.Handler.CreateTextBoxHandler(this);
         }
 
         /// <inheritdoc/>

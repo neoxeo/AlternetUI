@@ -20,6 +20,32 @@ namespace Alternet.UI
             {
                 CreateAndAttachHandler();
             }
+
+            void CreateAndAttachHandler()
+            {
+                if (GetRequiredHandlerType() == HandlerType.Native)
+                    handler = CreateHandler();
+                else
+                    handler = ControlFactory.Handler.CreateControlHandler(this);
+
+                handler.Attach(this);
+
+                handler.Visible = Visible;
+                handler.SetEnabled(Enabled);
+                ApplyChildren();
+
+                OnHandlerAttached(EventArgs.Empty);
+
+                BindHandlerEvents();
+
+                void ApplyChildren()
+                {
+                    if (!HasChildren)
+                        return;
+                    for (var i = 0; i < Children.Count; i++)
+                        handler.OnChildInserted(Children[i]);
+                }
+            }
         }
 
         /// <summary>
@@ -32,6 +58,7 @@ namespace Alternet.UI
             if (handler == null)
                 throw new InvalidOperationException();
             OnHandlerDetaching(EventArgs.Empty);
+            UnbindHandlerEvents();
             handler.Detach();
             handler = null;
         }
@@ -45,15 +72,15 @@ namespace Alternet.UI
         {
             var specifiedWidth = SuggestedWidth;
             var specifiedHeight = SuggestedHeight;
-            if (!double.IsNaN(specifiedWidth) && !double.IsNaN(specifiedHeight))
+            if (!Coord.IsNaN(specifiedWidth) && !Coord.IsNaN(specifiedHeight))
                 return new SizeD(specifiedWidth, specifiedHeight);
 
             var maxSize = GetChildrenMaxPreferredSizePadded(availableSize);
             var maxWidth = maxSize.Width;
             var maxHeight = maxSize.Height;
 
-            var width = double.IsNaN(specifiedWidth) ? maxWidth : specifiedWidth;
-            var height = double.IsNaN(specifiedHeight) ? maxHeight : specifiedHeight;
+            var width = Coord.IsNaN(specifiedWidth) ? maxWidth : specifiedWidth;
+            var height = Coord.IsNaN(specifiedHeight) ? maxHeight : specifiedHeight;
 
             return new SizeD(width, height);
         }
@@ -82,8 +109,8 @@ namespace Alternet.UI
         /// </summary>
         protected virtual SizeD GetChildrenMaxPreferredSize(SizeD availableSize)
         {
-            double maxWidth = 0;
-            double maxHeight = 0;
+            Coord maxWidth = 0;
+            Coord maxHeight = 0;
 
             foreach (var control in AllChildrenInLayout)
             {
@@ -97,102 +124,90 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Raises the <see cref="SizeChanged"/> event.
+        /// Unbinds events from the handler.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnSizeChanged(EventArgs e)
+        protected virtual void UnbindHandlerEvents()
         {
-            SizeChanged?.Invoke(this, e);
-            OnResize(e);
+            Handler.TextChanged = null;
+            Handler.HandleCreated = null;
+            Handler.HandleDestroyed = null;
+            Handler.Activated = null;
+            Handler.Deactivated = null;
+            Handler.Idle = null;
+            Handler.Paint = null;
+            Handler.VisibleChanged = null;
+            Handler.MouseEnter = null;
+            Handler.MouseLeave = null;
+            Handler.MouseCaptureLost = null;
+            Handler.DragLeave = null;
+            Handler.GotFocus = null;
+            Handler.LostFocus = null;
+            Handler.SizeChanged = null;
+            Handler.LocationChanged = null;
+            Handler.VerticalScrollBarValueChanged = null;
+            Handler.HorizontalScrollBarValueChanged = null;
+            Handler.DragOver = null;
+            Handler.DragEnter = null;
+            Handler.DragDrop = null;
+            Handler.SystemColorsChanged = null;
+            Handler.DpiChanged = null;
         }
 
         /// <summary>
-        /// Called when when the application finishes processing events and is
-        /// about to enter the idle state.
+        /// Binds events to the handler.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnIdle(EventArgs e)
+        protected virtual void BindHandlerEvents()
         {
+            Handler.MouseEnter = RaiseMouseEnterOnTarget;
+            Handler.MouseLeave = RaiseMouseLeaveOnTarget;
+            Handler.HandleCreated = RaiseHandleCreated;
+            Handler.HandleDestroyed = RaiseHandleDestroyed;
+            Handler.Activated = RaiseActivated;
+            Handler.Deactivated = RaiseDeactivated;
+            Handler.Paint = OnHandlerPaint;
+            Handler.VisibleChanged = OnHandlerVisibleChanged;
+            Handler.MouseCaptureLost = RaiseMouseCaptureLost;
+            Handler.GotFocus = RaiseGotFocus;
+            Handler.LostFocus = RaiseLostFocus;
+            Handler.Idle = RaiseIdle;
+            Handler.VerticalScrollBarValueChanged = OnHandlerVerticalScrollBarValueChanged;
+            Handler.HorizontalScrollBarValueChanged = OnHandlerHorizontalScrollBarValueChanged;
+            Handler.DragLeave = RaiseDragLeave;
+            Handler.SizeChanged = RaiseHandlerSizeChanged;
+            Handler.LocationChanged = RaiseHandlerLocationChanged;
+            Handler.DragOver = RaiseDragOver;
+            Handler.DragEnter = RaiseDragEnter;
+            Handler.DragDrop = RaiseDragDrop;
+            Handler.TextChanged = OnHandlerTextChanged;
+            Handler.SystemColorsChanged = RaiseSystemColorsChanged;
+            Handler.DpiChanged = OnHandlerDpiChanged;
         }
 
         /// <summary>
-        /// Raises the <see cref="Control.Resize" /> event.
+        /// Called to modify text before it is assigned to the handler.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs" /> that contains the event data.</param>
-        protected virtual void OnResize(EventArgs e)
+        /// <param name="s">New text.</param>
+        protected virtual string CoerceTextForHandler(string s)
         {
-            Resize?.Invoke(this, e);
+            return s;
         }
 
         /// <summary>
-        /// Raises the <see cref="Scroll"/> event.
+        /// Called when handler's text property is changed.
         /// </summary>
-        /// <param name="e">A <see cref="ScrollEventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnScroll(ScrollEventArgs e)
+        protected virtual void OnHandlerTextChanged()
         {
-            Scroll?.Invoke(this, e);
-        }
+            if (handlerTextChanging > 0)
+                return;
 
-        /// <summary>
-        /// Raises the <see cref="LocationChanged"/> event.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnLocationChanged(EventArgs e) =>
-            LocationChanged?.Invoke(this, e);
-
-        /// <summary>
-        /// Called when a <see cref="Control"/> is inserted into
-        /// the <see cref="Control.Children"/>.
-        /// </summary>
-        protected virtual void OnChildInserted(Control childControl)
-        {
-        }
-
-        /// <summary>
-        /// Called when a <see cref="Control"/> is removed from the
-        /// <see cref="Control.Children"/> collections.
-        /// </summary>
-        protected virtual void OnChildRemoved(Control childControl)
-        {
-        }
-
-        /// <summary>
-        /// Called when the conrol's handle is created.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnHandleCreated(EventArgs e)
-        {
-            if (BackgroundColor is not null)
-                Handler.BackgroundColor = BackgroundColor;
-            if (ForegroundColor is not null)
-                Handler.ForegroundColor = ForegroundColor;
-        }
-
-        /// <summary>
-        /// Called when the native conrol size is changed.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnNativeSizeChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the conrol's handle is destroyed.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnHandleDestroyed(EventArgs e)
-        {
-            if(measureCanvas is not null)
+            handlerTextChanging++;
+            try
             {
-                measureCanvas.Dispose();
-                measureCanvas = null;
+                Text = Handler.Text;
+            }
+            finally
+            {
+                handlerTextChanging--;
             }
         }
 
@@ -207,160 +222,6 @@ namespace Alternet.UI
         protected void SetStyle(ControlStyles flag, bool value)
         {
             controlStyle = value ? (controlStyle | flag) : (controlStyle & ~flag);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="KeyPress" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="KeyPressEventArgs" /> that contains the event data.</param>
-        protected virtual void OnKeyPress(KeyPressEventArgs e)
-        {
-            KeyPress?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="Control.TextChanged" /> event.</summary>
-        /// <param name="e">An <see cref="EventArgs" /> that contains the event data.</param>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        protected virtual void OnTextChanged(EventArgs e)
-        {
-            TextChanged?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Called when the control is clicked.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnClick(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the value of the <see cref="Visible"/> property changes.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnVisibleChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the control loses mouse capture.
-        /// </summary>
-        protected virtual void OnMouseCaptureLost(EventArgs e)
-        {
-            IsMouseLeftButtonDown = false;
-        }
-
-        /// <summary>
-        /// Called when the mouse pointer enters the control.
-        /// </summary>
-        protected virtual void OnMouseEnter(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the left mouse button was pressed
-        /// </summary>
-        protected virtual void OnMouseLeftButtonDown(MouseEventArgs e)
-        {
-            /*Application.Log($"{GetType()}.OnMouseLeftButtonDown");*/
-
-            IsMouseLeftButtonDown = true;
-            RaiseCurrentStateChanged();
-            Designer?.RaiseMouseLeftButtonDown(this, e);
-            MouseLeftButtonDown?.Invoke(this, e);
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the left mouse button was released
-        /// </summary>
-        protected virtual void OnMouseLeftButtonUp(MouseEventArgs e)
-        {
-            IsMouseLeftButtonDown = false;
-            RaiseCurrentStateChanged();
-            MouseLeftButtonUp?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Called when <see cref="IsMouseOver"/> property is changed.
-        /// </summary>
-        protected virtual void OnIsMouseOverChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the value of the <see cref="Title"/> property changes.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
-        protected virtual void OnTitleChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when <see cref="CurrentStateChanged"/> property is changed.
-        /// </summary>
-        protected virtual void OnCurrentStateChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the mouse pointer leaves the control.
-        /// </summary>
-        protected virtual void OnMouseLeave(EventArgs e)
-        {
-            IsMouseLeftButtonDown = false;
-        }
-
-        /// <summary>
-        /// Called before the current control handler is detached.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnHandlerDetaching(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Paints the background of the control.
-        /// </summary>
-        /// <param name="e">A <see cref="PaintEventArgs" /> that contains information
-        /// about the control to paint.</param>
-        /// <remarks>
-        /// Currently this method is provided for the compatibility and is not called.
-        /// </remarks>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        protected virtual void OnPaintBackground(PaintEventArgs e)
-        {
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the right mouse button was pressed
-        /// </summary>
-        protected virtual void OnMouseRightButtonDown(MouseEventArgs e)
-        {
-            MouseRightButtonDown?.Invoke(this, e);
-            ShowPopupMenu(ContextMenuStrip);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="QueryContinueDrag" /> event.</summary>
-        /// <param name="e">A <see cref="QueryContinueDragEventArgs" /> that
-        /// contains the event data.</param>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        protected virtual void OnQueryContinueDrag(QueryContinueDragEventArgs e)
-        {
-            QueryContinueDrag?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="KeyUp" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="KeyEventArgs" /> that contains the event data.</param>
-        protected virtual void OnKeyUp(KeyEventArgs e)
-        {
-            KeyUp?.Invoke(this, e);
         }
 
         /// <summary>
@@ -393,21 +254,14 @@ namespace Alternet.UI
             return result;
         }
 
-        /// <summary>
-        /// Raises the <see cref="KeyDown" /> event.
-        /// </summary>
-        /// <param name="e">A <see cref="KeyEventArgs" /> that contains the event data.</param>
-        protected virtual void OnKeyDown(KeyEventArgs e)
-        {
-            KeyDown?.Invoke(this, e);
-#if DEBUG
-            KeyInfo.Run(KnownKeys.ShowDeveloperTools, e, NativePlatform.Default.ShowDeveloperTools);
-#endif
-        }
-
         /// <inheritdoc/>
         protected override void DisposeManaged()
         {
+            if (FocusedControl == this)
+                FocusedControl = null;
+            if (HoveredControl == this)
+                HoveredControl = null;
+
             Designer?.RaiseDisposed(this);
             /*var children = Handler.AllChildren.ToArray();*/
 
@@ -420,43 +274,6 @@ namespace Alternet.UI
             /* foreach (var child in children) child.Dispose();*/
 
             DetachHandler();
-        }
-
-        /// <summary>
-        /// Called when the value of the <see cref="Margin"/> property changes.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnMarginChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the value of the <see cref="Font"/> property changes.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        protected virtual void OnFontChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the value of the <see cref="Padding"/> property changes.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnPaddingChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Called when the control is redrawn. See <see cref="Paint"/> for details.
-        /// </summary>
-        /// <param name="e">An <see cref="PaintEventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnPaint(PaintEventArgs e)
-        {
         }
 
         /// <summary>
@@ -473,122 +290,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Called after a new control handler is attached.
-        /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        protected virtual void OnHandlerAttached(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Raises the <see cref="DragDrop"/> event.
-        /// </summary>
-        /// <param name="e">The <see cref="DragEventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnDragDrop(DragEventArgs e)
-        {
-            DragDrop?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="DragStart"/> event.
-        /// </summary>
-        /// <param name="e">The <see cref="DragStartEventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnDragStart(DragStartEventArgs e)
-        {
-            DragStart?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="DragOver"/> event.
-        /// </summary>
-        /// <param name="e">The <see cref="DragEventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnDragOver(DragEventArgs e)
-        {
-            DragOver?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="DragEnter"/> event.
-        /// </summary>
-        /// <param name="e">The <see cref="DragEventArgs"/>
-        /// that contains the event data.</param>
-        protected virtual void OnDragEnter(DragEventArgs e)
-        {
-            DragEnter?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="DragLeave"/> event.
-        /// </summary>
-        /// <param name="e">The <see cref="EventArgs"/> that
-        /// contains the event data.</param>
-        protected virtual void OnDragLeave(EventArgs e)
-        {
-            DragLeave?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// This method is invoked when the control gets focus.
-        /// </summary>
-        /// <param name="e">The <see cref="EventArgs"/> that
-        /// contains the event data.</param>
-        protected virtual void OnGotFocus(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// This method is invoked when the control lost focus.
-        /// </summary>
-        /// <param name="e">The <see cref="EventArgs"/> that
-        /// contains the event data.</param>
-        protected virtual void OnLostFocus(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the mouse button was pressed
-        /// </summary>
-        protected virtual void OnMouseDoubleClick(MouseEventArgs e)
-        {
-            LastDoubleClickTimestamp = e.Timestamp;
-            MouseDoubleClick?.Invoke(this, e);
-        }
-
-        /// <summary>
-        ///     Virtual method reporting a mouse wheel rotation
-        /// </summary>
-        protected virtual void OnMouseWheel(MouseEventArgs e)
-        {
-            MouseWheel?.Invoke(this, e);
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the right mouse button was released
-        /// </summary>
-        protected virtual void OnMouseRightButtonUp(MouseEventArgs e)
-        {
-            MouseRightButtonUp?.Invoke(this, e);
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the mouse button was pressed
-        /// </summary>
-        protected virtual void OnMouseDown(MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                dragEventArgs = e;
-                dragEventMousePos = Mouse.GetPosition(this);
-            }
-
-            MouseDown?.Invoke(this, e);
-        }
-
-        /// <summary>
         /// Gets whether child control ignores layout.
         /// </summary>
         /// <param name="control"></param>
@@ -598,74 +299,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Called when an exception need to be processed.
+        /// Gets size of the native control based on the specified available size.
         /// </summary>
-        /// <param name="e">An <see cref="ControlExceptionEventArgs"/> that contains
-        /// the event data.</param>
-        protected virtual void OnProcessException(ControlExceptionEventArgs e)
-        {
-        }
-
-        /// <summary>
-        ///     Virtual method reporting a mouse move
-        /// </summary>
-        protected virtual void OnMouseMove(MouseEventArgs e)
-        {
-            MouseMove?.Invoke(this, e);
-            if (dragEventArgs is null)
-                return;
-            var mousePos = Mouse.GetPosition(this);
-            var args = new DragStartEventArgs(dragEventMousePos, mousePos, dragEventArgs, e);
-            RaiseDragStart(args);
-            if (args.DragStarted || args.Cancel)
-                dragEventArgs = null;
-        }
-
-        /// <summary>
-        ///     Virtual method reporting the mouse button was released
-        /// </summary>
-        protected virtual void OnMouseUp(MouseEventArgs e)
-        {
-            MouseUp?.Invoke(this, e);
-            /*if (e.LeftButton == MouseButtonState.Released)*/
-            dragEventArgs = null;
-        }
-
-        /// <summary>
-        /// Raises the <see cref="ToolTipChanged"/> event.
-        /// </summary>
-        /// <param name="e">Event arguments.</param>
-        protected virtual void OnToolTipChanged(EventArgs e)
-        {
-        }
-
-        /// <summary>
-        /// Raises the <see cref="ParentChanged"/> event.
-        /// </summary>
-        /// <param name="e">Event arguments.</param>
-        protected virtual void OnParentChanged(EventArgs e)
-        {
-            Designer?.RaiseParentChanged(this);
-            ParentChanged?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="HelpRequested" /> event.</summary>
-        /// <param name="e">A <see cref="HelpEventArgs" /> that
-        /// contains the event data.</param>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        protected virtual void OnHelpRequested(HelpEventArgs e)
-        {
-            if (HelpRequested != null)
-            {
-                HelpRequested(this, e);
-                e.Handled = true;
-            }
-
-            if (!e.Handled)
-                Parent?.OnHelpRequested(e);
-        }
-
+        /// <param name="availableSize">Available size for the control.</param>
+        /// <returns></returns>
         protected virtual SizeD GetNativeControlSize(SizeD availableSize)
         {
             if (IsDummy)
@@ -673,8 +310,8 @@ namespace Alternet.UI
             var s = Handler.GetPreferredSize(availableSize);
             s += Padding.Size;
             return new SizeD(
-                double.IsNaN(SuggestedWidth) ? s.Width : SuggestedWidth,
-                double.IsNaN(SuggestedHeight) ? s.Height : SuggestedHeight);
+                Coord.IsNaN(SuggestedWidth) ? s.Width : SuggestedWidth,
+                Coord.IsNaN(SuggestedHeight) ? s.Height : SuggestedHeight);
         }
 
         /// <summary>
@@ -689,20 +326,40 @@ namespace Alternet.UI
         /// </remarks>
         protected virtual IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateControlHandler(this);
+            return ControlFactory.Handler.CreateControlHandler(this);
         }
-
-        protected void SetVisibleValue(bool value) => visible = value;
 
         /// <summary>
-        /// Called when the enabled of the <see cref="Enabled"/> property changes.
+        /// Paints internal caret for user-painted controls.
+        /// This method is used on some platforms when system caret
+        /// is not available.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the
-        /// event data.</param>
-        protected virtual void OnEnabledChanged(EventArgs e)
+        /// <param name="e">Paint arguments.</param>
+        protected virtual void PaintCaret(PaintEventArgs e)
         {
-            RaiseCurrentStateChanged();
+            if (!UserPaint)
+                return;
+            if (!Focused)
+                return;
+            if (caretInfo is null)
+                return;
+
+            if (caretInfo.IsDisposed)
+                CaretInfo = null;
+
+            if (!caretInfo.Visible)
+                return;
+
+            var caretColor = PlessCaretHandler.CaretColor.Get(IsDarkBackground);
+            e.Graphics.FillRectangle(caretColor.AsBrush, PixelToDip(caretInfo.Rect));
         }
+
+        /// <summary>
+        /// Sets visible field value. This is internal method and should not be called
+        /// directly.
+        /// </summary>
+        /// <param name="value"></param>
+        protected void SetVisibleValue(bool value) => visible = value;
 
         /// <summary>
         /// Gets required control handler type.

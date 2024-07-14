@@ -7,6 +7,8 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Alternet.UI;
 
+using SkiaSharp;
+
 namespace Alternet.Drawing
 {
     /// <summary>
@@ -34,97 +36,175 @@ namespace Alternet.Drawing
     [DebuggerDisplay("{NameAndARGBValue}")]
     [Serializable]
     [TypeConverter(typeof(ColorConverter))]
-    public sealed partial class Color : IEquatable<Color>
+    public partial class Color : IEquatable<Color>
     {
-        // Shift counts and bit masks for A, R, G, B components in ARGB mode
-
         /// <summary>
         /// Shift count for Alpha component of the color.
         /// </summary>
-        public const int ARGBAlphaShift = 24;
+        public static readonly int ARGBAlphaShift = 24;
 
         /// <summary>
         /// Shift count for Red component of the color.
         /// </summary>
-        public const int ARGBRedShift = 16;
+        public static readonly int ARGBRedShift = 16;
 
         /// <summary>
         /// Shift count for Green component of the color.
         /// </summary>
-        public const int ARGBGreenShift = 8;
+        public static readonly int ARGBGreenShift = 8;
 
         /// <summary>
         /// Shift count for Blue component of the color.
         /// </summary>
-        public const int ARGBBlueShift = 0;
+        public static readonly int ARGBBlueShift = 0;
 
         /// <summary>
         /// Bit mask for Alpha component of the color.
         /// </summary>
-        public const uint ARGBAlphaMask = 0xFFu << ARGBAlphaShift;
+        public static readonly uint ARGBAlphaMask = 0xFFu << ARGBAlphaShift;
 
         /// <summary>
         /// Bit mask for Red component of the color.
         /// </summary>
-        public const uint ARGBRedMask = 0xFFu << ARGBRedShift;
+        public static readonly uint ARGBRedMask = 0xFFu << ARGBRedShift;
 
         /// <summary>
         /// Bit mask for Green component of the color.
         /// </summary>
-        public const uint ARGBGreenMask = 0xFFu << ARGBGreenShift;
+        public static readonly uint ARGBGreenMask = 0xFFu << ARGBGreenShift;
 
         /// <summary>
         /// Bit mask for Blue component of the color.
         /// </summary>
-        public const uint ARGBBlueMask = 0xFFu << ARGBBlueShift;
+        public static readonly uint ARGBBlueMask = 0xFFu << ARGBBlueShift;
 
         /// <summary>
-        /// Represents a color that is <c>null</c>.
+        /// Represents an empty color.
         /// </summary>
         public static readonly Color Empty = new();
 
-        // NOTE : The "zero" pattern (all members being 0) must represent
-        //      : "not set". This allows "Color c;" to be correct.
-        private const short StateKnownColorValid = 0x0001;
-        private const short StateARGBValueValid = 0x0002;
-        private const short StateValueMask = StateARGBValueValid;
-        private const short StateNameValid = 0x0008;
-        private const long NotDefinedValue = 0;
-
         // User supplied name of color. Will not be filled in if
         // we map to a "knowncolor"
-        private readonly string? name; // Do not rename (binary serialization)
+        private readonly string? name;
 
-        // Standard 32bit sRGB (ARGB)
-        private readonly long value; // Do not rename (binary serialization)
+        private ColorStruct color;
 
         // Ignored, unless "state" says it is valid
-        private readonly short knownColor; // Do not rename (binary serialization)
+#pragma warning disable
+        private readonly KnownColor knownColor;
+#pragma warning restore
 
-        // State flags.
-        private readonly short state; // Do not rename (binary serialization)
+        private readonly StateFlags state;
 
         private SolidBrush? asBrush;
         private Pen? asPen;
+        private SKPaint? fillPaint;
+        private SKPaint? strokePaint;
+        private SKPaint? strokeAndFillPaint;
 
-        internal Color()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color()
         {
         }
 
-        internal Color(KnownColor knownColor)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class with the specified parameters.
+        /// </summary>
+        /// <param name="red">Red component of the color.</param>
+        /// <param name="green">Green component of the color.</param>
+        /// <param name="blue">Blue component of the color.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(byte red, byte green, byte blue)
         {
-            value = 0;
-            state = StateKnownColorValid;
-            name = null;
-            this.knownColor = unchecked((short)knownColor);
+            color.A = 255;
+            color.R = red;
+            color.G = green;
+            color.B = blue;
+            state = StateFlags.ValueValid;
         }
 
-        private Color(long value, short state, string? name, KnownColor knownColor)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class with the specified parameters.
+        /// </summary>
+        /// <param name="red">Red component of the color.</param>
+        /// <param name="green">Green component of the color.</param>
+        /// <param name="blue">Blue component of the color.</param>
+        /// <param name="alpha">Alpha component of the color.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(byte alpha, byte red, byte green, byte blue)
         {
-            this.value = value;
+            color.A = alpha;
+            color.R = red;
+            color.G = green;
+            color.B = blue;
+            state = StateFlags.ValueValid;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class from the <see cref="ColorStruct"/>.
+        /// </summary>
+        /// <param name="value">Color specified using <see cref="ColorStruct"/> value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(ColorStruct value)
+        {
+            color = value;
+            state = StateFlags.ValueValid;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class from the <see cref="KnownColor"/>.
+        /// </summary>
+        /// <param name="knownColor">Color specified using <see cref="KnownColor"/> value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(KnownColor knownColor)
+        {
+            color.Value = 0;
+            state = StateFlags.KnownColorValid;
+            this.knownColor = knownColor;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class from
+        /// the <see cref="KnownSystemColor"/>.
+        /// </summary>
+        /// <param name="knownColor">Color specified using <see cref="KnownSystemColor"/> value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color(KnownSystemColor knownColor)
+        {
+            color.Value = 0;
+            state = StateFlags.KnownColorValid;
+            this.knownColor = (KnownColor)knownColor;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class with the specified parameters.
+        /// </summary>
+        /// <param name="value">Value specified as <see cref="uint"/>.</param>
+        /// <param name="state">State flags.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Color(uint value, StateFlags state)
+        {
+            color.Value = value;
+            this.state = state;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Color"/> class with the specified parameters.
+        /// </summary>
+        /// <param name="value">Value specified as <see cref="uint"/>.</param>
+        /// <param name="state">State flags.</param>
+        /// <param name="name">Name of the color.</param>
+        /// <param name="knownColor"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Color(uint value, StateFlags state, string? name, KnownColor knownColor)
+        {
+            color.Value = value;
             this.state = state;
             this.name = name;
-            this.knownColor = unchecked((short)knownColor);
+            this.knownColor = knownColor;
         }
 
         /// <summary>
@@ -143,6 +223,28 @@ namespace Alternet.Drawing
         public static event EventHandler<ValueConvertEventArgs<Color?, string?>>? ColorToDisplayString;
 
         /// <summary>
+        /// Enumerates color value state flags.
+        /// </summary>
+        [Flags]
+        public enum StateFlags : short
+        {
+            /// <summary>
+            /// KnownColor property is specified and valid.
+            /// </summary>
+            KnownColorValid = 0x0001,
+
+            /// <summary>
+            /// Value property is valid.
+            /// </summary>
+            ValueValid = 0x0002,
+
+            /// <summary>
+            /// Name property is valid.
+            /// </summary>
+            NameValid = 0x0004,
+        }
+
+        /// <summary>
         /// Gets the red component value of this <see cref="Color"/> structure.
         /// </summary>
         /// <value>The red component value of this <see cref="Color"/>.</value>
@@ -155,7 +257,15 @@ namespace Alternet.Drawing
         /// 0 to 255 with 0 representing no red and 255 representing fully red.
         /// </remarks>
         [Browsable(false)]
-        public byte R => unchecked((byte)(Value >> ARGBRedShift));
+        public byte R
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.R;
+            }
+        }
 
         /// <summary>
         /// Gets the green component value of this <see cref="Color"/> structure.
@@ -170,7 +280,15 @@ namespace Alternet.Drawing
         /// from 0 to 255 with 0 representing no green and 255 representing fully green.
         /// </remarks>
         [Browsable(false)]
-        public byte G => unchecked((byte)(Value >> ARGBGreenShift));
+        public byte G
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.G;
+            }
+        }
 
         /// <summary>
         /// Gets the blue component value of this <see cref="Color"/> structure.
@@ -185,7 +303,15 @@ namespace Alternet.Drawing
         /// 0 to 255 with 0 representing no blue and 255 representing fully blue.
         /// </remarks>
         [Browsable(false)]
-        public byte B => unchecked((byte)(Value >> ARGBBlueShift));
+        public byte B
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.B;
+            }
+        }
 
         /// <summary>
         /// Gets the alpha component value of this <see cref="Color"/> structure.
@@ -199,19 +325,41 @@ namespace Alternet.Drawing
         /// The color becomes more opaque as <see cref="A"/> approaches 255.
         /// </remarks>
         [Browsable(false)]
-        public byte A => unchecked((byte)(Value >> ARGBAlphaShift));
-
-        /// <summary>
-        /// Gets or sets reference to the saved native color.
-        /// </summary>
-        [Browsable(false)]
-        public object? NativeObject { get; set; }
+        public byte A
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.A;
+            }
+        }
 
         /// <summary>
         /// Returns <c>true</c> if color is opaque (<see cref="A"/> is 255).
         /// </summary>
         [Browsable(false)]
-        public bool IsOpaque => A == 255;
+        public bool IsOpaque
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return A == 255;
+            }
+        }
+
+        /// <summary>
+        /// Gets state flags of this object.
+        /// </summary>
+        [Browsable(false)]
+        public StateFlags State
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return state;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Color"/> structure is
@@ -226,7 +374,14 @@ namespace Alternet.Drawing
         /// <see cref="FromKnownColor(KnownColor)"/> method; otherwise, <c>false</c>.
         /// </value>
         [Browsable(false)]
-        public bool IsKnownColor => (state & StateKnownColorValid) != 0;
+        public bool IsKnownColor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return state.HasFlag(StateFlags.KnownColorValid);
+            }
+        }
 
         /// <summary>
         /// Specifies whether this <see cref="Color"/> structure is uninitialized.
@@ -234,7 +389,14 @@ namespace Alternet.Drawing
         /// <value>This property returns <c>true</c> if this color is uninitialized;
         /// otherwise, <c>false</c>.</value>
         [Browsable(false)]
-        public bool IsEmpty => state == 0;
+        public bool IsEmpty
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return state == 0;
+            }
+        }
 
         /// <summary>
         /// Specifies whether this <see cref="Color"/> structure is initialized.
@@ -242,7 +404,14 @@ namespace Alternet.Drawing
         /// <value>This property returns <c>true</c> if this color is initialized;
         /// otherwise, <c>false</c>.</value>
         [Browsable(false)]
-        public bool IsOk => state != 0;
+        public bool IsOk
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return state != 0;
+            }
+        }
 
         /// <summary>
         /// Gets <see cref="A"/> as hex <see cref="string"/>.
@@ -272,14 +441,27 @@ namespace Alternet.Drawing
         /// Gets RGB as hex <see cref="string"/> in the format #RRGGBB.
         /// </summary>
         [Browsable(false)]
-        public string RGBHex => $"#{RHex}{GHex}{BHex}";
+        public string RGBHex
+        {
+            get
+            {
+                return $"#{RHex}{GHex}{BHex}";
+            }
+        }
 
         /// <summary>
         /// Gets RGB as web <see cref="string"/> in the format "rgb({R},{G},{B})".
         /// Fo example for the black color it will return "rgb(0,0,0)".
         /// </summary>
         [Browsable(false)]
-        public string RGBWeb => $"rgb({R},{G},{B})";
+        public string RGBWeb
+        {
+            get
+            {
+                RequireArgb();
+                return $"rgb({color.R},{color.G},{color.B})";
+            }
+        }
 
         /// <summary>
         /// If color is opaque returns <see cref="RGBWeb"/>; otherwise
@@ -293,15 +475,17 @@ namespace Alternet.Drawing
         {
             get
             {
-                if (IsOpaque)
-                    return RGBWeb;
+                RequireArgb();
 
-                double a = A;
+                if (color.A == 255)
+                    return $"rgb({color.R},{color.G},{color.B})";
+
+                double a = color.A;
                 a /= 255;
 
                 var s = a.ToString("0.##");
 
-                return $"rgba({R},{G},{B}, {s})";
+                return $"rgba({color.R},{color.G},{color.B}, {s})";
             }
         }
 
@@ -319,7 +503,13 @@ namespace Alternet.Drawing
         /// the <see cref="FromName"/> method or the
         /// <see cref="FromKnownColor(KnownColor)"/> method; otherwise, <c>false</c>.
         /// </value>
-        public bool IsNamedColor => ((state & StateNameValid) != 0) || IsKnownColor;
+        public bool IsNamedColor
+        {
+            get
+            {
+                return state.HasFlag(StateFlags.NameValid | StateFlags.KnownColorValid);
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="Color"/> structure is
@@ -334,8 +524,13 @@ namespace Alternet.Drawing
         /// or the <see cref="FromKnownColor(KnownColor)"/> method;
         /// otherwise, <c>false</c>.
         /// </value>
-        public bool IsSystemColor =>
-            IsKnownColor && IsKnownColorSystem((KnownColor)knownColor);
+        public bool IsSystemColor
+        {
+            get
+            {
+                return IsKnownColor && IsKnownColorSystem(knownColor);
+            }
+        }
 
         /// <summary>
         /// Creates <see cref="SolidBrush"/> instance for this color.
@@ -343,9 +538,10 @@ namespace Alternet.Drawing
         [Browsable(false)]
         public SolidBrush AsBrush
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return asBrush ??= new(this);
+                return asBrush ??= new(this, immutable: true);
             }
         }
 
@@ -353,7 +549,56 @@ namespace Alternet.Drawing
         /// Creates <see cref="Pen"/> instance for this color.
         /// </summary>
         [Browsable(false)]
-        public Pen AsPen => GetAsPen(1);
+        public Pen AsPen
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return asPen ??= new(this, 1);
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="SKPaint"/> for this color with
+        /// <see cref="SKPaintStyle.Fill"/> style.
+        /// </summary>
+        [Browsable(false)]
+        public SKPaint AsStrokeAndFillPaint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return strokeAndFillPaint ??= GraphicsFactory.ColorToStrokeAndFillPaint(this);
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="SKPaint"/> for this color with
+        /// <see cref="SKPaintStyle.Stroke"/> style.
+        /// </summary>
+        [Browsable(false)]
+        public SKPaint AsStrokePaint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return strokePaint ??= GraphicsFactory.ColorToStrokePaint(this);
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="SKPaint"/> for this color with
+        /// <see cref="SKPaintStyle.Fill"/> style.
+        /// </summary>
+        [Browsable(false)]
+        public SKPaint AsFillPaint
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return fillPaint ??= GraphicsFactory.ColorToFillPaint(this);
+            }
+        }
 
         /// <summary>
         /// Gets the name of this <see cref="Color"/>.
@@ -369,50 +614,71 @@ namespace Alternet.Drawing
         {
             get
             {
-                if ((state & StateNameValid) != 0)
+                if (state.HasFlag(StateFlags.NameValid))
                 {
-                    if (name == null)
-                        throw new InvalidOperationException();
-                    return name;
+                    return name ?? string.Empty;
                 }
 
                 if (IsKnownColor)
                 {
                     string tablename =
-                        KnownColorNames.KnownColorToName((KnownColor)knownColor);
+                        KnownColorNames.KnownColorToName(knownColor);
                     if (tablename != null)
                         return tablename;
                     throw new InvalidOperationException(
-                        $"Could not find known color '{(KnownColor)knownColor}'");
+                        $"Could not find known color '{knownColor}'");
                 }
 
-                // if we reached here, just encode the value
-                return value.ToString("x");
+                return color.Value.ToString("x");
             }
         }
 
         /// <summary>
         /// Gets color name and ARGB for the debug purposes.
         /// </summary>
-        public string NameAndARGBValue =>
-            $"{{Name={Name}, ARGB=({A}, {R}, {G}, {B})}}";
-
-        internal long Value
+        public string NameAndARGBValue
         {
             get
             {
-                if ((state & StateValueMask) != 0)
-                {
-                    return value;
-                }
+                RequireArgb();
+                return $"{{Name={Name}, ARGB=({color.A}, {color.R}, {color.G}, {color.B})}}";
+            }
+        }
 
-                // This is the only place we have system colors value exposed
-                if (IsKnownColor)
-                {
-                    return KnownColorTable.KnownColorToArgb((KnownColor)knownColor);
-                }
+        /// <summary>
+        /// Gets this color as <see cref="SKColor"/>.
+        /// </summary>
+        [Browsable(false)]
+        public SKColor SkiaColor
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.Color;
+            }
+        }
 
-                return NotDefinedValue;
+        /// <summary>
+        /// Gets this color as <see cref="ColorStruct"/>.
+        /// </summary>
+        public ColorStruct AsStruct
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color;
+            }
+        }
+
+        internal uint Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                RequireArgb();
+                return color.Value;
             }
         }
 
@@ -420,23 +686,40 @@ namespace Alternet.Drawing
         /// Converts the specified <see cref='RGBValue'/> to a <see cref='Color'/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Color(RGBValue rgb) =>
-            Color.FromRgb(rgb.R, rgb.G, rgb.B);
+        public static implicit operator Color(RGBValue rgb) => new(rgb.R, rgb.G, rgb.B);
+
+        /// <summary>
+        /// Converts the specified <see cref='Color'/> to a <see cref='SKColor'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator SKColor(Color color)
+        {
+            return color?.SkiaColor ?? SKColor.Empty;
+        }
+
+        /// <summary>
+        /// Converts the specified <see cref='SKColor'/> to a <see cref='Color'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Color(SKColor color)
+        {
+            return new(color);
+        }
 
         /// <summary>
         /// Converts the specified <see cref='Color'/> to a <see cref='Brush'/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Brush(Color color) => color.AsBrush;
+        public static explicit operator Brush(Color color) => color.AsBrush;
 
         /// <summary>
         /// Converts the specified <see cref='Color'/> to a <see cref='Pen'/>.
         /// </summary>
         /// <remarks>
-        /// Pen width is set to 1 dip (1/96 inch).
+        /// Pen width is set to 1 device-independent unit.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Pen(Color color) => color.AsPen;
+        public static explicit operator Pen(Color color) => color.AsPen;
 
         /// <summary>
         /// Converts the specified <see cref='System.Drawing.Color'/> to a <see cref='Color'/>.
@@ -486,7 +769,7 @@ namespace Alternet.Drawing
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Color((byte, byte, byte) d) =>
-            Color.FromRgb(d.Item1, d.Item2, d.Item3);
+            new(d.Item1, d.Item2, d.Item3);
 
         /// <summary>
         /// Implicit operator convertion from tuple with three <see cref="byte"/> values
@@ -499,7 +782,7 @@ namespace Alternet.Drawing
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Color((byte, byte, byte, byte) d) =>
-            Color.FromArgb(d.Item1, d.Item2, d.Item3, d.Item4);
+            new(d.Item1, d.Item2, d.Item3, d.Item4);
 
         /// <summary>
         /// Converts the specified <see cref='string'/> to a <see cref='Color'/>.
@@ -527,7 +810,7 @@ namespace Alternet.Drawing
             if (left is null || right is null)
                 return false;
 
-            return left.value == right.value
+            return left.color == right.color
                 && left.state == right.state
                 && left.knownColor == right.knownColor
                 && left.name == right.name;
@@ -539,8 +822,7 @@ namespace Alternet.Drawing
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(System.Drawing.Color left, Color right) =>
-            left.IsEmpty == right.IsEmpty
-                && left.ToArgb() == right.ToArgb();
+            left.IsEmpty == right.IsEmpty && left.ToArgb() == right.ToArgb();
 
         /// <summary>
         /// Tests whether <see cref="Color"/> and <see cref="System.Drawing.Color"/>
@@ -548,8 +830,7 @@ namespace Alternet.Drawing
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Color left, System.Drawing.Color right) =>
-            left.IsEmpty == right.IsEmpty
-                && left.ToArgb() == right.ToArgb();
+            left.IsEmpty == right.IsEmpty && left.ToArgb() == right.ToArgb();
 
         /// <summary>
         /// Tests whether <see cref="Color"/> and <see cref="System.Drawing.Color"/>
@@ -591,7 +872,46 @@ namespace Alternet.Drawing
         /// respectively, are the color components red, green, and blue, respectively.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromArgb(int argb) => FromArgb(unchecked((uint)argb));
+        public static Color FromArgb(int argb) => new(unchecked((uint)argb));
+
+        /// <summary>
+        /// Creates a <see cref="Color"/> structure from the four ARGB
+        /// component (alpha, red, green, and blue) values.
+        /// </summary>
+        /// <param name="alpha">The alpha component.</param>
+        /// <param name="red">The red component.</param>
+        /// <param name="green">The green component.</param>
+        /// <param name="blue">The blue component.</param>
+        /// <returns>The <see cref="Color"/> that this method creates.</returns>
+        /// <remarks>To create an opaque color, set alpha to 255. To create
+        /// a semitransparent color, set alpha to any value from 1 through 254.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Color FromArgb(byte alpha, byte red, byte green, byte blue)
+        {
+            return new(alpha, red, green, blue);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Color"/> structure from the three RGB
+        /// component (red, green, and blue) values.
+        /// Although this method allows a 32-bit value to be passed for each
+        /// component, the value of each component is limited to 8 bits.
+        /// </summary>
+        /// <param name="red">The red component. Valid values are 0 through 255.
+        /// </param>
+        /// <param name="green">The green component. Valid values are 0 through 255.
+        /// </param>
+        /// <param name="blue">The blue component. Valid values are 0 through 255.
+        /// </param>
+        /// <returns>The <see cref="Color"/> that this method creates.</returns>
+        /// <remarks>This creates an opaque color (sets alpha to 255).
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Color FromArgb(int red, int green, int blue)
+        {
+            return FromArgb(255, red, green, blue);
+        }
 
         /// <summary>
         /// Creates a <see cref="Color"/> structure from the four ARGB
@@ -630,27 +950,6 @@ namespace Alternet.Drawing
         /// component (alpha, red, green, and blue) values.
         /// </summary>
         /// <param name="alpha">The alpha component.</param>
-        /// <param name="red">The red component.</param>
-        /// <param name="green">The green component.</param>
-        /// <param name="blue">The blue component.</param>
-        /// <returns>The <see cref="Color"/> that this method creates.</returns>
-        /// <remarks>To create an opaque color, set alpha to 255. To create
-        /// a semitransparent color, set alpha to any value from 1 through 254.
-        /// </remarks>
-        public static Color FromArgb(byte alpha, byte red, byte green, byte blue)
-        {
-            return FromArgb(
-                (uint)alpha << ARGBAlphaShift |
-                (uint)red << ARGBRedShift |
-                (uint)green << ARGBGreenShift |
-                (uint)blue << ARGBBlueShift);
-        }
-
-        /// <summary>
-        /// Creates a <see cref="Color"/> structure from the four ARGB
-        /// component (alpha, red, green, and blue) values.
-        /// </summary>
-        /// <param name="alpha">The alpha component.</param>
         /// <returns>The <see cref="Color"/> that this method creates.</returns>
         /// <remarks>To create an opaque color, set alpha to 255. To create
         /// a semitransparent color, set alpha to any value from 1 through 254.
@@ -660,7 +959,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Color FromArgb(byte alpha, RGBValue rgb)
         {
-            return FromArgb(alpha, rgb.R, rgb.G, rgb.B);
+            return new(alpha, rgb.R, rgb.G, rgb.B);
         }
 
         /// <summary>
@@ -668,13 +967,15 @@ namespace Alternet.Drawing
         /// components (255, <paramref name="red"/>, <paramref name="green"/>,
         /// and <paramref name="blue"/>) values.
         /// </summary>
-        /// <param name="red"></param>
-        /// <param name="green"></param>
-        /// <param name="blue"></param>
+        /// <param name="red">Red component of the color.</param>
+        /// <param name="green">Green component of the color.</param>
+        /// <param name="blue">Blue component of the color.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromRgb(byte red, byte green, byte blue) =>
-            FromArgb((byte)255, red, green, blue);
+        public static Color FromRgb(byte red, byte green, byte blue)
+        {
+            return new(red, green, blue);
+        }
 
         /// <summary>
         /// Creates a <see cref="Color"/> structure from the specified
@@ -691,13 +992,9 @@ namespace Alternet.Drawing
         /// a semitransparent color, set alpha to any value from 1 through 254.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromArgb(int alpha, Color baseColor)
+        public static Color FromArgb(byte alpha, Color baseColor)
         {
-            CheckByte(alpha, nameof(alpha));
-
-            return FromArgb(
-                (uint)alpha << ARGBAlphaShift |
-                (uint)baseColor.Value & ~ARGBAlphaMask);
+            return baseColor.WithAlpha(alpha);
         }
 
         /// <summary>
@@ -718,8 +1015,8 @@ namespace Alternet.Drawing
         /// <exception cref="ArgumentException"><c>red</c>, <c>green</c>, or
         /// <c>blue</c> is less than 0 or greater than 255.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromArgb(int red, int green, int blue) =>
-            FromArgb(byte.MaxValue, red, green, blue);
+        public static Color FromArgb(byte red, byte green, byte blue) =>
+            new(255, red, green, blue);
 
         /// <summary>
         /// Creates a <see cref="Color"/> structure from the specified
@@ -757,7 +1054,7 @@ namespace Alternet.Drawing
                 return color;
 
             // otherwise treat it as a named color
-            return new Color(NotDefinedValue, StateNameValid, name, (KnownColor)0);
+            return new Color(0, StateFlags.NameValid, name, 0);
         }
 
         /// <summary>
@@ -1051,6 +1348,39 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Calculates minimal and maximal values from <paramref name="r"/>, <paramref name="g"/>,
+        /// <paramref name="b"/> parameters.
+        /// </summary>
+        /// <param name="min">Contains minimal value after method is called.</param>
+        /// <param name="max">Contains maximal value after method is called.</param>
+        /// <param name="r">Red component of the color.</param>
+        /// <param name="g">Green component of the color.</param>
+        /// <param name="b">Blue component of the color.</param>
+        public static void MinMaxRgb(out byte min, out byte max, byte r, byte g, byte b)
+        {
+            if (r > g)
+            {
+                max = r;
+                min = g;
+            }
+            else
+            {
+                max = g;
+                min = r;
+            }
+
+            if (b > max)
+            {
+                max = b;
+            }
+            else
+            if (b < min)
+            {
+                min = b;
+            }
+        }
+
+        /// <summary>
         /// Enumerates colors defined in <see cref="KnownColor"/> for the specified
         /// color categories.
         /// </summary>
@@ -1098,9 +1428,8 @@ namespace Alternet.Drawing
         /// represents white.</returns>
         public double GetBrightness()
         {
-            GetRgbValues(out int r, out int g, out int b);
-            MinMaxRgb(out int min, out int max, r, g, b);
-            return (max + min) / (byte.MaxValue * 2f);
+            MinMaxRgb(out var min, out var max);
+            return (max + min) / (255 * 2f);
         }
 
         /// <summary>
@@ -1109,7 +1438,8 @@ namespace Alternet.Drawing
         /// </summary>
         public double GetLuminance()
         {
-            return ((0.299 * R) + (0.587 * G) + (0.114 * B)) / 255.0;
+            RequireArgb();
+            return ((0.299 * color.R) + (0.587 * color.G) + (0.114 * color.B)) / 255.0;
         }
 
         /// <summary>
@@ -1147,12 +1477,12 @@ namespace Alternet.Drawing
         /// color space.</returns>
         public double GetHue()
         {
-            GetRgbValues(out int r, out int g, out int b);
+            GetRgbValues(out var r, out var g, out var b);
 
             if (r == g && g == b)
                 return 0f;
 
-            MinMaxRgb(out int min, out int max, r, g, b);
+            MinMaxRgb(out var min, out var max, r, g, b);
 
             double delta = max - min;
             double hue;
@@ -1182,16 +1512,16 @@ namespace Alternet.Drawing
         /// </returns>
         public double GetSaturation()
         {
-            GetRgbValues(out int r, out int g, out int b);
+            GetRgbValues(out var r, out var g, out var b);
 
             if (r == g && g == b)
                 return 0f;
 
-            MinMaxRgb(out int min, out int max, r, g, b);
+            MinMaxRgb(out var min, out var max, r, g, b);
 
             int div = max + min;
-            if (div > byte.MaxValue)
-                div = (byte.MaxValue * 2) - max - min;
+            if (div > 255)
+                div = (255 * 2) - max - min;
 
             return (max - min) / (double)div;
         }
@@ -1201,7 +1531,6 @@ namespace Alternet.Drawing
         /// filled with this color.
         /// </summary>
         /// <param name="size">Size of the created image.</param>
-        /// <param name="color">Color.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage AsImage(SizeI size)
@@ -1217,10 +1546,10 @@ namespace Alternet.Drawing
         /// <param name="width">Width of the pen.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Pen GetAsPen(double width = 1)
+        public Pen GetAsPen(Coord width = 1)
         {
             if (width == 1)
-                return asPen ??= new(this, 1);
+                return AsPen;
             return new(this, width);
         }
 
@@ -1232,8 +1561,10 @@ namespace Alternet.Drawing
         /// <param name="dashStyle">Dash style of the pen. Optional.
         /// Default is <see cref="DashStyle.Solid"/>.</param>
         /// <returns></returns>
-        public Pen GetAsPen(double width = 1, DashStyle dashStyle = DashStyle.Solid)
+        public Pen GetAsPen(Coord width, DashStyle dashStyle)
         {
+            if (width == 1 && dashStyle == DashStyle.Solid)
+                return AsPen;
             return new(this, width, dashStyle);
         }
 
@@ -1247,11 +1578,26 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetArgbValues(out byte a, out byte r, out byte g, out byte b)
         {
-            var value = Value;
-            r = unchecked((byte)(value >> ARGBRedShift));
-            g = unchecked((byte)(value >> ARGBGreenShift));
-            b = unchecked((byte)(value >> ARGBBlueShift));
-            a = unchecked((byte)(value >> ARGBAlphaShift));
+            RequireArgb();
+            r = color.R;
+            g = color.G;
+            b = color.B;
+            a = color.A;
+        }
+
+        /// <summary>
+        /// Returns RGB values of the <see cref="Color"/>
+        /// </summary>
+        /// <param name="r">Value of <see cref="R"/>.</param>
+        /// <param name="g">Value of <see cref="G"/>.</param>
+        /// <param name="b">Value of <see cref="B"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void GetRgbValues(out byte r, out byte g, out byte b)
+        {
+            RequireArgb();
+            r = color.R;
+            g = color.G;
+            b = color.B;
         }
 
         /// <summary>
@@ -1274,13 +1620,16 @@ namespace Alternet.Drawing
         /// This is similar to <see cref="ToArgb"/> but returns color as <see cref="uint"/>.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint AsUInt() => unchecked((uint)Value);
+        public uint AsUInt() => Value;
 
         /// <summary>
         /// Gets color properties for the debug purposes.
         /// </summary>
-        public string ToDebugString() =>
-            $"{{Name={Name}, KnownColor={(KnownColor)knownColor}, ARGB=({A}, {R}, {G}, {B}), State={state}}}";
+        public string ToDebugString()
+        {
+            RequireArgb();
+            return $"{{Name={Name}, KnownColor={knownColor}, ARGB=({color.A}, {color.R}, {color.G}, {color.B}), State={state}}}";
+        }
 
         /// <summary>
         /// Gets the <see cref="KnownColor"/> value of this
@@ -1305,7 +1654,7 @@ namespace Alternet.Drawing
         /// the <see cref="FromName"/> method with a string name that is not valid.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KnownColor ToKnownColor() => (KnownColor)knownColor;
+        public KnownColor ToKnownColor() => knownColor;
 
         /// <summary>
         /// Converts this <see cref="Color"/> structure to a human-readable string.
@@ -1342,10 +1691,21 @@ namespace Alternet.Drawing
                     return e.Result;
             }
 
-            var result = IsNamedColor ? $"{nameof(Color)} [{Name}]" :
-                (state & StateValueMask) != 0 ?
-                $"{nameof(Color)} [A={A}, R={R}, G={G}, B={B}]" :
-                $"{nameof(Color)} [Empty]";
+            string result;
+
+            if (IsNamedColor)
+                result = $"{nameof(Color)} [{Name}]";
+            else
+            {
+                if (state.HasFlag(StateFlags.ValueValid))
+                {
+                    RequireArgb();
+                    result = $"{nameof(Color)} [A={color.A}, R={color.R}, G={color.G}, B={color.B}]";
+                }
+                else
+                    result = $"{nameof(Color)} [Empty]";
+            }
+
             return result;
         }
 
@@ -1373,6 +1733,58 @@ namespace Alternet.Drawing
                 return ARGBWeb;
             else
                 return string.Empty;
+        }
+
+        /// <summary>
+        /// Returns a new color based on this current instance, but with the new red channel value.
+        /// </summary>
+        /// <param name="red">The new red component.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color WithRed(byte red)
+        {
+            var result = AsStruct;
+            result.R = red;
+            return new(result);
+        }
+
+        /// <summary>
+        /// Returns a new color based on this current instance, but with the new green channel value.
+        /// </summary>
+        /// <param name="green">The new green component.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color WithGreen(byte green)
+        {
+            var result = AsStruct;
+            result.G = green;
+            return new(result);
+        }
+
+        /// <summary>
+        /// Returns a new color based on this current instance, but with the new blue channel value.
+        /// </summary>
+        /// <param name="blue">The new blue component.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color WithBlue(byte blue)
+        {
+            var result = AsStruct;
+            result.B = blue;
+            return new(result);
+        }
+
+        /// <summary>
+        /// Returns a new color based on this current instance, but with the new alpha channel value.
+        /// </summary>
+        /// <param name="alpha">The new alpha component.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Color WithAlpha(byte alpha)
+        {
+            var result = AsStruct;
+            result.A = alpha;
+            return new(result);
         }
 
         /// <summary>
@@ -1405,10 +1817,10 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public bool IsDark()
         {
-            var rgb = (RGBValue)this;
-            double r = rgb.R;
-            double g = rgb.G;
-            double b = rgb.B;
+            RequireArgb();
+            double r = color.R;
+            double g = color.G;
+            double b = color.B;
 
             // HSP equation from http://alienryderflex.com/hsp.html
             var hsp = Math.Sqrt(
@@ -1421,6 +1833,18 @@ namespace Alternet.Drawing
                 return false;
             else
                 return true;
+        }
+
+        /// <summary>
+        /// Calculates minimal and maximal values from all RGB color components.
+        /// </summary>
+        /// <param name="min">Contains minimal value after method is called.</param>
+        /// <param name="max">Contains maximal value after method is called</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MinMaxRgb(out byte min, out byte max)
+        {
+            RequireArgb();
+            MinMaxRgb(out min, out max, color.R, color.G, color.B);
         }
 
         /// <summary>
@@ -1453,7 +1877,7 @@ namespace Alternet.Drawing
                 return name.GetHashCode();
 
             return HashCode.Combine(
-                value.GetHashCode(),
+                color.Value.GetHashCode(),
                 state.GetHashCode(),
                 knownColor.GetHashCode());
         }
@@ -1477,46 +1901,16 @@ namespace Alternet.Drawing
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Color FromArgb(uint argb) =>
-            new(argb, StateARGBValueValid, null, (KnownColor)0);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void MinMaxRgb(out int min, out int max, int r, int g, int b)
+        private static Color FromArgb(uint argb)
         {
-            if (r > g)
-            {
-                max = r;
-                min = g;
-            }
-            else
-            {
-                max = g;
-                min = r;
-            }
-
-            if (b > max)
-            {
-                max = b;
-            }
-            else if (b < min)
-            {
-                min = b;
-            }
+            return new(argb, StateFlags.ValueValid);
         }
 
-        /// <summary>
-        /// Returns RGB values of the <see cref="Color"/>
-        /// </summary>
-        /// <param name="r">Value of <see cref="R"/>.</param>
-        /// <param name="g">Value of <see cref="G"/>.</param>
-        /// <param name="b">Value of <see cref="B"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void GetRgbValues(out int r, out int g, out int b)
+        private void RequireArgb()
         {
-            uint value = (uint)Value;
-            r = (int)(value & ARGBRedMask) >> ARGBRedShift;
-            g = (int)(value & ARGBGreenMask) >> ARGBGreenShift;
-            b = (int)(value & ARGBBlueMask) >> ARGBBlueShift;
+            if (state.HasFlag(StateFlags.KnownColorValid))
+                color = KnownColorTable.KnownColorToArgb(knownColor);
         }
 
         internal class ColorNameComparer : IComparer<Color>

@@ -1,14 +1,19 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+
 using Alternet.UI;
+
+using SkiaSharp;
 
 namespace Alternet.Drawing
 {
     /// <summary>
     /// Implements platform independent image.
     /// </summary>
-    public class GenericImage : HandledObject<object>
+    public class GenericImage : HandledObject<IGenericImageHandler>
     {
         /// <summary>
         /// Constant used to indicate the alpha value conventionally defined as the complete
@@ -47,7 +52,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(int width, int height, bool clear = false)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(width, height, clear);
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(width, height, clear);
         }
 
         /// <summary>
@@ -60,14 +65,14 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(SizeI size, bool clear = false)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(size.Width, size.Height, clear);
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(size.Width, size.Height, clear);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GenericImage"/> class.
         /// Creates an image from a file.
         /// </summary>
-        /// <param name="fileName">Path to file.</param>
+        /// <param name="url">Path or url to file with image data.</param>
         /// <param name="bitmapType">Type of the bitmap. Depending on how library
         /// and OS has been configured and
         /// by which handlers have been loaded, not all formats may be available. If value is
@@ -78,10 +83,20 @@ namespace Alternet.Drawing
         /// "choose the default image" and is interpreted as the first image(index= 0) by the GIF and
         /// TIFF handler and as the largest and most colorful one by the ICO handler.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage(string fileName, BitmapType bitmapType = BitmapType.Any, int index = -1)
+        public GenericImage(string? url, BitmapType bitmapType = BitmapType.Any, int index = -1)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(
-                    fileName,
+            if (string.IsNullOrEmpty(url))
+                return;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return;
+            }
+
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(
+                    stream,
                     bitmapType,
                     index);
         }
@@ -90,14 +105,27 @@ namespace Alternet.Drawing
         /// Initializes a new instance of the <see cref="GenericImage"/> class.
         /// Creates an image from a file using MIME-types to specify the type.
         /// </summary>
-        /// <param name="name">Name of the file from which to load the image.</param>
+        /// <param name="url">Path or url to file with image data.</param>
         /// <param name="mimetype">MIME type string (for example 'image/jpeg').</param>
         /// <param name="index">See description in
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage(string name, string mimetype, int index = -1)
+        public GenericImage(string? url, string mimetype, int index = -1)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(name, mimetype, index);
+            if (string.IsNullOrEmpty(url))
+                return;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return;
+            }
+
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(
+                    stream,
+                    mimetype,
+                    index);
         }
 
         /// <summary>
@@ -113,7 +141,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(Stream stream, BitmapType bitmapType = BitmapType.Any, int index = -1)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(
                       stream,
                       bitmapType,
                       index);
@@ -131,7 +159,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GenericImage(Stream stream, string mimeType, int index = -1)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(
                       stream,
                       mimeType,
                       index);
@@ -143,16 +171,11 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="width">Specifies the width of the image.</param>
         /// <param name="height">Specifies the height of the image.</param>
-        /// <param name="data">A pointer to RGB data</param>
-        /// <param name="staticData">Indicates if the data should be free'd after use.
-        /// If static_data is <c>false</c> then the
-        /// library will take ownership of the data and free it afterwards.For this,
-        /// it has to be allocated with
-        /// malloc.</param>
+        /// <param name="data">Image data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage(int width, int height, IntPtr data, bool staticData = false)
+        public GenericImage(int width, int height, SKColor[] data)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(width, height, data, staticData);
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(width, height, data);
         }
 
         /// <summary>
@@ -161,48 +184,101 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="width">Specifies the width of the image.</param>
         /// <param name="height">Specifies the height of the image.</param>
-        /// <param name="data">A pointer to RGB data</param>
-        /// <param name="alpha">A pointer to alpha-channel data</param>
-        /// <param name="staticData">Indicates if the data should be free'd after use.
-        /// If <paramref name="staticData"/> is <c>false</c> then the
-        /// library will take ownership of the data and free it afterwards.For this,
-        /// it has to be allocated with
-        /// malloc.</param>
+        /// <param name="data">RGB data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage(int width, int height, IntPtr data, IntPtr alpha, bool staticData = false)
+        public GenericImage(int width, int height, RGBValue[] data)
         {
-            Handler = NativeDrawing.Default.CreateGenericImage(width, height, data, alpha, staticData);
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(width, height, data);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GenericImage"/> class.
+        /// Creates an image from data in memory.
+        /// </summary>
+        /// <param name="width">Specifies the width of the image.</param>
+        /// <param name="height">Specifies the height of the image.</param>
+        /// <param name="data">RGB data.</param>
+        /// <param name="alpha">Alpha-channel data.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public GenericImage(int width, int height, RGBValue[] data, byte[] alpha)
+        {
+            Handler = GraphicsFactory.Handler.CreateGenericImageHandler(
+                width,
+                height,
+                data,
+                alpha);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GenericImage"/> class.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage(object handle)
+        public GenericImage(IGenericImageHandler handle)
         {
             Handler = handle;
+        }
+
+        public enum PixelStrategy
+        {
+            Pixels,
+            RgbData,
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> if this image has alpha channel, <c>false</c> otherwise.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasAlpha
+        {
+            get
+            {
+                return Handler.HasAlpha;
+            }
+
+            set
+            {
+                if (HasAlpha == value)
+                    return;
+                if (value)
+                    InitAlpha();
+                else
+                    ClearAlpha();
+            }
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> if there is a mask active, <c>false</c> otherwise.
+        /// </summary>
+        /// <returns></returns>
+        [Browsable(false)]
+        public virtual bool HasMask
+        {
+            get
+            {
+                return Handler.HasMask;
+            }
         }
 
         /// <summary>
         /// Gets the width of the image in pixels.
         /// </summary>
-        public int Width
+        public virtual int Width
         {
-            get => NativeDrawing.Default.GetGenericImageWidth(this);
+            get => Handler.Width;
         }
 
         /// <summary>
         /// Gets the height of the image in pixels.
         /// </summary>
-        public int Height
+        public virtual int Height
         {
-            get => NativeDrawing.Default.GetGenericImageHeight(this);
+            get => Handler.Height;
         }
 
         /// <summary>
         /// Returns the size of the image in pixels.
         /// </summary>
-        public SizeI Size
+        public virtual SizeI Size
         {
             get => new(Width, Height);
         }
@@ -210,7 +286,7 @@ namespace Alternet.Drawing
         /// <summary>
         /// Returns the bounds of the image in pixels. Result is (0, 0, Width, Height).
         /// </summary>
-        public RectI Bounds
+        public virtual RectI Bounds
         {
             get => (0, 0, Width, Height);
         }
@@ -218,26 +294,326 @@ namespace Alternet.Drawing
         /// <summary>
         /// Gets number of pixels in this image (Width * Height).
         /// </summary>
-        public int PixelCount => Size.PixelCount;
+        public virtual int PixelCount => Size.PixelCount;
+
+        public virtual SKColor[] Pixels
+        {
+            get => Handler.Pixels;
+            set => Handler.Pixels = value;
+        }
+
+        public virtual RGBValue[] RgbData
+        {
+            get => Handler.RgbData;
+            set => Handler.RgbData = value;
+        }
+
+        public virtual byte[] AlphaData
+        {
+            get => Handler.AlphaData;
+            set => Handler.AlphaData = value;
+        }
 
         /// <summary>
         /// Returns <c>true</c> if image data is present.
         /// </summary>
-        public bool IsOk
+        public virtual bool IsOk
         {
-            get => NativeDrawing.Default.GetGenericImageIsOk(this);
+            get => Handler.IsOk;
+        }
+
+        /// <summary>
+        /// Gets best strategy to access pixels.
+        /// </summary>
+        public PixelStrategy BestStrategy => Handler.BestStrategy;
+
+        /// <summary>
+        /// Converts the specified <see cref='SKBitmap'/> to a <see cref='GenericImage'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator GenericImage(SKBitmap bitmap)
+        {
+            return FromSkia(bitmap);
+        }
+
+        /// <summary>
+        /// Converts the specified <see cref='SKBitmap'/> to a <see cref='GenericImage'/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator SKBitmap(GenericImage bitmap)
+        {
+            return ToSkia(bitmap);
         }
 
         /// <summary>
         /// Returns <c>true</c> if at least one of the available image handlers can read the file
         /// with the given name.
         /// </summary>
-        /// <param name="filename">Name of the file from which to load the image.</param>
+        /// <param name="url">Path or url to file with image data.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CanRead(string filename)
+        public static bool CanRead(string? url)
         {
-            return NativeDrawing.Default.GenericImageCanRead(filename);
+            if (string.IsNullOrEmpty(url))
+                return false;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return false;
+            }
+
+            return CanRead(stream);
+        }
+
+        public static unsafe void FillPixels(SKColor[] pixels, SKColor fill)
+        {
+            var length = pixels.Length;
+
+            fixed (SKColor* rgbPtr = pixels)
+            {
+                var ptr = rgbPtr;
+
+                for (int i = 0; i < length; i++)
+                {
+                    *ptr = fill;
+                    ptr++;
+                }
+            }
+        }
+
+        public static unsafe void FillAlphaData(byte[] alpha, byte fill)
+        {
+            fixed (byte* alphaPtr = alpha)
+            {
+                BaseMemory.Fill((IntPtr)alphaPtr, fill, alpha.Length);
+            }
+        }
+
+        public static unsafe void FillRgbData(RGBValue[] rgb, RGBValue fill)
+        {
+            var length = rgb.Length;
+
+            fixed (RGBValue* rgbPtr = rgb)
+            {
+                var ptr = rgbPtr;
+
+                for (int i = 0; i < length; i++)
+                {
+                    *ptr = fill;
+                    ptr++;
+                }
+            }
+        }
+
+        public static GenericImage Create(int width, int height, Color color)
+        {
+            var alphaData = CreateAlphaData(width, height, color.A);
+            var rgbData = CreateRgbData(width, height, color);
+            GenericImage image = new(width, height, rgbData, alphaData);
+            return image;
+        }
+
+        public static SKColor[] CreatePixels(int width, int height, SKColor? fill = null)
+        {
+            var size = width * height;
+            SKColor[] result = new SKColor[size];
+            if (fill is null)
+                return result;
+            FillPixels(result, fill.Value);
+            return result;
+        }
+
+        public static RGBValue[] CreateRgbData(int width, int height, RGBValue? fill = null)
+        {
+            var size = width * height;
+            RGBValue[] result = new RGBValue[size];
+            if (fill is null)
+                return result;
+            FillRgbData(result, fill.Value);
+            return result;
+        }
+
+        public static unsafe RGBValue[] CreateRgbDataFromPtr(int width, int height, IntPtr source)
+        {
+            var size = width * height;
+            RGBValue[] result = new RGBValue[size];
+
+            fixed (RGBValue* resultPtr = result)
+            {
+                BaseMemory.Move((IntPtr)resultPtr, source, size * 3);
+            }
+
+            return result;
+        }
+
+        public static unsafe byte[] CreateAlphaDataFromPtr(int width, int height, IntPtr source)
+        {
+            var size = width * height;
+            byte[] result = new byte[size];
+
+            fixed (byte* resultPtr = result)
+            {
+                BaseMemory.Move((IntPtr)resultPtr, source, size);
+            }
+
+            return result;
+        }
+
+        public static byte[] CreateAlphaData(int width, int height, byte? fill = null)
+        {
+            var size = width * height;
+            byte[] result = new byte[size];
+            if (fill is null)
+                return result;
+            FillAlphaData(result, fill.Value);
+            return result;
+        }
+
+        public static unsafe RGBValue[] GetRGBValues(SKColor[] data)
+        {
+            var length = data.Length;
+
+            var result = new RGBValue[length];
+
+            fixed (SKColor* dataPtr = data)
+            {
+                var ptr = dataPtr;
+
+                fixed (RGBValue* resultPtr = result)
+                {
+                    var aptr = resultPtr;
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        *aptr = *ptr;
+                        ptr++;
+                        aptr++;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public static unsafe void SetRgbValuesFromPtr(SKColor[] data, RGBValue* source)
+        {
+            var length = data.Length;
+
+            fixed (SKColor* dataPtr = data)
+            {
+                var ptr = dataPtr;
+
+                for (int i = 0; i < length; i++)
+                {
+                    byte alpha = (*ptr).Alpha;
+                    var rgb = *source;
+                    *ptr = new SKColor(rgb.R, rgb.G, rgb.B, alpha);
+                    ptr++;
+                    source++;
+                }
+            }
+        }
+
+        public static unsafe void FillAlphaData(SKColor[] data, byte alpha)
+        {
+            var length = data.Length;
+
+            fixed (SKColor* dataPtr = data)
+            {
+                var ptr = dataPtr;
+
+                for (int i = 0; i < length; i++)
+                {
+                    SKColor color = *ptr;
+                    *ptr = new SKColor(color.Red, color.Green, color.Blue, alpha);
+                    ptr++;
+                }
+            }
+        }
+
+        public static unsafe void SetAlphaValuesFromPtr(SKColor[] data, byte* source)
+        {
+            var length = data.Length;
+
+            fixed (SKColor* dataPtr = data)
+            {
+                var ptr = dataPtr;
+
+                for (int i = 0; i < length; i++)
+                {
+                    SKColor color = (*ptr).WithAlpha(*source);
+                    *ptr = color;
+                    ptr++;
+                    source++;
+                }
+            }
+        }
+
+        public static unsafe byte[] GetAlphaValues(SKColor[] data)
+        {
+            var length = data.Length;
+
+            var alpha = new byte[length];
+
+            fixed (SKColor* dataPtr = data)
+            {
+                var ptr = dataPtr;
+
+                fixed (byte* alphaPtr = alpha)
+                {
+                    var aptr = alphaPtr;
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        *aptr = (*ptr).Alpha;
+                        ptr++;
+                        aptr++;
+                    }
+                }
+            }
+
+            return alpha;
+        }
+
+        public static void SeparateAlphaData(
+            SKColor[] data,
+            out RGBValue[] rgb,
+            out byte[] alpha)
+        {
+            rgb = GetRGBValues(data);
+            alpha = GetAlphaValues(data);
+        }
+
+        public static SKBitmap ToSkia(GenericImage bitmap, bool assignPixels = true)
+        {
+            return ToSkia(bitmap.Handler, assignPixels);
+        }
+
+        public static SKBitmap CreateSkiaBitmapForImage(int width, int height, bool hasAlpha)
+        {
+            var count = width * height;
+            if (count == 0)
+                return new SKBitmap();
+
+            var result = new SKBitmap(width, height, isOpaque: !hasAlpha);
+
+            return result;
+        }
+
+        public static SKBitmap ToSkia(IGenericImageHandler bitmap, bool assignPixels = true)
+        {
+            var result = CreateSkiaBitmapForImage(bitmap.Width, bitmap.Height, bitmap.HasAlpha);
+
+            if (assignPixels)
+                result.Pixels = bitmap.Pixels;
+            return result;
+        }
+
+        public static GenericImage FromSkia(SKBitmap bitmap)
+        {
+            var result = new GenericImage(bitmap.Width, bitmap.Height, bitmap.Pixels);
+            return result;
         }
 
         /// <summary>
@@ -255,7 +631,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool CanRead(Stream stream)
         {
-            return NativeDrawing.Default.GenericImageCanRead(stream);
+            return GraphicsFactory.Handler.CanReadGenericImage(stream);
         }
 
         /// <summary>
@@ -269,25 +645,14 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string GetImageExtWildcard()
         {
-            return NativeDrawing.Default.GetGenericImageExtWildcard();
-        }
-
-        /// <summary>
-        /// Finds image load/save handler with the given name, and removes it.
-        /// </summary>
-        /// <param name="name">Name of the handler.</param>
-        /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool RemoveHandler(string name)
-        {
-            return NativeDrawing.Default.GenericImageRemoveHandler(name);
+            return GraphicsFactory.Handler.GetGenericImageExtWildcard();
         }
 
         /// <summary>
         /// If the image file contains more than one image and the image handler is capable of
         /// retrieving these individually, this function will return the number of available images.
         /// </summary>
-        /// <param name="filename">Name of the file from which to load the image.</param>
+        /// <param name="url">Path or url to file with image data.</param>
         /// <param name="bitmapType">Type of the bitmap. Depending on how library and OS has
         /// been configured and
         /// by which handlers have been loaded, not all formats may be available. If value is
@@ -297,10 +662,20 @@ namespace Alternet.Drawing
         /// returns the number of frames in the animation).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetImageCount(
-            string filename,
+            string? url,
             BitmapType bitmapType = BitmapType.Any)
         {
-            return NativeDrawing.Default.GetGenericImageCount(filename, bitmapType);
+            if (string.IsNullOrEmpty(url))
+                return 0;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return 0;
+            }
+
+            return GetImageCount(stream, bitmapType);
         }
 
         /// <summary>
@@ -321,16 +696,7 @@ namespace Alternet.Drawing
             Stream stream,
             BitmapType bitmapType = BitmapType.Any)
         {
-            return NativeDrawing.Default.GetGenericImageCount(stream, bitmapType);
-        }
-
-        /// <summary>
-        /// Deletes all image handlers.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CleanUpHandlers()
-        {
-            NativeDrawing.Default.GenericImageCleanUpHandlers();
+            return GraphicsFactory.Handler.GetGenericImageCount(stream, bitmapType);
         }
 
         /// <summary>
@@ -340,7 +706,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static GenericImageLoadFlags GetDefaultLoadFlags()
         {
-            return NativeDrawing.Default.GetGenericImageDefaultLoadFlags();
+            return GraphicsFactory.Handler.GenericImageDefaultLoadFlags;
         }
 
         /// <summary>
@@ -350,7 +716,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void SetDefaultLoadFlags(GenericImageLoadFlags flags)
         {
-            NativeDrawing.Default.SetGenericImageDefaultLoadFlags(flags);
+            GraphicsFactory.Handler.GenericImageDefaultLoadFlags = flags;
         }
 
         /// <summary>
@@ -363,10 +729,9 @@ namespace Alternet.Drawing
         /// This function should only be called if the image has alpha channel data,
         /// use <see cref="HasAlpha"/> to check for this.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetAlpha(int x, int y, byte alpha)
+        public virtual void SetAlpha(int x, int y, byte alpha)
         {
-            NativeDrawing.Default.GenericImageSetAlpha(this, x, y, alpha);
+            Handler.SetAlpha(x, y, alpha);
         }
 
         /// <summary>
@@ -376,36 +741,34 @@ namespace Alternet.Drawing
         /// This function should only be called if the image has alpha channel data,
         /// use <see cref="HasAlpha"/> to check for this.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ClearAlpha()
+        public virtual void ClearAlpha()
         {
-            NativeDrawing.Default.GenericImageClearAlpha(this);
+            if (HasAlpha)
+                Handler.ClearAlpha();
         }
 
         /// <summary>
         /// Specifies whether there is a mask or not.
         /// </summary>
         /// <param name="hasMask"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetMask(bool hasMask = true)
+        public virtual void SetMask(bool hasMask = true)
         {
-            NativeDrawing.Default.GenericImageSetMask(this, hasMask);
+            Handler.SetMask(hasMask);
         }
 
         /// <summary>
         /// Sets the mask color for this image(and tells the image to use the mask).
         /// </summary>
         /// <param name="rgb">Color RGB.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetMaskColor(RGBValue rgb)
+        public virtual void SetMaskColor(RGBValue rgb)
         {
-            NativeDrawing.Default.GenericImageSetMaskColor(this, rgb);
+            Handler.SetMaskColor(rgb);
         }
 
         /// <summary>
         /// Makes this image grayscaled.
         /// </summary>
-        public void ChangeToGrayScale()
+        public virtual bool ChangeToGrayScale()
         {
             static void ChangePixel(ref RGBValue rgb, int value)
             {
@@ -413,37 +776,7 @@ namespace Alternet.Drawing
                 rgb.R = rgb.G = rgb.B = color;
             }
 
-            ForEachPixel<int>(ChangePixel, 0);
-        }
-
-        /// <summary>
-        /// Executes specified <paramref name="action"/> for the each pixel of the image.
-        /// </summary>
-        /// <typeparam name="T">Type of the custom value.</typeparam>
-        /// <param name="action">Action to call for the each pixel. <see cref="RGBValue"/>
-        /// is passed as the first
-        /// parameter of the action.</param>
-        /// <param name="param">Custom value. It is passed to the <paramref name="action"/>
-        /// as the second parameter.</param>
-        /// <remarks>
-        /// For an example of the action implementation, see source code of the
-        /// <see cref="Color.ChangeLightness(ref RGBValue, int)"/> method.
-        /// </remarks>
-        public unsafe void ForEachPixel<T>(ActionRef<RGBValue, T> action, T param)
-        {
-            var ndata = GetNativeData();
-            RGBValue* data = (RGBValue*)ndata;
-            var height = Height;
-            var width = Width;
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    action(ref *data, param);
-                    data++;
-                }
-            }
+            return ForEachPixel<int>(ChangePixel, 0);
         }
 
         /// <summary>
@@ -454,23 +787,32 @@ namespace Alternet.Drawing
         /// This function should only be called if the image has alpha channel data,
         /// use <see cref="HasAlpha"/> to check for this.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void SetAlpha(byte value)
+        public virtual unsafe bool SetAlpha(byte value)
         {
-            var nalpha = GetNativeAlphaData();
-
-            byte* alpha = (byte*)nalpha;
-
-            var height = Height;
-            var width = Width;
-
-            for (int y = 0; y < height; y++)
+            if (!IsOk)
+                return false;
+            if (!HasAlpha)
             {
-                for (int x = 0; x < width; x++)
+                InitAlpha();
+                AlphaData = CreateAlphaData(Width, Height, value);
+                return true;
+            }
+
+            var alpha = AlphaData;
+            var count = alpha.Length;
+
+            fixed (byte* ptr = alpha)
+            {
+                var p = ptr;
+
+                for (int i = 0; i < count; i++)
                 {
-                    *alpha++ = value;
+                    *p++ = value;
                 }
             }
+
+            AlphaData = alpha;
+            return true;
         }
 
         /// <summary>
@@ -492,10 +834,9 @@ namespace Alternet.Drawing
         /// Note that this method involves computing the histogram, which
         /// is a computationally intensive operation.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SetMaskFromImage(GenericImage image, RGBValue mask)
+        public virtual bool SetMaskFromImage(GenericImage image, RGBValue mask)
         {
-            return NativeDrawing.Default.GenericImageSetMaskFromImage(this, image, mask);
+            return Handler.SetMaskFromImage(image, mask);
         }
 
         /// <summary>
@@ -506,10 +847,9 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="name">The name of the option, case-insensitive.</param>
         /// <param name="value">New option value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetOptionAsString(string name, string value)
+        public virtual void SetOptionAsString(string name, string value)
         {
-            NativeDrawing.Default.GenericImageSetOptionAsString(this, name, value);
+            Handler.SetOptionAsString(name, value);
         }
 
         /// <summary>
@@ -520,10 +860,9 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="name">The name of the option, case-insensitive.</param>
         /// <param name="value">New option value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetOptionAsInt(string name, int value)
+        public virtual void SetOptionAsInt(string name, int value)
         {
-            NativeDrawing.Default.GenericImageSetOptionAsInt(this, name, value);
+            Handler.SetOptionAsInt(name, value);
         }
 
         /// <summary>
@@ -536,10 +875,9 @@ namespace Alternet.Drawing
         /// This routine performs bounds-checks for the coordinate so it can be
         /// considered a safe way to manipulate the data.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetRGB(int x, int y, RGBValue rgb)
+        public virtual void SetRGB(int x, int y, RGBValue rgb)
         {
-            NativeDrawing.Default.GenericImageSetRGB(this, x, y, rgb);
+            Handler.SetRGB(x, y, rgb);
         }
 
         /// <summary>
@@ -548,30 +886,27 @@ namespace Alternet.Drawing
         /// <param name="rect">Rectangle within the image. If rectangle is null,
         /// <see cref="Bounds"/> property is used.</param>
         /// <param name="rgb">RGB Color.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetRGBRect(RGBValue rgb, RectI? rect = null)
+        public virtual void SetRGBRect(RGBValue rgb, RectI? rect = null)
         {
-            NativeDrawing.Default.GenericImageSetRGBRect(this, rgb, rect);
+            Handler.SetRGBRect(rgb, rect);
         }
 
         /// <summary>
         /// Sets the type of image returned by GetType().
         /// </summary>
         /// <param name="type">Type of the bitmap.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetImageType(BitmapType type)
+        public virtual void SetImageType(BitmapType type)
         {
-            NativeDrawing.Default.GenericImageSetImageType(this, type);
+            Handler.SetImageType(type);
         }
 
         /// <summary>
         /// Returns an identical copy of this image.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Copy()
+        public virtual GenericImage Copy()
         {
-            return NativeDrawing.Default.GenericImageCopy(this);
+            return Handler.Copy();
         }
 
         /// <summary>
@@ -581,29 +916,26 @@ namespace Alternet.Drawing
         /// <param name="height">New image height</param>
         /// <param name="clear">If true, initialize the image to black.</param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Reset(int width, int height, bool clear = false)
+        public virtual bool Reset(int width, int height, bool clear = false)
         {
-            return NativeDrawing.Default.GenericImageReset(this, width, height, clear);
+            return Handler.Reset(width, height, clear);
         }
 
         /// <summary>
         /// Initialize the image data with zeroes (the default) or with the byte value given as value.
         /// </summary>
         /// <param name="value"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear(byte value = 0)
+        public virtual void Clear(byte value = 0)
         {
-            NativeDrawing.Default.GenericImageClear(this, value);
+            Handler.Clear(value);
         }
 
         /// <summary>
         /// Destroys the image data.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Reset()
+        public virtual void Reset()
         {
-            NativeDrawing.Default.GenericImageReset(this);
+            Handler.Reset();
         }
 
         /// <summary>
@@ -627,9 +959,9 @@ namespace Alternet.Drawing
         /// This method involves computing the histogram, which is a computationally
         /// intensive operation.
         /// </remarks>
-        public Color FindFirstUnusedColor(RGBValue? startRGB = null)
+        public virtual Color FindFirstUnusedColor(RGBValue? startRGB = null)
         {
-            return NativeDrawing.Default.GenericImageFindFirstUnusedColor(this, startRGB);
+            return Handler.FindFirstUnusedColor(startRGB);
         }
 
         /// <summary>
@@ -640,12 +972,11 @@ namespace Alternet.Drawing
         /// alpha data will be by default initialized to all pixels being fully opaque.
         /// But if the image has a mask color, all mask pixels will be completely transparent.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void InitAlpha()
+        public virtual void InitAlpha()
         {
-            if (HasAlpha())
+            if (HasAlpha)
                 return;
-            NativeDrawing.Default.GenericImageInitAlpha(this);
+            Handler.InitAlpha();
         }
 
         /// <summary>
@@ -657,10 +988,9 @@ namespace Alternet.Drawing
         /// <remarks>
         /// This should not be used when using a single mask color for transparency.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Blur(int blurRadius)
+        public virtual GenericImage Blur(int blurRadius)
         {
-            return NativeDrawing.Default.GenericImageBlur(this, blurRadius);
+            return Handler.Blur(blurRadius);
         }
 
         /// <summary>
@@ -671,10 +1001,9 @@ namespace Alternet.Drawing
         /// <remarks>
         /// This should not be used when using a single mask color for transparency.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage BlurHorizontal(int blurRadius)
+        public virtual GenericImage BlurHorizontal(int blurRadius)
         {
-            return NativeDrawing.Default.GenericImageBlurHorizontal(this, blurRadius);
+            return Handler.BlurHorizontal(blurRadius);
         }
 
         /// <summary>
@@ -685,10 +1014,9 @@ namespace Alternet.Drawing
         /// <remarks>
         /// This should not be used when using a single mask color for transparency.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage BlurVertical(int blurRadius)
+        public virtual GenericImage BlurVertical(int blurRadius)
         {
-            return NativeDrawing.Default.GenericImageBlurVertical(this, blurRadius);
+            return Handler.BlurVertical(blurRadius);
         }
 
         /// <summary>
@@ -696,10 +1024,9 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="horizontally"></param>
         /// <returns>Mirrored copy of the image</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Mirror(bool horizontally = true)
+        public virtual GenericImage Mirror(bool horizontally = true)
         {
-            return NativeDrawing.Default.GenericImageMirror(this, horizontally);
+            return Handler.Mirror(horizontally);
         }
 
         /// <summary>
@@ -715,14 +1042,13 @@ namespace Alternet.Drawing
         /// <remarks>
         /// Takes care of the mask color and out of bounds problems.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Paste(
+        public virtual void Paste(
             GenericImage image,
             int x,
             int y,
             GenericImageAlphaBlendMode alphaBlend = GenericImageAlphaBlendMode.Overwrite)
         {
-            NativeDrawing.Default.GenericImagePaste(this, image, x, y, alphaBlend);
+            Handler.Paste(image, x, y, alphaBlend);
         }
 
         /// <summary>
@@ -730,10 +1056,9 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="r1">RGB Color 1.</param>
         /// <param name="r2">RGB Color 2.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Replace(RGBValue r1, RGBValue r2)
+        public virtual void Replace(RGBValue r1, RGBValue r2)
         {
-            NativeDrawing.Default.GenericImageReplace(this, r1, r2);
+            Handler.Replace(r1, r2);
         }
 
         /// <summary>
@@ -743,13 +1068,12 @@ namespace Alternet.Drawing
         /// <param name="width">New image width.</param>
         /// <param name="height">New image height.</param>
         /// <param name="quality">Scaling quality.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Rescale(
+        public virtual void Rescale(
             int width,
             int height,
             GenericImageResizeQuality quality = GenericImageResizeQuality.Normal)
         {
-            NativeDrawing.Default.GenericImageRescale(this, width, height, quality);
+            Handler.Rescale(width, height, quality);
         }
 
         /// <summary>
@@ -765,13 +1089,12 @@ namespace Alternet.Drawing
         /// If <paramref name="color"/> is null then use either the current mask color if
         /// set or find, use, and set a suitable mask color for any newly exposed areas.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ResizeNoScale(
+        public virtual void ResizeNoScale(
             SizeI size,
             PointI pos,
             RGBValue? color = null)
         {
-            NativeDrawing.Default.GenericImageResizeNoScale(this, size, pos, color);
+            Handler.ResizeNoScale(size, pos, color);
         }
 
         /// <summary>
@@ -793,10 +1116,9 @@ namespace Alternet.Drawing
         /// color(which will be allocated automatically if it isn't currently set).
         /// Otherwise, the areas will be filled with the color with the specified RGB components.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage SizeNoScale(SizeI size, PointI pos = default, RGBValue? color = null)
+        public virtual GenericImage SizeNoScale(SizeI size, PointI pos = default, RGBValue? color = null)
         {
-            return NativeDrawing.Default.GenericImageSizeNoScale(this, size, pos, color);
+            return Handler.SizeNoScale(size, pos, color);
         }
 
         /// <summary>
@@ -804,20 +1126,18 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="clockwise">Rotate direction.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Rotate90(bool clockwise = true)
+        public virtual GenericImage Rotate90(bool clockwise = true)
         {
-            return NativeDrawing.Default.GenericImageRotate90(this, clockwise);
+            return Handler.Rotate90(clockwise);
         }
 
         /// <summary>
         /// Returns a copy of the image rotated by 180 degrees.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Rotate180()
+        public virtual GenericImage Rotate180()
         {
-            return NativeDrawing.Default.GenericImageRotate180(this);
+            return Handler.Rotate180();
         }
 
         /// <summary>
@@ -826,10 +1146,9 @@ namespace Alternet.Drawing
         /// to +360 degrees.
         /// </summary>
         /// <param name="angle"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RotateHue(double angle)
+        public virtual void RotateHue(double angle)
         {
-            NativeDrawing.Default.GenericImageRotateHue(this, angle);
+            Handler.RotateHue(angle);
         }
 
         /// <summary>
@@ -837,10 +1156,9 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="factor">A double in the range [-1.0..+1.0], where -1.0 corresponds
         /// to -100 percent and +1.0 corresponds to +100 percent.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ChangeSaturation(double factor)
+        public virtual void ChangeSaturation(double factor)
         {
-            NativeDrawing.Default.GenericImageChangeSaturation(this, factor);
+            Handler.ChangeSaturation(factor);
         }
 
         /// <summary>
@@ -848,20 +1166,18 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="factor">A double in the range [-1.0..+1.0], where -1.0 corresponds
         /// to -100 percent and +1.0 corresponds to +100 percent.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ChangeBrightness(double factor)
+        public virtual void ChangeBrightness(double factor)
         {
-            NativeDrawing.Default.GenericImageChangeBrightness(this, factor);
+            Handler.ChangeBrightness(factor);
         }
 
         /// <summary>
         /// Returns the file load flags used for this object.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImageLoadFlags GetLoadFlags()
+        public virtual GenericImageLoadFlags GetLoadFlags()
         {
-            return NativeDrawing.Default.GenericImageGetLoadFlags(this);
+            return Handler.LoadFlags;
         }
 
         /// <summary>
@@ -873,10 +1189,9 @@ namespace Alternet.Drawing
         /// before creating any of them.
         /// </remarks>
         /// <param name="flags"></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetLoadFlags(GenericImageLoadFlags flags)
+        public virtual void SetLoadFlags(GenericImageLoadFlags flags)
         {
-            NativeDrawing.Default.GenericImageSetLoadFlags(this, flags);
+            Handler.LoadFlags = flags;
         }
 
         /// <summary>
@@ -889,10 +1204,9 @@ namespace Alternet.Drawing
         /// corresponds to -100 percent and +1.0 corresponds to +100 percent</param>
         /// <param name="factorV">A double in the range[-1.0..+1.0], where -1.0 corresponds
         /// to -100 percent and +1.0 corresponds to +100 percent.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ChangeHSV(double angleH, double factorS, double factorV)
+        public virtual void ChangeHSV(double angleH, double factorS, double factorV)
         {
-            NativeDrawing.Default.GenericImageChangeHSV(this, angleH, factorS, factorV);
+            Handler.ChangeHSV(angleH, factorS, factorV);
         }
 
         /// <summary>
@@ -923,13 +1237,12 @@ namespace Alternet.Drawing
         /// using a single mask color for transparency, as the scaling will blur the image and
         /// will therefore remove the mask partially. Using the alpha channel will work.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage Scale(
+        public virtual GenericImage Scale(
             int width,
             int height,
             GenericImageResizeQuality quality = GenericImageResizeQuality.Normal)
         {
-            return NativeDrawing.Default.GenericImageScale(this, width, height, quality);
+            return Handler.Scale(width, height, quality);
         }
 
         /// <summary>
@@ -946,10 +1259,9 @@ namespace Alternet.Drawing
         /// The mask color is chosen automatically using <see cref="FindFirstUnusedColor"/>,
         /// see the overload method if this is not appropriate.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ConvertAlphaToMask(byte threshold = AlphaChannelThreshold)
+        public virtual bool ConvertAlphaToMask(byte threshold = AlphaChannelThreshold)
         {
-            return NativeDrawing.Default.GenericImageConvertAlphaToMask(this, threshold);
+            return Handler.ConvertAlphaToMask(threshold);
         }
 
         /// <summary>
@@ -968,15 +1280,11 @@ namespace Alternet.Drawing
         /// than threshold are replaced
         /// with the mask color and the alpha channel is removed.Otherwise nothing is done.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ConvertAlphaToMask(
+        public virtual bool ConvertAlphaToMask(
             RGBValue rgb,
             byte threshold = AlphaChannelThreshold)
         {
-            return NativeDrawing.Default.GenericImageConvertAlphaToMask(
-                this,
-                rgb,
-                threshold);
+            return Handler.ConvertAlphaToMask(rgb, threshold);
         }
 
         /// <summary>
@@ -991,20 +1299,18 @@ namespace Alternet.Drawing
         /// the greyscale. Defaults to using the standard ITU-T BT.601 when converting to
         /// YUV, where every pixel equals(R* weight_r) + (G* weight_g) + (B* weight_b).
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage ConvertToGreyscale(double weightR, double weightG, double weightB)
+        public virtual GenericImage ConvertToGreyscale(double weightR, double weightG, double weightB)
         {
-            return NativeDrawing.Default.GenericImageConvertToGreyscale(this, weightR, weightG, weightB);
+            return Handler.ConvertToGreyscale(weightR, weightG, weightB);
         }
 
         /// <summary>
         /// Returns a greyscale version of the image.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage ConvertToGreyscale()
+        public virtual GenericImage ConvertToGreyscale()
         {
-            return NativeDrawing.Default.GenericImageConvertToGreyscale(this);
+            return Handler.ConvertToGreyscale();
         }
 
         /// <summary>
@@ -1013,10 +1319,9 @@ namespace Alternet.Drawing
         /// <param name="rgb">RGB color.</param>
         /// <returns> The returned image has white color where the original has (r,g,b)
         /// color and black color everywhere else.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage ConvertToMono(RGBValue rgb)
+        public virtual GenericImage ConvertToMono(RGBValue rgb)
         {
-            return NativeDrawing.Default.GenericImageConvertToMono(this, rgb);
+            return Handler.ConvertToMono(rgb);
         }
 
         /// <summary>
@@ -1024,10 +1329,163 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="brightness"></param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage ConvertToDisabled(byte brightness = 255)
+        public virtual GenericImage ConvertToDisabled(byte brightness = 255)
         {
-            return NativeDrawing.Default.GenericImageConvertToDisabled(this, brightness);
+            GenericImage image = this.Copy();
+            image.ChangeToDisabled(brightness);
+            return image;
+        }
+
+        public virtual void ChangeLightness(int ialpha)
+        {
+            ialpha = MathUtils.ApplyMinMax(ialpha, 0, 200);
+            ForEachPixel(Color.ChangeLightness, ialpha);
+        }
+
+        /// <summary>
+        /// Changes each pixel of this image, making it's color disabled.
+        /// </summary>
+        public virtual void ChangeToDisabled(byte brightness = 255)
+        {
+            ForEachPixel(Color.MakeDisabled, brightness);
+        }
+
+        /// <summary>
+        /// Executes specified <paramref name="action"/> for the each pixel of the image.
+        /// </summary>
+        /// <typeparam name="T">Type of the custom value.</typeparam>
+        /// <param name="action">Action to call for the each pixel. <see cref="RGBValue"/>
+        /// is passed as the first
+        /// parameter of the action.</param>
+        /// <param name="param">Custom value. It is passed to the <paramref name="action"/>
+        /// as the second parameter.</param>
+        public virtual unsafe bool ForEachPixel<T>(ActionRef<SKColor, T> action, T param)
+        {
+            if (!IsOk)
+                return false;
+
+            if (HasMask)
+            {
+                SKColor mask = GetMaskRGB();
+                return ForEachPixelInternal(MaskAction, param);
+
+                void MaskAction(ref SKColor color, T param)
+                {
+                    if (color != mask)
+                        action(ref color, param);
+                }
+            }
+            else
+            {
+                if (HasAlpha)
+                {
+                    return ForEachPixelInternal(TransparentAction, param);
+
+                    void TransparentAction(ref SKColor color, T param)
+                    {
+                        if (color.Alpha != 0)
+                            action(ref color, param);
+                    }
+                }
+                else
+                {
+                    return ForEachPixelInternal(action, param);
+                }
+            }
+
+            unsafe bool ForEachPixelInternal<T2>(ActionRef<SKColor, T2> action, T2 param)
+            {
+                var rgb = Pixels;
+                var count = rgb.Length;
+
+                fixed (SKColor* ptr = rgb)
+                {
+                    var p = ptr;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        action(ref *p, param);
+                        p++;
+                    }
+                }
+
+                Pixels = rgb;
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Executes specified <paramref name="action"/> for the each pixel of the image.
+        /// </summary>
+        /// <typeparam name="T">Type of the custom value.</typeparam>
+        /// <param name="action">Action to call for the each pixel. <see cref="RGBValue"/>
+        /// is passed as the first
+        /// parameter of the action.</param>
+        /// <param name="param">Custom value. It is passed to the <paramref name="action"/>
+        /// as the second parameter.</param>
+        /// <remarks>
+        /// For an example of the action implementation, see source code of the
+        /// <see cref="Color.ChangeLightness(ref RGBValue, int)"/> method.
+        /// </remarks>
+        public virtual unsafe bool ForEachPixel<T>(ActionRef<RGBValue, T> action, T param)
+        {
+            if (!IsOk)
+                return false;
+
+            if (HasMask)
+            {
+                var mask = GetMaskRGB();
+                return ForEachPixelInternal(MaskAction, param);
+
+                void MaskAction(ref RGBValue rgb, T param)
+                {
+                    if (rgb != mask)
+                        action(ref rgb, param);
+                }
+            }
+            else
+            {
+                if (HasAlpha)
+                {
+                    return ForEachPixel(TransparentAction, param);
+
+                    void TransparentAction(ref SKColor color, T param)
+                    {
+                        var alpha = color.Alpha;
+
+                        if (alpha == 0)
+                            return;
+
+                        RGBValue rgb = color;
+                        action(ref rgb, param);
+                        color = rgb.WithAlpha(alpha);
+                    }
+                }
+                else
+                {
+                    return ForEachPixelInternal(action, param);
+                }
+            }
+
+            unsafe bool ForEachPixelInternal<T1>(ActionRef<RGBValue, T1> action, T1 param)
+            {
+                var rgb = RgbData;
+                var count = rgb.Length;
+
+                fixed (RGBValue* ptr = rgb)
+                {
+                    var p = ptr;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        action(ref *p, param);
+                        p++;
+                    }
+                }
+
+                RgbData = rgb;
+                return true;
+            }
         }
 
         /// <summary>
@@ -1040,10 +1498,11 @@ namespace Alternet.Drawing
         /// 200 completely white and 100 would not change the color.
         /// </remarks>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage ChangeLightness(int ialpha)
+        public virtual GenericImage ConvertLightness(int ialpha)
         {
-            return NativeDrawing.Default.GenericImageChangeLightness(this, ialpha);
+            var result = Copy();
+            result.ChangeLightness(ialpha);
+            return result;
         }
 
         /// <summary>
@@ -1055,7 +1514,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetAlpha(int x, int y)
         {
-            return NativeDrawing.Default.GenericImageGetAlpha(this, x, y);
+            return Handler.GetAlpha(x, y);
         }
 
         /// <summary>
@@ -1067,7 +1526,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public RGBValue GetRGB(int x, int y)
         {
-            return NativeDrawing.Default.GenericImageGetRGB(this, x, y);
+            return Handler.GetRGB(x, y);
         }
 
         /// <summary>
@@ -1075,7 +1534,8 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="x">X coordinate of the pixel.</param>
         /// <param name="y">Y coordinate of the pixel.</param>
-        /// <param name="withAlpha">If true alpha channel is also returned in result (<see cref="Color.A"/>);
+        /// <param name="withAlpha">If true alpha channel is also returned in
+        /// result (<see cref="Color.A"/>);
         /// if false it is set to 255.</param>
         /// <returns></returns>
         /// <remarks>
@@ -1085,7 +1545,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Color GetPixel(int x, int y, bool withAlpha = false)
         {
-            return NativeDrawing.Default.GenericImageGetPixel(this, x, y, withAlpha);
+            return Handler.GetPixel(x, y, withAlpha);
         }
 
         /// <summary>
@@ -1098,11 +1558,12 @@ namespace Alternet.Drawing
         /// This routine performs bounds-checks for the coordinate so it can be
         /// considered a safe way to manipulate the data.
         /// </remarks>
-        /// <param name="withAlpha">If true alpha channel is also set from <paramref name="color"/>.</param>
+        /// <param name="withAlpha">If true alpha channel is also set from
+        /// <paramref name="color"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetPixel(int x, int y, Color color, bool withAlpha = false)
         {
-            NativeDrawing.Default.GenericImageSetPixel(this, x, y, color, withAlpha);
+            Handler.SetPixel(x, y, color, withAlpha);
         }
 
         /// <summary>
@@ -1114,7 +1575,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetRed(int x, int y)
         {
-            return NativeDrawing.Default.GenericImageGetRed(this, x, y);
+            return Handler.GetRed(x, y);
         }
 
         /// <summary>
@@ -1126,7 +1587,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetGreen(int x, int y)
         {
-            return NativeDrawing.Default.GenericImageGetGreen(this, x, y);
+            return Handler.GetGreen(x, y);
         }
 
         /// <summary>
@@ -1138,46 +1599,42 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetBlue(int x, int y)
         {
-            return NativeDrawing.Default.GenericImageGetBlue(this, x, y);
+            return Handler.GetBlue(x, y);
         }
 
         /// <summary>
         /// Gets the <see cref="RGBValue"/> value of the mask color.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RGBValue GetMaskRGB()
+        public virtual RGBValue GetMaskRGB()
         {
-            return NativeDrawing.Default.GenericImageGetMaskRGB(this);
+            return Handler.GetMaskRGB();
         }
 
         /// <summary>
         /// Gets the red value of the mask color.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte GetMaskRed()
+        public virtual byte GetMaskRed()
         {
-            return NativeDrawing.Default.GenericImageGetMaskRed(this);
+            return Handler.GetMaskRed();
         }
 
         /// <summary>
         /// Gets the green value of the mask color.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte GetMaskGreen()
+        public virtual byte GetMaskGreen()
         {
-            return NativeDrawing.Default.GenericImageGetMaskGreen(this);
+            return Handler.GetMaskGreen();
         }
 
         /// <summary>
         /// Gets the blue value of the mask color.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte GetMaskBlue()
+        public virtual byte GetMaskBlue()
         {
-            return NativeDrawing.Default.GenericImageGetMaskBlue(this);
+            return Handler.GetMaskBlue();
         }
 
         /// <summary>
@@ -1188,10 +1645,9 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="name">The name of the option, case-insensitive.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string GetOptionAsString(string name)
+        public virtual string GetOptionAsString(string name)
         {
-            return NativeDrawing.Default.GenericImageGetOptionAsString(this, name);
+            return Handler.GetOptionAsString(name);
         }
 
         /// <summary>
@@ -1202,10 +1658,9 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="name">The name of the option, case-insensitive.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetOptionAsInt(string name)
+        public virtual int GetOptionAsInt(string name)
         {
-            return NativeDrawing.Default.GenericImageGetOptionAsInt(this, name);
+            return Handler.GetOptionAsInt(name);
         }
 
         /// <summary>
@@ -1213,40 +1668,18 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="rect">Bounds of the sub-image.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public GenericImage GetSubImage(RectI rect)
+        public virtual GenericImage GetSubImage(RectI rect)
         {
-            return NativeDrawing.Default.GenericImageGetSubImage(this, rect);
+            return Handler.GetSubImage(rect);
         }
 
         /// <summary>
         /// Gets the type of image found when image was loaded or specified when image was saved.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BitmapType GetImageType()
+        public virtual BitmapType GetImageType()
         {
-            return NativeDrawing.Default.GenericImageGetImageType(this);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if this image has alpha channel, <c>false</c> otherwise.
-        /// </summary>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasAlpha()
-        {
-            return NativeDrawing.Default.GenericImageHasAlpha(this);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if there is a mask active, <c>false</c> otherwise.
-        /// </summary>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasMask()
-        {
-            return NativeDrawing.Default.GenericImageHasMask(this);
+            return Handler.GetImageType();
         }
 
         /// <summary>
@@ -1257,10 +1690,9 @@ namespace Alternet.Drawing
         /// </remarks>
         /// <param name="name">The name of the option, case-insensitive.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasOption(string name)
+        public virtual bool HasOption(string name)
         {
-            return NativeDrawing.Default.GenericImageHasOption(this, name);
+            return Handler.HasOption(name);
         }
 
         /// <summary>
@@ -1275,7 +1707,7 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsTransparent(int x, int y, byte threshold = AlphaChannelThreshold)
         {
-            return NativeDrawing.Default.GenericImageIsTransparent(this, x, y, threshold);
+            return Handler.IsTransparent(x, y, threshold);
         }
 
         /// <summary>
@@ -1289,14 +1721,41 @@ namespace Alternet.Drawing
         /// <param name="index">See description in
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool LoadFromStream(
+        public virtual bool LoadFromStream(
             Stream stream,
             BitmapType bitmapType = BitmapType.Any,
             int index = -1)
         {
-            return NativeDrawing.Default.GenericImageLoadFromStream(
-                this,
+            return Handler.LoadFromStream(stream, bitmapType, index);
+        }
+
+        /// <summary>
+        /// Loads an image from a file.
+        /// </summary>
+        /// <param name="url">Path or url to file with image data.</param>
+        /// <param name="bitmapType">Type of the bitmap. Depending on how library and OS has
+        /// been configured and
+        /// by which handlers have been loaded, not all formats may be available. If value is
+        /// <see cref="BitmapType.Any"/>, function will try to autodetect the format.</param>
+        /// <param name="index">See description in
+        /// <see cref="GenericImage(string, BitmapType, int)"/></param>
+        /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
+        public virtual bool LoadFromFile(
+            string? url,
+            BitmapType bitmapType = BitmapType.Any,
+            int index = -1)
+        {
+            if (string.IsNullOrEmpty(url))
+                return false;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return false;
+            }
+
+            return Handler.LoadFromStream(
                 stream,
                 bitmapType,
                 index);
@@ -1305,39 +1764,24 @@ namespace Alternet.Drawing
         /// <summary>
         /// Loads an image from a file.
         /// </summary>
-        /// <param name="filename">Path to file.</param>
-        /// <param name="bitmapType">Type of the bitmap. Depending on how library and OS has
-        /// been configured and
-        /// by which handlers have been loaded, not all formats may be available. If value is
-        /// <see cref="BitmapType.Any"/>, function will try to autodetect the format.</param>
-        /// <param name="index">See description in
-        /// <see cref="GenericImage(string, BitmapType, int)"/></param>
-        /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool LoadFromFile(
-            string filename,
-            BitmapType bitmapType = BitmapType.Any,
-            int index = -1)
-        {
-            return NativeDrawing.Default.GenericImageLoadFromFile(
-                this,
-                filename,
-                bitmapType,
-                index);
-        }
-
-        /// <summary>
-        /// Loads an image from a file.
-        /// </summary>
-        /// <param name="name">Path to file.</param>
+        /// <param name="url">Path or url to file with image data.</param>
         /// <param name="mimetype">MIME type string (for example 'image/jpeg').</param>
         /// <param name="index">See description in
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool LoadFromFile(string name, string mimetype, int index = -1)
+        public virtual bool LoadFromFile(string? url, string mimetype, int index = -1)
         {
-            return NativeDrawing.Default.GenericImageLoadFromFile(this, name, mimetype, index);
+            if (string.IsNullOrEmpty(url))
+                return false;
+
+            using var stream = ResourceLoader.StreamFromUrl(url!);
+            if (stream is null)
+            {
+                App.LogError($"GenericImage not loaded from: {url}");
+                return false;
+            }
+
+            return Handler.LoadFromStream(stream, mimetype, index);
         }
 
         /// <summary>
@@ -1348,10 +1792,9 @@ namespace Alternet.Drawing
         /// <param name="index">See description in
         /// <see cref="GenericImage(string, BitmapType, int)"/></param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool LoadFromStream(Stream stream, string mimetype, int index = -1)
+        public virtual bool LoadFromStream(Stream stream, string mimetype, int index = -1)
         {
-            return NativeDrawing.Default.GenericImageLoadFromStream(this, stream, mimetype, index);
+            return Handler.LoadFromStream(stream, mimetype, index);
         }
 
         /// <summary>
@@ -1360,10 +1803,9 @@ namespace Alternet.Drawing
         /// <param name="stream">Output stream.</param>
         /// <param name="mimetype">MIME type string (for example 'image/jpeg').</param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SaveToStream(Stream stream, string mimetype)
+        public virtual bool SaveToStream(Stream stream, string mimetype)
         {
-            return NativeDrawing.Default.GenericImageSaveToStream(this, stream, mimetype);
+            return Handler.SaveToStream(stream, mimetype);
         }
 
         /// <summary>
@@ -1374,10 +1816,13 @@ namespace Alternet.Drawing
         /// has been configured and
         /// by which handlers have been loaded, not all formats may be available.</param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SaveToFile(string filename, BitmapType bitmapType)
+        public virtual bool SaveToFile(string filename, BitmapType bitmapType)
         {
-            return NativeDrawing.Default.GenericImageSaveToFile(this, filename, bitmapType);
+            return InsideTryCatch(() =>
+            {
+                using var stream = FileSystem.Default.Create(filename);
+                return SaveToStream(stream, bitmapType);
+            });
         }
 
         /// <summary>
@@ -1386,10 +1831,13 @@ namespace Alternet.Drawing
         /// <param name="filename">Name of the file to save the image to.</param>
         /// <param name="mimetype">MIME type string (for example 'image/jpeg').</param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SaveToFile(string filename, string mimetype)
+        public virtual bool SaveToFile(string filename, string mimetype)
         {
-            return NativeDrawing.Default.GenericImageSaveToFile(this, filename, mimetype);
+            return InsideTryCatch(() =>
+            {
+                using var stream = FileSystem.Default.Create(filename);
+                return SaveToStream(stream, mimetype);
+            });
         }
 
         /// <summary>
@@ -1403,10 +1851,27 @@ namespace Alternet.Drawing
         /// You can use one of the overload methods to save images to files
         /// with non-standard extensions.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SaveToFile(string filename)
+        public virtual bool SaveToFile(string filename)
         {
-            return NativeDrawing.Default.GenericImageSaveToFile(this, filename);
+            return InsideTryCatch(() =>
+            {
+                using var stream = FileSystem.Default.Create(filename);
+                var bitmapType = Image.GetBitmapTypeFromFileName(filename);
+                return SaveToStream(stream, bitmapType);
+            });
+        }
+
+        public virtual void Assign(SKBitmap bitmap)
+        {
+            Pixels = bitmap.Pixels;
+        }
+
+        public virtual ISkiaSurface LockSurface(ImageLockMode lockMode = ImageLockMode.ReadWrite)
+        {
+            Debug.Assert(IsOk, "Image.IsOk == true is required.");
+            Debug.Assert(!HasMask, "Image.HasMask == false is required.");
+
+            return GraphicsFactory.CreateSkiaSurface(this, lockMode);
         }
 
         /// <summary>
@@ -1415,172 +1880,15 @@ namespace Alternet.Drawing
         /// <param name="stream">Output stream</param>
         /// <param name="type"></param>
         /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SaveToStream(Stream stream, BitmapType type)
+        public virtual bool SaveToStream(Stream stream, BitmapType type)
         {
-            return NativeDrawing.Default.GenericImageSaveToStream(this, stream, type);
-        }
-
-        /// <summary>
-        /// Sets the image data without performing checks.
-        /// </summary>
-        /// <param name="width">Specifies the width of the image.</param>
-        /// <param name="height">Specifies the height of the image.</param>
-        /// <param name="data">A pointer to RGB data</param>
-        /// <param name="staticData">Indicates if the data should be free'd after use.
-        /// If <paramref name="staticData"/> is <c>false</c> then the
-        /// library will take ownership of the data and free it afterwards.For this,
-        /// it has to be allocated with malloc.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetNativeData(
-            IntPtr data,
-            int width,
-            int height,
-            bool staticData = false)
-        {
-            NativeDrawing.Default.GenericImageSetNativeData(this, data, width, height, staticData);
-        }
-
-        /// <summary>
-        /// Returns pointer to the array storing the alpha values for this image.
-        /// </summary>
-        /// <returns>This pointer is NULL for the images without the alpha channel.
-        /// If the image does have it, this pointer may be used to directly manipulate the
-        /// alpha values which are stored as the RGB ones.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IntPtr GetNativeAlphaData()
-        {
-            return NativeDrawing.Default.GenericImageGetNativeAlphaData(this);
-        }
-
-        /// <summary>
-        /// Returns the image data as an array.
-        /// </summary>
-        /// <remarks>
-        /// This is most often used when doing direct image manipulation. The return value
-        /// points to an array of bytes in RGBRGBRGB...format in the top-to-bottom,
-        /// left-to-right order, that is the first RGB triplet corresponds to the first pixel
-        /// of the first row, the second one — to the second pixel of the first row and so on
-        /// until the end of the first row, with second row following after it and so on.
-        /// You should not delete the returned pointer nor pass it to
-        /// <see cref="SetNativeData(IntPtr, bool)"/> and similar methods.
-        /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IntPtr GetNativeData()
-        {
-            return NativeDrawing.Default.GenericImageGetNativeData(this);
-        }
-
-        /// <summary>
-        /// Creates a fresh image.
-        /// </summary>
-        /// <param name="width">Specifies the width of the image.</param>
-        /// <param name="height">Specifies the height of the image.</param>
-        /// <param name="data">A pointer to RGB data</param>
-        /// <param name="staticData">Indicates if the data should be free'd after use.
-        /// If <paramref name="staticData"/> is <c>false</c> then the
-        /// library will take ownership of the data and free it afterwards.For this,
-        /// it has to be allocated with malloc.</param>
-        /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CreateNativeData(int width, int height, IntPtr data, bool staticData = false)
-        {
-            return NativeDrawing.Default.GenericImageCreateNativeData(
-                this,
-                width,
-                height,
-                data,
-                staticData);
-        }
-
-        /// <summary>
-        /// Creates a fresh image.
-        /// </summary>
-        /// <param name="width">Specifies the width of the image.</param>
-        /// <param name="height">Specifies the height of the image.</param>
-        /// <param name="data">A pointer to RGB data</param>
-        /// <param name="staticData">Indicates if the data should be free'd after use.
-        /// If <paramref name="staticData"/> is <c>false</c> then the
-        /// library will take ownership of the data and free it afterwards.For this,
-        /// it has to be allocated with malloc.</param>
-        /// <param name="alpha">A pointer to alpha-channel data</param>
-        /// <returns><c>true</c> if the call succeeded, <c>false</c> otherwise.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CreateNativeData(
-            int width,
-            int height,
-            IntPtr data,
-            IntPtr alpha,
-            bool staticData = false)
-        {
-            return NativeDrawing.Default.GenericImageCreateNativeData(
-                this,
-                width,
-                height,
-                data,
-                alpha,
-                staticData);
-        }
-
-        /// <summary>
-        /// Sets the image data without performing checks.
-        /// </summary>
-        /// <param name="alpha">Pointer to alpha channel data.</param>
-        /// <param name="staticData">Specifies whether data is static.</param>
-        /// <remarks>
-        /// This function is similar to <see cref="SetNativeData(IntPtr, bool)"/>
-        /// and has similar restrictions.
-        /// </remarks>
-        /// <remarks>
-        /// The pointer passed to it may however be <c>null</c> in which case the function will
-        /// allocate the alpha array internally – this is useful to add alpha channel
-        /// data to an image which doesn't have any.
-        /// </remarks>
-        /// <remarks>
-        /// If the pointer is not <c>null</c>, it must have one byte for each image
-        /// pixel and be allocated with malloc(). Library takes ownership of the pointer
-        /// and will free it unless <paramref name="staticData"/> parameter is set
-        /// to <c>true</c> – in this case the caller should do it.
-        /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetNativeAlphaData(IntPtr alpha = default, bool staticData = false)
-        {
-            NativeDrawing.Default.GenericImageSetNativeAlphaData(this, alpha, staticData);
-        }
-
-        /// <summary>
-        /// Sets the image data without performing checks.
-        /// </summary>
-        /// <param name="data">Pointer to RGB data.</param>
-        /// <param name="staticData">Specifies whether data is static.</param>
-        /// <remarks>
-        /// The data given must have the size (width*height*3) or results will be unexpected.
-        /// Don't use this method if you aren't sure you know what you are doing.
-        /// </remarks>
-        /// <remarks>
-        /// The data must have been allocated with malloc(), NOT with operator new.
-        /// </remarks>
-        /// <remarks>
-        /// If <paramref name="staticData"/> is false, after this call the pointer to the data is owned
-        /// by the Library, that will be responsible for deleting it. Do not pass to
-        /// this function a pointer obtained through GetData().
-        /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetNativeData(IntPtr data, bool staticData = false)
-        {
-            NativeDrawing.Default.GenericImageSetNativeData(this, data, staticData);
+            return Handler.SaveToStream(stream, type);
         }
 
         /// <inheritdoc/>
-        protected override object CreateHandler()
+        protected override IGenericImageHandler CreateHandler()
         {
-            return NativeDrawing.Default.CreateGenericImage();
-        }
-
-        /// <inheritdoc/>
-        protected override void DisposeManaged()
-        {
-            NativeDrawing.Default.DisposeGenericImage(this);
+            return GraphicsFactory.Handler.CreateGenericImageHandler();
         }
     }
 }

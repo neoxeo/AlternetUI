@@ -13,6 +13,11 @@ namespace Alternet.UI
     /// </summary>
     public class DragStartEventArgs : BaseCancelEventArgs
     {
+        /// <summary>
+        /// Gets or set time period limit used in <see cref="TimeIsGreater"/> property.
+        /// </summary>
+        public static long DefaultTimePeriodLimit = 10;
+
         private readonly MouseEventArgs mouseDownArgs;
         private readonly MouseEventArgs mouseMoveArgs;
         private readonly PointD mouseClientLocation;
@@ -22,7 +27,7 @@ namespace Alternet.UI
         /// Initializes a new instance of the <see cref="DragStartEventArgs"/> class.
         /// </summary>
         /// <param name="mouseClientLocation">The client coordinates of the mouse pointer
-        /// in logical units (1/96th of an inch).</param>
+        /// in device-independent units.</param>
         /// <param name="mouseDownLocation">Coordinates of the mouse pointer in the moment when
         /// <see cref="Control.MouseDown"/> event was fired.</param>
         /// <param name="mouseDownArgs"></param>
@@ -51,7 +56,7 @@ namespace Alternet.UI
         public static double MinDragStartDistance { get; set; } = 7;
 
         /// <summary>
-        /// Gets the client coordinates of the mouse pointer in logical units (1/96th of an inch).
+        /// Gets the client coordinates of the mouse pointer in device-independent units.
         /// </summary>
         public PointD MouseClientLocation => mouseClientLocation;
 
@@ -60,7 +65,7 @@ namespace Alternet.UI
         /// <see cref="Control.MouseDown"/> event was fired.
         /// </summary>
         /// <remarks>
-        /// Coordinates of the mouse pointer are in logical units (1/96th of an inch).
+        /// Coordinates of the mouse pointer are in device-independent units.
         /// </remarks>
         public PointD MouseDownLocation => mouseDownLocation;
 
@@ -89,18 +94,30 @@ namespace Alternet.UI
             }
         }
 
+        /// <summary>
+        /// Gets whether <see cref="TimePeriod"/> is greater than <see cref="DefaultTimePeriodLimit"/>.
+        /// </summary>
         public bool TimeIsGreater
         {
             get
             {
-                return TimePeriod > 10;
+                return TimePeriod > DefaultTimePeriodLimit;
             }
         }
 
-        internal long TimestampStart => mouseDownArgs.Timestamp;
+        /// <summary>
+        /// Gets the time when mouse down event was received.
+        /// </summary>
+        public long TimestampStart => mouseDownArgs.Timestamp;
 
-        internal long TimestampEnd => mouseMoveArgs.Timestamp;
+        /// <summary>
+        /// Gets the time when mouse move event was received.
+        /// </summary>
+        public long TimestampEnd => mouseMoveArgs.Timestamp;
 
-        internal long TimePeriod => Math.Abs(TimestampEnd - TimestampStart);
+        /// <summary>
+        /// Gets time period between <see cref="TimestampEnd"/> and <see cref="TimestampStart"/>.
+        /// </summary>
+        public long TimePeriod => Math.Abs(TimestampEnd - TimestampStart);
     }
 }

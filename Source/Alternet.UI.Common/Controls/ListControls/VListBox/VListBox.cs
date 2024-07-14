@@ -119,7 +119,7 @@ namespace Alternet.UI
 
             set
             {
-                if (HScrollBarVisible == value)
+                if (HScrollBarVisible == value || !App.IsWindowsOS)
                     return;
                 Handler.HScrollBarVisible = value;
                 Refresh();
@@ -621,7 +621,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="VListBoxHandler"/> associated with this class.
+        /// Gets a <see cref="IVListBoxHandler"/> associated with this class.
         /// </summary>
         [Browsable(false)]
         internal new IVListBoxHandler Handler
@@ -664,7 +664,7 @@ namespace Alternet.UI
                 if (itemFont is not null)
                     result = itemFont;
                 if (item.FontStyle is not null)
-                    result = result.GetWithStyle(item.FontStyle.Value);
+                    result = result.WithStyle(item.FontStyle.Value);
             }
 
             return result;
@@ -731,7 +731,7 @@ namespace Alternet.UI
             var maxHeightD = PixelToDip(maxHeightI);
 
             var font = GetItemFont(itemIndex).AsBold;
-            var size = MeasureCanvas.MeasureText(s, font);
+            var size = MeasureCanvas.GetTextExtent(s, font);
             size.Height = Math.Max(size.Height, maxHeightD);
             size.Width += ItemMargin.Horizontal;
             size.Height += ItemMargin.Vertical;
@@ -1408,7 +1408,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return NativePlatform.Default.CreateVListBoxHandler(this);
+            return ControlFactory.Handler.CreateVListBoxHandler(this);
         }
 
         /// <summary>
@@ -1490,7 +1490,9 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnScroll(ScrollEventArgs e)
         {
-            double CharWidth() => MeasureCanvas.MeasureText("W", GetItemFont()).Width;
+            if (!App.IsWindowsOS)
+                return;
+            double CharWidth() => MeasureCanvas.GetTextExtent("W", GetItemFont()).Width;
 
             void IncOffset(double delta)
             {
@@ -1552,7 +1554,7 @@ namespace Alternet.UI
                 return null;
             ItemCheckBoxInfo result = new();
             result.PartState = Enabled
-                ? GenericControlState.Normal : GenericControlState.Disabled;
+                ? VisualControlState.Normal : VisualControlState.Disabled;
             result.CheckState = GetItemCheckState(item);
             result.CheckSize = DrawingUtils.GetCheckBoxSize(this, result.CheckState, result.PartState);
             var (checkRect, textRect) = GetItemImageRect(rect, result.CheckSize);
@@ -1563,7 +1565,7 @@ namespace Alternet.UI
 
         internal class ItemCheckBoxInfo
         {
-            public GenericControlState PartState;
+            public VisualControlState PartState;
             public SizeD CheckSize;
             public RectD CheckRect;
             public RectD TextRect;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -10,6 +11,28 @@ namespace Alternet.UI
 {
     public partial class Control
     {
+        /// <summary>
+        /// Finds control which accepts mouse events (checks whether <see cref="InputTransparent"/>
+        /// property is <c>true</c>). Returns control specified as a parameter or one
+        /// of it's parent controls.
+        /// </summary>
+        /// <param name="control">Control to check.</param>
+        /// <returns></returns>
+        public static Control? GetMouseTargetControl(Control? control)
+        {
+            var result = control;
+
+            while (result is not null)
+            {
+                if (result.InputTransparent)
+                    result = result.Parent;
+                else
+                    return result;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Called when the control should
         /// reposition its child controls.
@@ -66,12 +89,12 @@ namespace Alternet.UI
 
         /// <summary>
         /// Retrieves the size of a rectangular area into which a control can
-        /// be fitted, in device-independent units (1/96th inch per unit).
+        /// be fitted, in device-independent units.
         /// </summary>
         /// <param name="availableSize">The available space that a parent element
         /// can allocate a child control.</param>
         /// <returns>A <see cref="SuggestedSize"/> representing the width and height of
-        /// a rectangle, in device-independent units (1/96th inch per unit).</returns>
+        /// a rectangle, in device-independent units.</returns>
         /// <remarks>
         /// This is a default implementation which is called from
         /// <see cref="Control.GetPreferredSize(SizeD)"/>.
@@ -111,13 +134,12 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Returns the currently focused control, or <see langword="null"/> if
-        /// no control is focused.
+        /// Returns the currently hovered control, or <see langword="null"/> if
+        /// no control is under the mouse.
         /// </summary>
-        public static Control? GetFocusedControl()
+        public static Control? GetHoveredControl()
         {
-            var result = NativePlatform.Default.GetFocusedControl();
-            return (Control?)result;
+            return HoveredControl;
         }
 
         /// <summary>
@@ -198,7 +220,7 @@ namespace Alternet.UI
         /// <remarks>
         /// If <paramref name="newIndex"/> = -1, moves to the end of the collection.
         /// </remarks>
-        public void SetChildIndex(Control child, int newIndex)
+        public virtual void SetChildIndex(Control child, int newIndex)
         {
             Children.SetItemIndex(child, newIndex);
             PerformLayout(false);
@@ -223,7 +245,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets the background brush for specified state of the control.
         /// </summary>
-        public virtual Brush? GetBackground(GenericControlState state)
+        public virtual Brush? GetBackground(VisualControlState state)
         {
             return Backgrounds?.GetObjectOrNull(state);
         }
@@ -231,7 +253,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets the border settings for specified state of the control.
         /// </summary>
-        public virtual BorderSettings? GetBorderSettings(GenericControlState state)
+        public virtual BorderSettings? GetBorderSettings(VisualControlState state)
         {
             return Borders?.GetObjectOrNormal(state);
         }
@@ -239,17 +261,9 @@ namespace Alternet.UI
         /// <summary>
         /// Gets the foreground brush for specified state of the control.
         /// </summary>
-        public virtual Brush? GetForeground(GenericControlState state)
+        public virtual Brush? GetForeground(VisualControlState state)
         {
             return Foregrounds?.GetObjectOrNull(state);
-        }
-
-        /// <summary>
-        /// Sends size event.
-        /// </summary>
-        public virtual void SendSizeEvent()
-        {
-            Handler.SendSizeEvent();
         }
 
         /// <summary>
@@ -328,7 +342,8 @@ namespace Alternet.UI
         /// This method is useful, for example, when you need to get
         /// all <see cref="Button"/> or <see cref="CheckBox"/> child controls.
         /// </remarks>
-        public IEnumerable<T> ChildrenOfType<T>()
+        public virtual IEnumerable<T> ChildrenOfType<T>()
+            where T : Control
         {
             if (HasChildren)
                 return Children.OfType<T>();
@@ -345,7 +360,7 @@ namespace Alternet.UI
         /// given method. This can be <c>null</c> if no arguments are needed.</param>
         /// <returns>An <see cref="IAsyncResult"/> that represents the result
         /// of the operation.</returns>
-        public IAsyncResult BeginInvoke(Delegate method, object?[] args)
+        public virtual IAsyncResult BeginInvoke(Delegate method, object?[] args)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
@@ -372,6 +387,17 @@ namespace Alternet.UI
         public virtual void RefreshRect(RectD rect, bool eraseBackground = true)
         {
             Handler.RefreshRect(rect, eraseBackground);
+        }
+
+        /// <summary>
+        /// Repaints rectangles (coordinates in pixels) in the control.
+        /// </summary>
+        /// <param name="rects">Array of rectangles with coordinates specified in pixels.</param>
+        /// <param name="eraseBackground">Specifies whether to erase background.</param>
+        public virtual void RefreshRects(IEnumerable<RectI> rects, bool eraseBackground = true)
+        {
+            foreach (var rect in rects)
+                RefreshRect(PixelToDip(rect), eraseBackground);
         }
 
         /// <summary>
@@ -428,7 +454,7 @@ namespace Alternet.UI
             }
             catch (Exception exception)
             {
-                ControlExceptionEventArgs data = new(exception);
+                ThrowExceptionEventArgs data = new(exception);
                 RaiseProcessException(data);
                 if (data.ThrowIt)
                     throw;
@@ -549,27 +575,68 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Raises the <see cref="Click"/> event and calls
-        /// <see cref="OnClick(EventArgs)"/>.
-        /// See <see cref="Click"/> event description for more details.
+        /// Calls appropriate mouse events using specified <see cref="TouchEventArgs"/>.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        public virtual void RaiseClick(EventArgs e)
+        /// <param name="e">Touch event arguments.</param>
+        public virtual void TouchToMouseEvents(TouchEventArgs e)
         {
-            OnClick(e);
-            Click?.Invoke(this, e);
-        }
+            switch (e.DeviceType)
+            {
+                case TouchDeviceType.Touch:
+                case TouchDeviceType.Mouse:
+                    switch (e.ActionType)
+                    {
+                        case TouchAction.Entered:
+                            RaiseMouseEnter();
+                            break;
+                        case TouchAction.Pressed:
+                            Control.BubbleMouseDown(
+                                this,
+                                DateTime.Now.Ticks,
+                                e.MouseButton,
+                                e.Location,
+                                out _);
+                            break;
+                        case TouchAction.Moved:
+                            Control.BubbleMouseMove(
+                                this,
+                                DateTime.Now.Ticks,
+                                e.Location,
+                                out _);
+                            break;
+                        case TouchAction.Released:
+                            Control.BubbleMouseUp(
+                                this,
+                                DateTime.Now.Ticks,
+                                e.MouseButton,
+                                e.Location,
+                                out _);
+                            break;
+                        case TouchAction.Cancelled:
+                            break;
+                        case TouchAction.Exited:
+                            RaiseMouseLeave();
+                            break;
+                        case TouchAction.WheelChanged:
+                            Control.BubbleMouseWheel(
+                                        this,
+                                        DateTime.Now.Ticks,
+                                        e.WheelDelta,
+                                        e.Location,
+                                        out _);
+                            break;
+                        default:
+                            break;
+                    }
 
-        /// <summary>
-        /// Raises the <see cref="Idle"/> event and calls
-        /// <see cref="OnIdle(EventArgs)"/>.
-        /// See <see cref="Idle"/> event description for more details.
-        /// </summary>
-        public virtual void RaiseIdle()
-        {
-            OnIdle(EventArgs.Empty);
-            Idle?.Invoke(this, EventArgs.Empty);
+                    break;
+                case TouchDeviceType.Pen:
+                    break;
+                default:
+                    break;
+            }
+
+            e.Handled = true;
         }
 
         /// <summary>
@@ -730,28 +797,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Notifies that no more native control recreates are allowed.
-        /// </summary>
-        /// <remarks>
-        /// When some properties are assigned, native control could be recreated.
-        /// Sometimes it is not desired.
-        /// This method sets a restriction on a control recreate, so debug message will be logged.
-        /// </remarks>
-        public virtual void DisableRecreate()
-        {
-            Handler.DisableRecreate();
-        }
-
-        /// <summary>
-        /// Allows control recreate which was previously disabled using <see cref="DisableRecreate"/>.
-        /// </summary>
-        /// See more details in <see cref="DisableRecreate"/>.
-        public virtual void EnableRecreate()
-        {
-            Handler.EnableRecreate();
-        }
-
-        /// <summary>
         /// Executes <paramref name="action"/> between calls to <see cref="SuspendLayout"/>
         /// and <see cref="ResumeLayout"/>.
         /// </summary>
@@ -881,10 +926,10 @@ namespace Alternet.UI
         /// <param name="specified">Specifies which bounds to use when applying new
         /// location and size.</param>
         public virtual void SetBounds(
-            double x,
-            double y,
-            double width,
-            double height,
+            Coord x,
+            Coord y,
+            Coord width,
+            Coord height,
             BoundsSpecified specified)
         {
             var bounds = Bounds;
@@ -909,7 +954,7 @@ namespace Alternet.UI
         /// Forces the control to invalidate itself and immediately redraw itself
         /// and any child controls. Calls <see cref="Invalidate()"/> and <see cref="Update"/>.
         /// </summary>
-        public virtual void Refresh()
+        public void Refresh()
         {
             Invalidate();
             Update();
@@ -921,10 +966,7 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Invalidate()
         {
-            if (Parent != null || this is Window)
-            {
-                Handler.Invalidate();
-            }
+            Handler.Invalidate();
         }
 
         /// <summary>
@@ -932,10 +974,7 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Update()
         {
-            if (Parent != null || this is Window)
-            {
-                Handler.Update();
-            }
+            Handler.Update();
         }
 
         /// <summary>
@@ -955,16 +994,10 @@ namespace Alternet.UI
         /// method to enable the changes to take effect.
         /// </para>
         /// </remarks>
-        public void SuspendLayout()
+        public virtual void SuspendLayout()
         {
             layoutSuspendCount++;
         }
-
-        /// <summary>
-        /// Gets <see cref="Display"/> where this control is shown.
-        /// </summary>
-        /// <returns></returns>
-        public virtual Display GetDisplay() => new(this);
 
         /// <summary>
         /// Changes size of the control to fit the size of its content.
@@ -993,7 +1026,7 @@ namespace Alternet.UI
                 ClientSize = newSize + new SizeD(1, 0);
                 ClientSize = newSize;
                 Refresh();
-                SendSizeEvent();
+                PerformLayout();
             }
         }
 
@@ -1019,30 +1052,6 @@ namespace Alternet.UI
         public virtual PointD ClientToScreen(PointD point)
         {
             return Handler.ClientToScreen(point);
-        }
-
-        /// <summary>
-        /// Converts the screen coordinates of a specified point in
-        /// device-independent units (1/96th inch per unit) to device (pixel) coordinates.
-        /// </summary>
-        /// <param name="point">A <see cref="PointD"/> that specifies the
-        /// screen device-independent coordinates to be converted.</param>
-        /// <returns>The converted cooridnates.</returns>
-        public virtual PointI ScreenToDevice(PointD point)
-        {
-            return Handler.ScreenToDevice(point);
-        }
-
-        /// <summary>
-        /// Converts the device (pixel) coordinates of a specified point
-        /// to coordinates in device-independent units (1/96th inch per unit).
-        /// </summary>
-        /// <param name="point">A <see cref="PointD"/> that contains the coordinates
-        /// in device-independent units (1/96th inch per unit) to be converted.</param>
-        /// <returns>The converted cooridnates.</returns>
-        public virtual PointD DeviceToScreen(PointI point)
-        {
-            return Handler.DeviceToScreen(point);
         }
 
         /// <summary>
@@ -1155,7 +1164,7 @@ namespace Alternet.UI
         /// Gets child with the specified id.
         /// </summary>
         /// <param name="id">Child control id.</param>
-        public Control? FindChild(ObjectUniqueId? id)
+        public virtual Control? FindChild(ObjectUniqueId? id)
         {
             if (id is null)
                 return null;
@@ -1168,127 +1177,13 @@ namespace Alternet.UI
             return null;
         }
 
-        public void RaiseMouseWheel(MouseEventArgs e)
-        {
-            OnMouseWheel(e);
-        }
-
-        public void RaiseMouseDoubleClick(MouseEventArgs e)
-        {
-            OnMouseDoubleClick(e);
-        }
-
-        public void RaiseKeyDown(KeyEventArgs e)
-        {
-            var control = this;
-            var form = ParentWindow;
-            if (form is not null)
-            {
-                if (form.KeyPreview)
-                {
-                    e.CurrentTarget = form;
-                    form.OnKeyDown(e);
-                    if (e.Handled)
-                        return;
-                }
-                else
-                    form = null;
-            }
-
-            while (control is not null && control != form)
-            {
-                e.CurrentTarget = control;
-                control.OnKeyDown(e);
-
-                if (e.Handled)
-                    return;
-                control = control.Parent;
-            }
-        }
-
+        /// <summary>
+        /// Gets native handler of the control. You should not use this property.
+        /// </summary>
+        /// <returns></returns>
         public IntPtr GetHandle()
         {
             return Handler.GetHandle();
-        }
-
-        public void RaiseKeyUp(KeyEventArgs e)
-        {
-            var control = this;
-            var form = ParentWindow;
-            if (form is not null && form.KeyPreview)
-            {
-                e.CurrentTarget = form;
-                form.OnKeyUp(e);
-                if (e.Handled)
-                    return;
-            }
-            else
-                form = null;
-
-            while (control is not null && control != form)
-            {
-                e.CurrentTarget = control;
-                control.OnKeyUp(e);
-                if (e.Handled)
-                    return;
-                control = control.Parent;
-            }
-        }
-
-        public void RaiseKeyPress(KeyPressEventArgs e)
-        {
-            var control = this;
-            var form = ParentWindow;
-            if (form is not null && form.KeyPreview)
-            {
-                form.OnKeyPress(e);
-                if (e.Handled)
-                    return;
-            }
-            else
-                form = null;
-
-            while (control is not null && control != form)
-            {
-                control.OnKeyPress(e);
-
-                if (e.Handled)
-                    return;
-                control = control.Parent;
-            }
-        }
-
-        public void RaiseMouseMove(MouseEventArgs e)
-        {
-            OnMouseMove(e);
-        }
-
-        public void RaiseMouseUp(MouseEventArgs e)
-        {
-            OnMouseUp(e);
-
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                OnMouseLeftButtonUp(e);
-            }
-            else if (e.ChangedButton == MouseButton.Right)
-            {
-                OnMouseRightButtonUp(e);
-            }
-        }
-
-        public void RaiseMouseDown(MouseEventArgs e)
-        {
-            OnMouseDown(e);
-
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                OnMouseLeftButtonDown(e);
-            }
-            else if (e.ChangedButton == MouseButton.Right)
-            {
-                OnMouseRightButtonDown(e);
-            }
         }
 
         /// <summary>
@@ -1320,16 +1215,6 @@ namespace Alternet.UI
             }
 
             RaiseLayoutUpdated();
-        }
-
-        /// <summary>
-        /// Sets bounds of the control using <paramref name="rect"/> and <paramref name="flags"/>.
-        /// </summary>
-        /// <param name="rect">Rectangle.</param>
-        /// <param name="flags">Flags.</param>
-        public virtual void SetBounds(RectD rect, SetBoundsFlags flags)
-        {
-            Handler.SetBounds(rect, flags);
         }
 
         /// <summary>
@@ -1371,42 +1256,6 @@ namespace Alternet.UI
         public void SetEnabled(bool value) => Enabled = value;
 
         /// <summary>
-        /// Sets input focus to the control.
-        /// </summary>
-        /// <returns><see langword="true"/> if the input focus request was
-        /// successful; otherwise, <see langword="false"/>.</returns>
-        /// <remarks>The <see cref="SetFocus"/> method returns true if the
-        /// control successfully received input focus.</remarks>
-        public virtual bool SetFocus()
-        {
-            return Handler.SetFocus();
-        }
-
-        /// <summary>
-        /// Sets input focus to the control.
-        /// </summary>
-        /// <returns>
-        ///   <see langword="true" /> if the input focus request was successful;
-        ///   otherwise, <see langword="false" />.
-        /// </returns>
-        /// <remarks>
-        /// Same as <see cref="SetFocus"/>.
-        /// </remarks>
-        [EditorBrowsable(EditorBrowsableState.Advanced)]
-        public bool Focus() => SetFocus();
-
-        /// <summary>
-        /// Sets input focus to the control if it can accept it.
-        /// </summary>
-        public virtual bool SetFocusIfPossible()
-        {
-            if (CanAcceptFocus)
-                return SetFocus();
-            else
-                return false;
-        }
-
-        /// <summary>
         /// Saves screenshot of this control.
         /// </summary>
         /// <param name="fileName">Name of the file to which screenshot
@@ -1443,7 +1292,7 @@ namespace Alternet.UI
         /// </summary>
         public virtual void ResetSuggestedHeight()
         {
-            SuggestedHeight = double.NaN;
+            SuggestedHeight = Coord.NaN;
         }
 
         /// <summary>
@@ -1451,7 +1300,7 @@ namespace Alternet.UI
         /// </summary>
         public virtual void ResetSuggestedWidth()
         {
-            SuggestedWidth = double.NaN;
+            SuggestedWidth = Coord.NaN;
         }
 
         /// <summary>
@@ -1473,6 +1322,28 @@ namespace Alternet.UI
         public virtual string? GetRealToolTip()
         {
             return ToolTip;
+        }
+
+        /// <summary>
+        /// Gets the validation errors for this control and it's child controls.
+        /// </summary>
+        /// <param name="propertyName">
+        /// The name of the property to retrieve validation errors for; or <c>null</c>
+        /// or <see cref="string.Empty"/>, to retrieve entity-level errors.
+        /// </param>
+        /// <returns>The validation errors for this control and it's child controls.</returns>
+        public virtual IEnumerable GetErrors(string? propertyName = null)
+        {
+            foreach (var item in AllChildren)
+            {
+                if (item is INotifyDataErrorInfo errorInfo)
+                {
+                    foreach (var error in errorInfo.GetErrors(null))
+                    {
+                        yield return error;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1554,20 +1425,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Focuses the next control.
-        /// </summary>
-        /// <param name="forward"><see langword="true"/> to move forward in the
-        /// tab order; <see langword="false"/> to move backward in the tab
-        /// order.</param>
-        /// <param name="nested"><see langword="true"/> to include nested
-        /// (children of child controls) child controls; otherwise,
-        /// <see langword="false"/>.</param>
-        public virtual void FocusNextControl(bool forward = true, bool nested = true)
-        {
-            Handler.FocusNextControl(forward, nested);
-        }
-
-        /// <summary>
         /// Begins a drag-and-drop operation.
         /// </summary>
         /// <remarks>
@@ -1610,7 +1467,7 @@ namespace Alternet.UI
         /// </returns>
         public virtual SizeD GetDPI()
         {
-            return Handler.GetDPI();
+            return dpi ??= GraphicsFactory.ScaleFactorToDpi(ScaleFactor);
         }
 
         /// <summary>
@@ -1672,12 +1529,12 @@ namespace Alternet.UI
 
         /// <summary>
         /// Retrieves the size of a rectangular area into which a control can
-        /// be fitted, in device-independent units (1/96th inch per unit).
+        /// be fitted, in device-independent units.
         /// </summary>
         /// <param name="availableSize">The available space that a parent element
         /// can allocate a child control.</param>
         /// <returns>A <see cref="SuggestedSize"/> representing the width and height of
-        /// a rectangle, in device-independent units (1/96th inch per unit).</returns>
+        /// a rectangle, in device-independent units.</returns>
         public virtual SizeD GetPreferredSize(SizeD availableSize)
         {
             var layoutType = Layout ?? GetDefaultLayout();
@@ -1704,38 +1561,40 @@ namespace Alternet.UI
         public virtual SizeD GetPreferredSize() => GetPreferredSize(SizeD.PositiveInfinity);
 
         /// <summary>
-        /// Call this function to force one or both scrollbars to be always shown, even if
-        /// the control is big enough to show its entire contents without scrolling.
-        /// </summary>
-        /// <param name="hflag">Whether the horizontal scroll bar should always be visible.</param>
-        /// <param name="vflag">Whether the vertical scroll bar should always be visible.</param>
-        /// <remarks>
-        /// This function is currently only implemented under Mac/Carbon.
-        /// </remarks>
-        public virtual void AlwaysShowScrollbars(bool hflag = true, bool vflag = true)
-        {
-            Handler.AlwaysShowScrollbars(hflag, vflag);
-        }
-
-        /// <summary>
         /// Performs some action for the each child of the control.
         /// </summary>
         /// <typeparam name="T">Specifies type of the child control.</typeparam>
         /// <param name="action">Specifies action which will be called for the
         /// each child.</param>
         public virtual void ForEachChild<T>(Action<T> action)
+            where T : Control
         {
-            foreach (var child in ChildrenOfType<T>())
-                action(child);
+            if (!HasChildren)
+                return;
+
+            foreach (var child in Children)
+            {
+                if(child is T control)
+                    action(control);
+            }
         }
 
         /// <summary>
-        /// Disable control recreate when properties that require control
-        /// recreation are changed.
+        /// Performs some action for the each child of the control.
         /// </summary>
-        public virtual void BeginIgnoreRecreate()
+        /// <param name="action">Specifies action which will be called for the each child.</param>
+        /// <param name="recursive">Whether to call action for all child controls recursively.</param>
+        public virtual void ForEachChild(Action<Control> action, bool recursive = false)
         {
-            Handler.BeginIgnoreRecreate();
+            if (!HasChildren)
+                return;
+
+            foreach (var child in Children)
+            {
+                action(child);
+                if (recursive)
+                    child.ForEachChild(action, true);
+            }
         }
 
         /// <summary>
@@ -1773,26 +1632,17 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Enable control recreate if it's required after it was previously
-        /// disabled by <see cref="BeginIgnoreRecreate"/>
-        /// </summary>
-        public virtual void EndIgnoreRecreate()
-        {
-            Handler.EndIgnoreRecreate();
-        }
-
-        /// <summary>
-        /// Converts device-independent units (1/96th inch per unit) to pixels.
+        /// Converts device-independent units to pixels.
         /// </summary>
         /// <param name="value">Value in device-independent units.</param>
         /// <returns></returns>
-        public int PixelFromDip(double value)
+        public virtual int PixelFromDip(Coord value)
         {
-            return Handler.PixelFromDip(value);
+            return GraphicsFactory.PixelFromDip(value, ScaleFactor);
         }
 
         /// <summary>
-        /// Converts device-independent units (1/96th inch per unit) to pixels.
+        /// Converts device-independent units to pixels.
         /// </summary>
         /// <param name="value">Value in device-independent units.</param>
         /// <returns></returns>
@@ -1802,7 +1652,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Converts device-independent units (1/96th inch per unit) to pixels.
+        /// Converts device-independent units to pixels.
         /// </summary>
         /// <param name="value">Value in device-independent units.</param>
         /// <returns></returns>
@@ -1812,7 +1662,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Converts device-independent units (1/96th inch per unit) to pixels.
+        /// Converts device-independent units to pixels.
         /// </summary>
         /// <param name="value">Value in device-independent units.</param>
         /// <returns></returns>
@@ -1822,17 +1672,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets scale factor used in device-independent units (1/96th inch per unit) to/from
-        /// pixels conversions.
-        /// </summary>
-        /// <returns></returns>
-        public virtual double GetPixelScaleFactor()
-        {
-            return Handler.GetPixelScaleFactor();
-        }
-
-        /// <summary>
-        /// Converts <see cref="SizeI"/> to device-independent units (1/96th inch per unit).
+        /// Converts <see cref="SizeI"/> to device-independent units.
         /// </summary>
         /// <param name="value"><see cref="SizeI"/> in pixels.</param>
         /// <returns></returns>
@@ -1842,7 +1682,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Converts <see cref="PointI"/> to device-independent units (1/96th inch per unit).
+        /// Converts <see cref="PointI"/> to device-independent units.
         /// </summary>
         /// <param name="value"><see cref="PointI"/> in pixels.</param>
         /// <returns></returns>
@@ -1863,7 +1703,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Gets the update rectangle region bounding box in client coords. This method
-        /// can be used in paint events. Returns rectangle in dips (1/96 inch).
+        /// can be used in paint events. Returns rectangle in device-independent units.
         /// </summary>
         /// <returns></returns>
         public virtual RectD GetUpdateClientRect()
@@ -1874,7 +1714,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Converts <see cref="RectI"/> to device-independent units (1/96th inch per unit).
+        /// Converts <see cref="RectI"/> to device-independent units.
         /// </summary>
         /// <param name="value"><see cref="RectI"/> in pixels.</param>
         /// <returns></returns>
@@ -1888,7 +1728,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="value">Image.</param>
         /// <param name="state">Control state.</param>
-        public void SetImage(Image? value, GenericControlState state = GenericControlState.Normal)
+        public virtual void SetImage(
+            Image? value,
+            VisualControlState state = VisualControlState.Normal)
         {
             StateObjects ??= new();
             StateObjects.Images ??= new();
@@ -1900,7 +1742,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="value">Background brush.</param>
         /// <param name="state">Control state.</param>
-        public void SetBackground(Brush? value, GenericControlState state = GenericControlState.Normal)
+        public virtual void SetBackground(
+            Brush? value,
+            VisualControlState state = VisualControlState.Normal)
         {
             StateObjects ??= new();
             StateObjects.Backgrounds ??= new();
@@ -1912,7 +1756,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="value">Border settings.</param>
         /// <param name="state">Control state.</param>
-        public void SetBorder(BorderSettings? value, GenericControlState state = GenericControlState.Normal)
+        public virtual void SetBorder(
+            BorderSettings? value,
+            VisualControlState state = VisualControlState.Normal)
         {
             StateObjects ??= new();
             StateObjects.Borders ??= new();
@@ -1967,23 +1813,13 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Converts pixels to device-independent units (1/96th inch per unit).
+        /// Converts pixels to device-independent units.
         /// </summary>
         /// <param name="value">Value in pixels.</param>
         /// <returns></returns>
-        public double PixelToDip(int value)
+        public virtual Coord PixelToDip(int value)
         {
-            return Handler.PixelToDip(value);
-        }
-
-        /// <summary>
-        /// Converts device-independent units (1/96th inch per unit) to pixels.
-        /// </summary>
-        /// <param name="value">Value in device-independent units.</param>
-        /// <returns></returns>
-        public double PixelFromDipF(double value)
-        {
-            return Handler.PixelFromDipF(value);
+            return GraphicsFactory.PixelToDip(value, ScaleFactor);
         }
 
         /// <summary>
@@ -2001,54 +1837,6 @@ namespace Alternet.UI
                 return;
             var rect = region.GetBounds();
             Invalidate(rect);
-        }
-
-        /// <summary>
-        /// Sets system scrollbar properties.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <param name="visible">Is scrollbar visible or not.</param>
-        /// <param name="value">Thumb position.</param>
-        /// <param name="largeChange">Large change value (when scrolls page up or down).</param>
-        /// <param name="maximum">Scrollbar Range.</param>
-        public virtual void SetScrollBar(
-            bool isVertical,
-            bool visible,
-            int value,
-            int largeChange,
-            int maximum)
-        {
-            Handler.SetScrollBar(this, isVertical, visible, value, largeChange, maximum);
-        }
-
-        /// <summary>
-        /// Gets whether system scrollbar is visible.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        public virtual bool IsScrollBarVisible(bool isVertical)
-        {
-            return Handler.IsScrollBarVisible(isVertical);
-        }
-
-        /// <summary>
-        /// Gets system scrollbar thumb position.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        public virtual int GetScrollBarValue(bool isVertical)
-        {
-            return Handler.GetScrollBarValue(isVertical);
-        }
-
-        /// <summary>
-        /// Gets system scrollbar large change value.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        public virtual int GetScrollBarLargeChange(bool isVertical)
-        {
-            return Handler.GetScrollBarLargeChange(isVertical);
         }
 
         /// <summary>
@@ -2082,175 +1870,39 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets system scrollbar max range.
+        /// Resets cached value of the <see cref="ScaleFactor"/> property, so it will be retrieved
+        /// from the handler next time it is used.
         /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        public virtual int GetScrollBarMaximum(bool isVertical)
+        public virtual void ResetScaleFactor()
         {
-            return Handler.GetScrollBarMaximum(isVertical);
+            scaleFactor = null;
+            dpi = null;
         }
 
-        public void RaiseNativeSizeChanged()
-        {
-            OnNativeSizeChanged(EventArgs.Empty);
-        }
-
-        public void RaiseDeactivated()
-        {
-            Deactivated?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseHandleCreated()
-        {
-            OnHandleCreated(EventArgs.Empty);
-            HandleCreated?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseHandleDestroyed()
-        {
-            OnHandleDestroyed(EventArgs.Empty);
-            HandleDestroyed?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseMouseCaptureLost()
-        {
-            OnMouseCaptureLost(EventArgs.Empty);
-            MouseCaptureLost?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseTextChanged(EventArgs e) => OnTextChanged(e);
-
-        public void RaiseSizeChanged(EventArgs e) => OnSizeChanged(e);
-
-        public void RaiseScroll(ScrollEventArgs e) => OnScroll(e);
-
-        public void RaiseMouseEnter()
-        {
-            RaiseIsMouseOverChanged();
-            OnMouseEnter(EventArgs.Empty);
-            MouseEnter?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseCurrentStateChanged()
-        {
-            OnCurrentStateChanged(EventArgs.Empty);
-            CurrentStateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseIsMouseOverChanged()
-        {
-            OnIsMouseOverChanged(EventArgs.Empty);
-            IsMouseOverChanged?.Invoke(this, EventArgs.Empty);
-            RaiseCurrentStateChanged();
-        }
-
-        public void RaiseMouseLeave()
-        {
-            RaiseIsMouseOverChanged();
-            OnMouseLeave(EventArgs.Empty);
-            MouseLeave?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RaiseChildInserted(Control childControl)
-        {
-            OnChildInserted(childControl);
-            ChildInserted?.Invoke(this, new BaseEventArgs<Control>(childControl));
-        }
-
-        public void RaiseChildRemoved(Control childControl)
-        {
-            OnChildInserted(childControl);
-            ChildRemoved?.Invoke(this, new BaseEventArgs<Control>(childControl));
-        }
-
-        public void RaisePaint(PaintEventArgs e)
-        {
-            OnPaint(e);
-            Paint?.Invoke(this, e);
-        }
-
-        public void RaiseLocationChanged(EventArgs e) => OnLocationChanged(e);
-
-        public void RaiseDragStart(DragStartEventArgs e) => OnDragStart(e);
-
-        public void RaiseDragDrop(DragEventArgs e) => OnDragDrop(e);
-
-        public void RaiseDragOver(DragEventArgs e) => OnDragOver(e);
-
-        public void RaiseDragEnter(DragEventArgs e) => OnDragEnter(e);
-
-        public void RaiseDragLeave(EventArgs e) => OnDragLeave(e);
-
-        public void ReportBoundsChanged()
+        /// <summary>
+        /// Calls <see cref="LocationChanged"/> and <see cref="SizeChanged"/> events
+        /// if <see cref="Bounds"/> property was changed.
+        /// </summary>
+        public virtual void ReportBoundsChanged()
         {
             var newBounds = Bounds;
 
-            var locationChanged = reportedBounds?.Location != newBounds.Location;
-            var sizeChanged = reportedBounds?.Size != newBounds.Size;
+            if(Handler.EventBounds != Bounds)
+            {
+            }
+
+            var locationChanged = reportedBounds.Location != newBounds.Location;
+            var sizeChanged = reportedBounds.Size != newBounds.Size;
 
             reportedBounds = newBounds;
 
             if (locationChanged)
-                RaiseLocationChanged(EventArgs.Empty);
+                RaiseLocationChanged();
 
             if (sizeChanged)
-                RaiseSizeChanged(EventArgs.Empty);
+                RaiseSizeChanged();
 
-            if (sizeChanged)
-                PerformLayout(true);
-        }
-
-        public void RaiseGotFocus()
-        {
-            OnGotFocus(EventArgs.Empty);
-            GotFocus?.Invoke(this, EventArgs.Empty);
-            Designer?.RaiseGotFocus(this);
-            RaiseCurrentStateChanged();
-        }
-
-        public void RaiseLostFocus()
-        {
-            OnLostFocus(EventArgs.Empty);
-            LostFocus?.Invoke(this, EventArgs.Empty);
-            RaiseCurrentStateChanged();
-        }
-
-        public void RaiseActivated()
-        {
-            Activated?.Invoke(this, EventArgs.Empty);
-        }
-
-        public virtual void OnNativeControlPaint()
-        {
-            if (!UserPaint)
-                return;
-
-            using var dc = Handler.OpenPaintDrawingContext();
-
-            RaisePaint(new PaintEventArgs(dc, ClientRectangle));
-        }
-
-        public virtual void OnNativeControlHorizontalScrollBarValueChanged()
-        {
-            var args = new ScrollEventArgs
-            {
-                ScrollOrientation = ScrollOrientation.HorizontalScroll,
-                NewValue = Handler.GetScrollBarEvtPosition(),
-                Type = Handler.GetScrollBarEvtKind(),
-            };
-            RaiseScroll(args);
-        }
-
-        public virtual void OnNativeControlVerticalScrollBarValueChanged()
-        {
-            var args = new ScrollEventArgs
-            {
-                ScrollOrientation = ScrollOrientation.VerticalScroll,
-                NewValue = Handler.GetScrollBarEvtPosition(),
-                Type = Handler.GetScrollBarEvtKind(),
-            };
-            RaiseScroll(args);
+            PerformLayout();
         }
 
         /// <summary>
@@ -2270,8 +1922,8 @@ namespace Alternet.UI
         /// <param name="menu">The menu to pop up.</param>
         /// <param name="x">The X position in dips where the menu will appear.</param>
         /// <param name="y">The Y position in dips where the menu will appear.</param>
-        /// <remarks>Position is specified in device independent units (1/96 inch).</remarks>
-        public virtual void ShowPopupMenu(ContextMenu? menu, double x = -1, double y = -1)
+        /// <remarks>Position is specified in device independent units.</remarks>
+        public virtual void ShowPopupMenu(ContextMenu? menu, Coord x = -1, Coord y = -1)
         {
             menu?.Show(this, (x, y));
         }
@@ -2292,34 +1944,7 @@ namespace Alternet.UI
             {
                 rowIndex = row;
                 columnIndex = col;
-                OnCellChanged();
-            }
-        }
-
-        /// <summary>
-        /// Raises the <see cref="CellChanged" /> event.
-        /// </summary>
-        public virtual void OnCellChanged()
-        {
-            CellChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public virtual void OnNativeControlVisibleChanged()
-        {
-            bool visible = Handler.Visible;
-            Visible = visible;
-
-            if (BaseApplication.IsLinuxOS && visible)
-            {
-                // todo: this is a workaround for a problem on Linux when
-                // ClientSize is not reported correctly until the window is shown
-                // So we need to relayout all after the proper client size is available
-                // This should be changed later in respect to RedrawOnResize functionality.
-                // Also we may need to do this for top-level windows.
-                // Doing this on Windows results in strange glitches like disappearing
-                // tab controls' tab.
-                // See https://forums.wxwidgets.org/viewtopic.php?f=1&t=47439
-                PerformLayout();
+                RaiseCellChanged();
             }
         }
     }

@@ -22,8 +22,8 @@ namespace Alternet.UI
             {
                 if (fontNameChoices != null)
                     return fontNameChoices;
-                fontNameChoices = NativePlatform.Default.CreateChoices();
-                string[] names = FontFamily.FamiliesNamesAscending;
+                fontNameChoices = ControlFactory.Handler.CreateChoices();
+                var names = FontFamily.FamiliesNamesAscending;
                 fontNameChoices.AddRange(names);
                 return fontNameChoices;
             }

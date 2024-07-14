@@ -99,13 +99,12 @@ namespace Alternet.UI
             Padding = 4;
             Layout = LayoutStyle.Horizontal;
             picture.Parent = this;
-            picture.BubbleMouse = true;
+            picture.InputTransparent = true;
             spacer.Parent = this;
-            label.Visible = false;
             label.Parent = this;
-            label.BubbleMouse = true;
+            label.InputTransparent = true;
 
-            AcceptsFocusAll = false;
+            IsGraphicControl = true;
             RefreshOptions = ControlRefreshOptions.RefreshOnState;
         }
 
@@ -425,7 +424,6 @@ namespace Alternet.UI
 
         /// <inheritdoc/>
         [DefaultValue("")]
-        [Localizability(LocalizationCategory.Text)]
         public override string Text
         {
             get
@@ -505,16 +503,16 @@ namespace Alternet.UI
 
         /// <inheritdoc/>
         [Browsable(false)]
-        public override GenericControlState CurrentState
+        public override VisualControlState VisualState
         {
             get
             {
-                var result = base.CurrentState;
+                var result = base.VisualState;
                 if (sticky)
                 {
-                    if (result == GenericControlState.Normal
-                        || result == GenericControlState.Focused)
-                        result = GenericControlState.Pressed;
+                    if (result == VisualControlState.Normal
+                        || result == VisualControlState.Focused)
+                        result = VisualControlState.Pressed;
                 }
 
                 return result;
@@ -623,8 +621,8 @@ namespace Alternet.UI
             ControlStateBorders borders = new();
             var hoveredBorder = border;
             var pressedBorder = hoveredBorder.Clone();
-            borders.SetObject(hoveredBorder, GenericControlState.Hovered);
-            borders.SetObject(pressedBorder, GenericControlState.Pressed);
+            borders.SetObject(hoveredBorder, VisualControlState.Hovered);
+            borders.SetObject(pressedBorder, VisualControlState.Pressed);
             return borders;
         }
 
@@ -701,7 +699,7 @@ namespace Alternet.UI
                 PictureBox.DrawDefaultImage(dc, PictureBox.Bounds);
             if (TextVisible)
             {
-                var state = CurrentState;
+                var state = VisualState;
                 var foreColor = StateObjects?.Colors?.GetObjectOrNull(state)?.ForegroundColor;
                 if(foreColor is null)
                 {
@@ -748,7 +746,7 @@ namespace Alternet.UI
 
             void Fn()
             {
-                RaiseClick(EventArgs.Empty);
+                RaiseClick();
                 ShowDropDownMenu();
             }
         }

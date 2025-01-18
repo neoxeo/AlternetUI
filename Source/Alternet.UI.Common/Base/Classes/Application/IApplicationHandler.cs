@@ -36,7 +36,13 @@ namespace Alternet.UI
         /// Gets a value indicating whether the caller must call an invoke method when making method
         /// calls to the UI objects because the caller is not on the UI thread.
         /// </summary>
-        bool InvokeRequired { get; }
+        bool IsInvokeRequired { get; }
+
+        /// <summary>
+        /// Creates <see cref="IActionSimulatorHandler"/> implementation specific to the platform.
+        /// </summary>
+        /// <returns></returns>
+        IActionSimulatorHandler CreateActionSimulatorHandler();
 
         /// <summary>
         /// Creates <see cref="IMouseHandler"/> implementation specific to the platform.
@@ -66,7 +72,7 @@ namespace Alternet.UI
         /// Gets currently focused control.
         /// </summary>
         /// <returns></returns>
-        Control? GetFocusedControl();
+        AbstractControl? GetFocusedControl();
 
         /// <inheritdoc cref="App.Run"/>
         void Run(Window window);
@@ -82,9 +88,16 @@ namespace Alternet.UI
         /// <inheritdoc cref="App.HasPendingEvents"/>
         bool HasPendingEvents();
 
+        /// <summary>
+        /// Exits application's main loop.
+        /// </summary>
         void ExitMainLoop();
 
+        /// <inheritdoc cref="App.Exit"/>
         void Exit();
+
+        /// <inheritdoc cref="App.WakeUpIdle"/>
+        void WakeUpIdle();
 
         /// <summary>
         /// Creates <see cref="IControlFactoryHandler"/> implementation specific to the platform.
@@ -165,7 +178,7 @@ namespace Alternet.UI
         /// Creates <see cref="ICaretHandler"/> implementation specific to the platform.
         /// </summary>
         /// <returns></returns>
-        ICaretHandler CreateCaretHandler(Control control, int width, int height);
+        ICaretHandler CreateCaretHandler(AbstractControl control, int width, int height);
 
         /// <summary>
         /// Sets log debug flag of the used C++ libraries.

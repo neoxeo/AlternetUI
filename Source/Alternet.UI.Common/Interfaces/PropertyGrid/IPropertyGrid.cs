@@ -32,7 +32,7 @@ namespace Alternet.UI
     /// <inheritdoc cref="PropertyGrid"/>
     public interface IPropertyGrid
     {
-        /// <inheritdoc cref="Control.ProcessException"/>
+        /// <inheritdoc cref="AbstractControl.ProcessException"/>
         event EventHandler<ThrowExceptionEventArgs>? ProcessException;
 
         /// <inheritdoc cref="PropertyGrid.PropertySelected"/>
@@ -80,6 +80,9 @@ namespace Alternet.UI
         /// <inheritdoc cref="PropertyGrid.HasItems"/>
         bool HasItems { get; }
 
+        /// <summary>
+        /// Gets control handler.
+        /// </summary>
         IPropertyGridHandler Handler { get; }
 
         /// <inheritdoc cref="PropertyGrid.FirstItem"/>
@@ -347,103 +350,13 @@ namespace Alternet.UI
                     object instance,
                     PropertyInfo propInfo);
 
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsSByte"/>
-        IPropertyGridItem CreatePropertyAsSByte(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsInt16"/>
-        IPropertyGridItem CreatePropertyAsInt16(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsInt"/>
-        IPropertyGridItem CreatePropertyAsInt(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsLong"/>
-        IPropertyGridItem CreatePropertyAsLong(
-                    string label,
-                    string name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsByte"/>
-        IPropertyGridItem CreatePropertyAsByte(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsUInt"/>
-        IPropertyGridItem CreatePropertyAsUInt(
-            string label,
-            string? name,
-            object instance,
-            PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsUInt16"/>
-        IPropertyGridItem CreatePropertyAsUInt16(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsULong"/>
-        IPropertyGridItem CreatePropertyAsULong(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsFloat"/>
-        IPropertyGridItem CreatePropertyAsFloat(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsDouble"/>
-        IPropertyGridItem CreatePropertyAsDouble(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsDecimal"/>
-        IPropertyGridItem CreatePropertyAsDecimal(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsDate"/>
-        IPropertyGridItem CreatePropertyAsDate(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
-        /// <inheritdoc cref="PropertyGrid.CreatePropertyAsChar"/>
-        IPropertyGridItem CreatePropertyAsChar(
-                    string label,
-                    string? name,
-                    object instance,
-                    PropertyInfo propInfo);
-
         /// <inheritdoc cref="PropertyGrid.CreatePropertyAsString"/>
         IPropertyGridItem CreatePropertyAsString(
                     string label,
                     string? name,
                     object instance,
-                    PropertyInfo propInfo);
+                    PropertyInfo propInfo,
+                    TypeConverter? typeConverter = null);
 
         /// <inheritdoc cref="PropertyGrid.CreateProps"/>
         IEnumerable<IPropertyGridItem> CreateProps(object instance, bool sort = false);
@@ -717,9 +630,6 @@ namespace Alternet.UI
         /// <inheritdoc cref="PropertyGrid.GetImageRect"/>
         RectI GetImageRect(IPropertyGridItem prop, int item);
 
-        /// <inheritdoc cref="PropertyGrid.SetPropertyValidator"/>
-        void SetPropertyValidator(IPropertyGridItem prop, IValueValidator validator);
-
         /// <inheritdoc cref="PropertyGrid.GetImageSize"/>
         SizeI GetImageSize(IPropertyGridItem? prop, int item);
 
@@ -729,7 +639,7 @@ namespace Alternet.UI
             PropertyInfo? propInfo = null);
 
         /// <inheritdoc cref="PropertyGrid.ReloadPropertyValues"/>
-        void ReloadPropertyValues(object? instance = null, PropertyInfo? propInfo = null);
+        bool ReloadPropertyValues(object? instance = null, PropertyInfo? propInfo = null);
 
         /// <inheritdoc cref="PropertyGrid.ReloadPropertyValue"/>
         void ReloadPropertyValue(IPropertyGridItem item);

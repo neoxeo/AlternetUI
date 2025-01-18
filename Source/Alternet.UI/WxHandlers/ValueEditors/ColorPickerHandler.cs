@@ -3,8 +3,10 @@ using Alternet.Drawing;
 
 namespace Alternet.UI
 {
+#pragma warning disable
     internal class ColorPickerHandler
-        : WxControlHandler<ColorPicker, Native.ColorPicker>, IColorPickerHandler
+        : WxControlHandler<ColorPicker, Native.ColorPicker>
+#pragma warning enable
     {
         public ColorPickerHandler()
         {
@@ -22,8 +24,6 @@ namespace Alternet.UI
             NativeControl.Value = Control.Value;
 
             Control.ValueChanged += Control_ValueChanged;
-
-            NativeControl.ValueChanged = NativeControl_ValueChanged;
         }
 
         protected override void OnDetach()
@@ -31,13 +31,6 @@ namespace Alternet.UI
             base.OnDetach();
 
             Control.ValueChanged -= Control_ValueChanged;
-
-            NativeControl.ValueChanged = null;
-        }
-
-        private void NativeControl_ValueChanged()
-        {
-            Control.Value = NativeControl.Value;
         }
 
         private void Control_ValueChanged(object? sender, System.EventArgs e)

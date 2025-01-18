@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -10,7 +11,7 @@ namespace Alternet.UI
     /// <summary>
     /// Item of the <see cref="PropertyGrid"/>.
     /// </summary>
-    public interface IPropertyGridItem : IPropInfoAndInstance, IBaseControlItem
+    public interface IPropertyGridItem : IPropInfoAndInstance, IBaseObjectWithId
     {
         /// <summary>
         /// Occurs when property value has been changed.
@@ -41,6 +42,12 @@ namespace Alternet.UI
         /// Gets or sets user data associated with this <see cref="IPropertyGridItem"/>.
         /// </summary>
         object? UserData { get; set; }
+
+        /// <summary>
+        /// Gets or sets <see cref="TypeConverter"/> used when attached property value
+        /// is converted to/from string.
+        /// </summary>
+        TypeConverter? TypeConverter { get; set; }
 
         /// <summary>
         /// Gets <see cref="IPropertyGridChoices"/> used in the item editor.
@@ -95,7 +102,7 @@ namespace Alternet.UI
         /// <summary>
         /// Item handle.
         /// </summary>
-        PropertyGridItemHandle Handle { get; }
+        PropertyGridItemHandle? Handle { get; }
 
         /// <summary>
         /// Item name.

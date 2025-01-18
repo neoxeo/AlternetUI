@@ -55,7 +55,7 @@ namespace Alternet.UI
             int hotSpotX = 0,
             int hotSpotY = 0)
         {
-            if (AllowCustomCursors)
+            if (GetAllowCustomCursors())
                 Handler = Factory.CreateCursorHandler(cursorName, type, hotSpotX, hotSpotY);
             else
                 Handler = Factory.CreateCursorHandler(CursorType.Arrow);
@@ -82,7 +82,7 @@ namespace Alternet.UI
             int hotSpotX = 0,
             int hotSpotY = 0)
         {
-            if(AllowCustomCursors)
+            if(GetAllowCustomCursors())
                 Handler = Factory.CreateCursorHandler(image, hotSpotX, hotSpotY);
             else
                 Handler = Factory.CreateCursorHandler(CursorType.Arrow);
@@ -99,20 +99,20 @@ namespace Alternet.UI
             int hotSpotX = 0,
             int hotSpotY = 0)
         {
-            if (AllowCustomCursors)
+            if (GetAllowCustomCursors())
                 Handler = Factory.CreateCursorHandler(image, hotSpotX, hotSpotY);
             else
                 Handler = Factory.CreateCursorHandler(CursorType.Arrow);
         }
 
         /// <summary>
-        /// Gets or sets whether custom cursors are allowed. Default is <c>true</c>.
+        /// Gets or sets whether custom cursors are allowed. Default is <c>false</c>.
         /// </summary>
         /// <remarks>
         /// When this property is <c>false</c>, all cursors which are not of <see cref="CursorType"/>
         /// will be created as <see cref="CursorType.Arrow"/>.
         /// </remarks>
-        public static bool AllowCustomCursors { get; set; } = true;
+        public static bool AllowCustomCursors { get; set; } = false;
 
         /// <summary>
         /// Gets or sets factory handler.
@@ -188,6 +188,11 @@ namespace Alternet.UI
         protected override ICursorHandler CreateHandler()
         {
             return Factory.CreateCursorHandler();
+        }
+
+        private bool GetAllowCustomCursors()
+        {
+            return AllowCustomCursors && Factory.AllowCustomCursors;
         }
     }
 }

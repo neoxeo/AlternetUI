@@ -51,104 +51,81 @@ namespace Alternet.UI
 
         public DialogResult ShowMessageBox(MessageBoxInfo info)
         {
-            var nativeOwner = info.Owner == null ? null :
-                ((WindowHandler)info.Owner.Handler).NativeControl;
-            return (DialogResult)Native.MessageBox.Show(
+            var nativeOwner = UI.Native.NativeObject.GetNativeWindow(info.Owner);
+            return Native.MessageBox.Show(
                 nativeOwner,
                 info.Text?.ToString() ?? string.Empty,
                 info.Caption ?? string.Empty,
-                (Native.MessageBoxButtons)info.Buttons,
-                (Native.MessageBoxIcon)info.Icon,
-                (Native.MessageBoxDefaultButton)info.DefaultButton);
+                info.Buttons,
+                info.Icon,
+                info.DefaultButton);
         }
 
         /// <summary>
-        /// Pop up a dialog box with title set to <paramref name="caption"/>,
-        /// <paramref name="message"/>, and a <paramref name="defaultValue"/>.
+        /// Popups a dialog box with title, message and text input bot.
         /// The user may type in text and press OK to return this text, or press Cancel
         /// to return the empty string.
         /// </summary>
-        /// <param name="message">Dialog message.</param>
-        /// <param name="caption">Dialog title.</param>
-        /// <param name="defaultValue">Default value. Optional.</param>
-        /// <param name="parent">Parent control. Optional.</param>
-        /// <param name="x">X-position on the screen. Optional. By default is -1.</param>
-        /// <param name="y">Y-position on the screen. Optional. By default is -1.</param>
-        /// <param name="centre">If <c>true</c>, the message text (which may include new line
-        /// characters) is centred; if <c>false</c>, the message is left-justified.</param>
-        public string? GetTextFromUser(
-            string message,
-            string caption,
-            string defaultValue,
-            Control? parent,
-            int x,
-            int y,
-            bool centre)
+        /// <param name="prm">Dialog parameters.</param>
+        public void GetTextFromUserAsync(TextFromUserParams prm)
         {
-            var handle = WxApplicationHandler.WxWidget(parent);
-            var result = Native.WxOtherFactory.GetTextFromUser(
-                message,
-                caption,
-                defaultValue,
-                handle,
-                x,
-                y,
-                centre);
-            if (result == DialogCancelGuid)
-                return null;
-            return result;
+            WindowTextInput.GetTextFromUserAsync(prm);
         }
 
         /// <summary>
         /// Shows a dialog asking the user for numeric input.
         /// </summary>
-        /// <remarks>
-        /// The dialogs title is set to <paramref name="caption"/>, it contains a (possibly) multiline
-        /// <paramref name="message"/> above the single line prompt and the zone for entering
-        /// the number. Dialog is centered on its parent unless an explicit position is given
-        /// in <paramref name="pos"/>.
-        /// </remarks>
-        /// <remarks>
-        /// If the user cancels the dialog, the function returns <c>null</c>.
-        /// </remarks>
-        /// <remarks>
-        /// The number entered must be in the range <paramref name="min"/> to <paramref name="max"/>
-        /// (both of which should be positive) and
-        /// value is the initial value of it. If the user enters an invalid value, it is forced to fall
-        /// into the specified range.
-        /// </remarks>
-        /// <param name="message">A (possibly) multiline dialog message above the single line
-        /// <paramref name="prompt"/>.</param>
-        /// <param name="prompt">Single line dialog prompt.</param>
-        /// <param name="caption">Dialog title.</param>
-        /// <param name="value">Default value. Optional. Default is 0.</param>
-        /// <param name="min">A positive minimal value. Optional. Default is 0.</param>
-        /// <param name="max">A positive maximal value. Optional. Default is 100.</param>
-        /// <param name="parent">Dialog parent.</param>
-        /// <param name="pos"></param>
-        public long? GetNumberFromUser(
-            string message,
-            string prompt,
-            string caption,
-            long value,
-            long min,
-            long max,
-            Control? parent,
-            PointI pos)
+        public void GetNumberFromUserAsync(LongFromUserParams prm)
         {
-            var handle = WxApplicationHandler.WxWidget(parent);
+            WindowTextInput.GetLongFromUserAsync(prm);
+        }
+
+        /// <summary>
+        /// Shows a dialog asking the user for numeric input.
+        /// </summary>
+        internal void NativeGetNumberFromUserAsync(LongFromUserParams prm)
+        {
+            var handle = WxApplicationHandler.WxWidget(prm.Parent);
+
+            long minValue = MathUtils.ValueOrMin(prm.MinValue);
+            long maxValue;
+            long value = MathUtils.ValueOrMin(prm.DefaultValue);
+
+            if (prm.MaxValue is null || prm.MaxValue < 0)
+                maxValue = long.MaxValue;
+            else
+                maxValue = prm.MaxValue.Value;
+
             var result = Native.WxOtherFactory.GetNumberFromUser(
-                message,
-                prompt,
-                caption,
+                string.Empty,
+                prm.SafeMessage,
+                prm.SafeTitle,
                 value,
-                min,
-                max,
+                minValue,
+                maxValue,
                 handle,
-                pos);
+                (-1, -1));
             if (result < 0)
-                return null;
-            return result;
+                prm.RaiseActions(null);
+            else
+                prm.RaiseActions(result);
+        }
+
+        internal void NativeGetTextFromUserAsync(TextFromUserParams prm)
+        {
+            var handle = WxApplicationHandler.WxWidget(prm.Parent);
+            var result = Native.WxOtherFactory.GetTextFromUser(
+                prm.SafeMessage,
+                prm.SafeTitle,
+                prm.SafeDefaultValueAsString,
+                handle,
+                -1,
+                -1,
+                true);
+            if (result == DialogCancelGuid)
+                prm.RaiseActions(null);
+            else
+                prm.RaiseActions(result);
         }
     }
 }

@@ -22,6 +22,9 @@ namespace Alternet.UI.Localization
         public string ButtonOk { get; set; } = "Ok";
 
         /// <inheritdoc cref="ButtonOk"/>
+        public string ButtonFilter { get; set; } = "Filter";
+
+        /// <inheritdoc cref="ButtonOk"/>
         public string ButtonQuit { get; set; } = "Quit";
 
         /// <inheritdoc cref="ButtonOk"/>
@@ -106,6 +109,9 @@ namespace Alternet.UI.Localization
         public string ButtonCopy { get; set; } = "Copy";
 
         /// <inheritdoc cref="ButtonOk"/>
+        public string ButtonPassword { get; set; } = "Password";
+
+        /// <inheritdoc cref="ButtonOk"/>
         public string ButtonPaste { get; set; } = "Paste";
 
         /// <inheritdoc cref="ButtonOk"/>
@@ -119,6 +125,9 @@ namespace Alternet.UI.Localization
 
         /// <inheritdoc cref="ButtonOk"/>
         public string ButtonBold { get; set; } = "Bold";
+
+        /// <inheritdoc cref="ButtonOk"/>
+        public string ButtonSearch { get; set; } = "Search";
 
         /// <inheritdoc cref="ButtonOk"/>
         public string ButtonItalic { get; set; } = "Italic";
@@ -184,9 +193,6 @@ namespace Alternet.UI.Localization
         /// <inheritdoc cref="ButtonOk"/>
         public string NotebookTabTitleActions { get; set; } = "Actions";
 
-        /// <inheritdoc cref="ButtonOk"/>
-        public string NotebookTabTitleSearch { get; set; } = "Search";
-
         // ========================
 
         /// <inheritdoc cref="ButtonOk"/>
@@ -231,10 +237,10 @@ namespace Alternet.UI.Localization
         // ========================
 
         /// <inheritdoc cref="ButtonOk"/>
-        public string LineNumberTemplate { get; set; } = "Line Number ({0} - {1})";
+        public string LineNumber { get; set; } = "Line Number";
 
         /// <inheritdoc cref="ButtonOk"/>
-        public string LoadingPleaseWait { get; set; } = "Loading. Please wait...";
+        public string LoadingPleaseWait { get; set; } = "Please wait...";
 
         /// <inheritdoc cref="ButtonOk"/>
         public string ToolbarSeeMore { get; set; } = "See more";
@@ -244,5 +250,10 @@ namespace Alternet.UI.Localization
 
         /// <inheritdoc cref="ButtonOk"/>
         public string SelectFileToPreview { get; set; } = "Select a file to preview.";
+
+        // ========================
+
+        /// <inheritdoc cref="ButtonOk"/>
+        public string EnterValue { get; set; } = "Enter value";
     }
 }

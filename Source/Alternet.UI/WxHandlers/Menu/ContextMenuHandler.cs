@@ -12,6 +12,9 @@ namespace Alternet.UI
 
         public void Show(IControl control, PointD? position = null)
         {
+            if (Control is null)
+                return;
+
             if (position == null)
                 ShowUnder();
             else
@@ -45,7 +48,7 @@ namespace Alternet.UI
         /// <summary>
         /// Displays the shortcut menu at the specified position.
         /// </summary>
-        /// <param name="control">A <see cref="Control"/> that specifies the control with which
+        /// <param name="control">A <see cref="AbstractControl"/> that specifies the control with which
         /// this shortcut menu is associated.</param>
         /// <param name="position">
         /// A <see cref="PointD"/> that specifies the coordinates at which to display the menu.
@@ -69,6 +72,9 @@ namespace Alternet.UI
         {
             base.OnAttach();
 
+            if (Control is null)
+                return;
+
             ApplyItems();
 
             Control.Items.ItemInserted += Items_ItemInserted;
@@ -79,12 +85,18 @@ namespace Alternet.UI
         {
             base.OnDetach();
 
+            if (Control is null)
+                return;
+
             Control.Items.ItemInserted -= Items_ItemInserted;
             Control.Items.ItemRemoved -= Items_ItemRemoved;
         }
 
         private void ApplyItems()
         {
+            if (Control is null)
+                return;
+
             for (var i = 0; i < Control.Items.Count; i++)
                 InsertItem(Control.Items[i], i);
         }

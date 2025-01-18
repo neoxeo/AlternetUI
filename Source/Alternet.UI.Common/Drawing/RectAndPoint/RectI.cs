@@ -27,6 +27,7 @@ namespace Alternet.Drawing
         /// Represents a <see cref="RectI"/> structure with its properties left uninitialized.
         /// </summary>
         public static readonly RectI Empty;
+
 #pragma warning disable
         [FieldOffset(0)] private int x;
         [FieldOffset(4)] private int y;
@@ -89,6 +90,30 @@ namespace Alternet.Drawing
             set
             {
                 size = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets center point on the top border of the rectangle.
+        /// </summary>
+        [Browsable(false)]
+        public readonly PointI TopLineCenter
+        {
+            get
+            {
+                return (x + (width / 2), y);
+            }
+        }
+
+        /// <summary>
+        /// Gets center point on the bottom border of the rectangle.
+        /// </summary>
+        [Browsable(false)]
+        public readonly PointI BottomLineCenter
+        {
+            get
+            {
+                return (x + (width / 2), Bottom);
             }
         }
 
@@ -231,6 +256,24 @@ namespace Alternet.Drawing
         public readonly bool SizeIsEmpty => (width <= 0) || (height <= 0);
 
         /// <summary>
+        /// Gets or sets the center point of this <see cref="RectI"/>.
+        /// </summary>
+        [Browsable(false)]
+        public PointI Center
+        {
+            readonly get
+            {
+                return Location + (Size / 2);
+            }
+
+            set
+            {
+                x = value.X - (width / 2);
+                y = value.Y - (height / 2);
+            }
+        }
+
+        /// <summary>
         /// Implicit operator convertion from tuple with four <see cref="int"/> values
         /// to <see cref="RectI"/>.
         /// </summary>
@@ -247,6 +290,10 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectI((PointI, SizeI) d) => new(d.Item1, d.Item2);
 
+        /// <summary>
+        /// Implicit operator convertion from <see cref="RectI"/> to <see cref="SKRectI"/>.
+        /// </summary>
+        /// <param name="rect">Rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator SKRectI(RectI rect)
         {
@@ -255,6 +302,10 @@ namespace Alternet.Drawing
             return result;
         }
 
+        /// <summary>
+        /// Implicit operator convertion from <see cref="SKRectI"/> to <see cref="RectI"/>.
+        /// </summary>
+        /// <param name="rect">Rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectI(SKRectI rect)
         {
@@ -575,9 +626,16 @@ namespace Alternet.Drawing
 
             int[] values = { x, y, width, height };
 
-            return StringUtils.ToString<int>(names, values);
+            return StringUtils.ToStringWithOrWithoutNames<int>(names, values);
         }
 
+        /// <summary>
+        /// Converts this rectangle to rectangle with device-indepdenent units using
+        /// the specified scale factor.
+        /// </summary>
+        /// <param name="scaleFactor">Scale factor. Optional. If not specified, the default
+        /// scale factor is used for the convertion.</param>
+        /// <returns></returns>
         public readonly RectD PixelToDip(Coord? scaleFactor = null)
         {
             return GraphicsFactory.PixelToDip(this, scaleFactor);
@@ -607,6 +665,72 @@ namespace Alternet.Drawing
                 Y,
                 Width,
                 Height);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with location and width of this rectangle and the specified height.
+        /// </summary>
+        /// <param name="aheight">New height.</param>
+        /// <returns>Rectangle object with the new height.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithHeight(int aheight)
+        {
+            return new(x, y, width, aheight);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with location and height of this rectangle and the specified width.
+        /// </summary>
+        /// <param name="awidth">New width.</param>
+        /// <returns>Rectangle object with the new width.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithWidth(int awidth)
+        {
+            return new(x, y, awidth, height);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with location of this rectangle and the specified size.
+        /// </summary>
+        /// <param name="newSize">New size.</param>
+        /// <returns>Rectangle object with the new size.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithSize(SizeI newSize)
+        {
+            return new(x, y, newSize.Width, newSize.Height);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with size of this rectangle and the specified location.
+        /// </summary>
+        /// <param name="newLocation">New location.</param>
+        /// <returns>Rectangle object with the new location.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithLocation(PointI newLocation)
+        {
+            return new(newLocation.X, newLocation.Y, width, height);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with size and y-coordinate of this rectangle and the specified x-coordinate.
+        /// </summary>
+        /// <param name="ax">New X position.</param>
+        /// <returns>Rectangle object with the new x-coordinate.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithX(int ax)
+        {
+            return new(ax, y, width, height);
+        }
+
+        /// <summary>
+        /// Returns new rectangle with size and x-coordinate of this rectangle and the specified y-coordinate.
+        /// </summary>
+        /// <param name="ay">New Y position.</param>
+        /// <returns>Rectangle object with the new y-coordinate.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly RectI WithY(int ay)
+        {
+            return new(x, ay, width, height);
         }
     }
 }

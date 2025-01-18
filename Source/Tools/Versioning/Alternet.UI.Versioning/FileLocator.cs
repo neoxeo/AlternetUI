@@ -25,7 +25,8 @@ namespace Alternet.UI.Versioning
         {
             var path = Path.GetFullPath(Path.Combine(repository.RootPath, relativePath));
             if (!File.Exists(path))
-                throw new InvalidOperationException($"Cannot locate {Path.GetFileName(path)} file at {path}");
+                throw new InvalidOperationException(
+                    $"Cannot locate {Path.GetFileName(path)} file at {path}");
             return path;
         }
 
@@ -33,7 +34,8 @@ namespace Alternet.UI.Versioning
         {
             var path = Path.GetFullPath(Path.Combine(repository.RootPath, relativePath));
             if (!Directory.Exists(path))
-                throw new InvalidOperationException($"Cannot locate {Path.GetFileName(path)} directory at {path}");
+                throw new InvalidOperationException(
+                    $"Cannot locate {Path.GetFileName(path)} directory at {path}");
             return path;
         }
 
@@ -60,7 +62,7 @@ namespace Alternet.UI.Versioning
         {
             var files = new[]
             {
-                "Source/Integration/VisualStudio/Alternet.UI.Integration.VisualStudio/Manifests/VS2022/source.extension.vsixmanifest",
+                "Source/Integration/VisualStudio/Alternet.UI.Integration.VisualStudio/source.extension.vsixmanifest",
             };
 
             return files.Select(file => GetValidFullFilePath(file));

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// #define ObsoleteModalDialogs
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -16,6 +18,26 @@ namespace Alternet.UI
     public partial class DialogWindow : Form
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="DialogWindow"/> class.
+        /// </summary>
+        public DialogWindow()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DialogWindow"/> class.
+        /// </summary>
+        /// <param name="windowKind">Window kind to use instead of default value.</param>
+        /// <remarks>
+        /// Fo example, this constructor allows to use window as control
+        /// (specify <see cref="WindowKind.Control"/>) as a parameter.
+        /// </remarks>
+        public DialogWindow(WindowKind windowKind)
+            : base(windowKind)
+        {
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this window is displayed modally.
         /// </summary>
         [Browsable(false)]
@@ -23,7 +45,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return false;
                 return Handler.IsModal;
             }
         }
@@ -57,13 +80,16 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return ModalResult.Canceled;
+
                 return Handler.ModalResult;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.ModalResult = value;
             }
         }
@@ -77,6 +103,9 @@ namespace Alternet.UI
         /// The return value is the value of the <see cref="ModalResult"/> property before
         /// window closes.
         /// </returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public virtual ModalResult ShowModal()
         {
             return ShowModal(Owner);
@@ -94,20 +123,47 @@ namespace Alternet.UI
         /// The return value is the value of the <see cref="ModalResult"/> property before
         /// window closes.
         /// </returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public virtual ModalResult ShowModal(Window? owner)
         {
-            CheckDisposed();
+            App.DoEvents();
+            if (DisposingOrDisposed)
+                return ModalResult.Canceled;
             ModalResult = ModalResult.None;
             ApplyStartLocationOnce(owner);
+            ActiveControl?.SetFocusIfPossible();
+            App.DoEvents();
             return Handler.ShowModal(owner);
         }
 
+        /// <summary>
+        /// Runs a dialog asynchroniously.
+        /// </summary>
+        /// <param name="onClose">Action to call after dialog is closed.</param>
+        /// <param name="owner">A window that will own this window.</param>
+        /// <remarks>
+        /// On some platforms dialogs are shown synchroniously and application waits
+        /// until dialog is closed.
+        /// </remarks>
+        public virtual void ShowDialogAsync(Window? owner = null, Action<bool>? onClose = null)
+        {
+            if (DisposingOrDisposed)
+                return;
+            var result = ShowModal(owner);
+            onClose?.Invoke(result == ModalResult.Accepted);
+        }
+
         /// <inheritdoc/>
-        public override WindowKind GetWindowKind() => WindowKind.Dialog;
+        public override WindowKind GetWindowKind() => GetWindowKindOverride() ?? WindowKind.Dialog;
 
         /// <inheritdoc/>
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
+
             base.OnKeyDown(e);
 
             if (!Modal || e.Handled || e.ModifierKeys != UI.ModifierKeys.None)

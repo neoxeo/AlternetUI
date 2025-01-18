@@ -13,14 +13,11 @@ namespace Alternet.UI
     {
         private KeyGesture? shortcut;
         private MenuItemRole? role;
-        private bool preCommandEnabledValue = true;
         private bool isChecked;
         private Action? action;
-        private ImageSet? image;
-        private ImageSet? disabledImage;
-        private ICommand? command;
-        private object? commandParameter;
-        private object? commandTarget;
+        private CachedSvgImage<ImageSet> svgImage = new();
+        private bool shortcutEnabled = true;
+        private CommandSourceStruct commandSource;
 
         static MenuItem()
         {
@@ -31,6 +28,11 @@ namespace Alternet.UI
         /// </summary>
         public MenuItem()
         {
+            commandSource = new(this);
+            commandSource.Changed = () =>
+            {
+                Enabled = commandSource.CanExecute;
+            };
         }
 
         /// <summary>
@@ -38,6 +40,7 @@ namespace Alternet.UI
         /// the specified <paramref name="text"/> and <paramref name="shortcut"/> for the menu item.
         /// </summary>
         public MenuItem(string? text, KeyGesture shortcut)
+            : this()
         {
             Text = text ?? string.Empty;
             this.shortcut = shortcut;
@@ -49,9 +52,11 @@ namespace Alternet.UI
         /// the <see cref="MenuItem" /> is clicked.</summary>
         /// <param name="text">The text to display on the menu item.</param>
         /// <param name="image">The <see cref="Image" /> to display on the control.</param>
-        /// <param name="onClick">An event handler that raises the <see cref="Control.Click" />
+        /// <param name="onClick">An event handler that raises the
+        /// <see cref="AbstractControl.Click" />
         /// event when the control is clicked.</param>
         public MenuItem(string? text, Image image, EventHandler onClick)
+            : this()
         {
             Text = text ?? string.Empty;
             Click += onClick;
@@ -62,6 +67,7 @@ namespace Alternet.UI
         /// the specified <paramref name="text"/> for the menu item.
         /// </summary>
         public MenuItem(string? text)
+            : this()
         {
             Text = text ?? string.Empty;
         }
@@ -72,6 +78,7 @@ namespace Alternet.UI
         /// <paramref name="shortcut"/> for the menu item.
         /// </summary>
         public MenuItem(string? text, EventHandler? onClick = null, KeyGesture? shortcut = null)
+            : this()
         {
             Text = text ?? string.Empty;
             this.shortcut = shortcut;
@@ -85,9 +92,23 @@ namespace Alternet.UI
         /// for the menu item.
         /// </summary>
         public MenuItem(string? text, Action? onClick)
+            : this()
         {
             Text = text ?? string.Empty;
             ClickAction = onClick;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref='MenuItem'/> class with
+        /// the specified <paramref name="text"/> and <paramref name="onClick"/>
+        /// for the menu item.
+        /// </summary>
+        public MenuItem(string? text, Func<bool>? onClick)
+            : this()
+        {
+            Text = text ?? string.Empty;
+            if(onClick is not null)
+                ClickAction = () => onClick();
         }
 
         /// <summary>
@@ -96,11 +117,27 @@ namespace Alternet.UI
         /// <paramref name="shortcut"/> for the menu item.
         /// </summary>
         public MenuItem(string? text, Action? onClick, KeyGesture? shortcut)
+            : this()
         {
             Text = text ?? string.Empty;
             this.shortcut = shortcut;
             ClickAction = onClick;
         }
+
+        /// <summary>
+        /// Occurs when menu item is opened.
+        /// </summary>
+        public event EventHandler? Opened;
+
+        /// <summary>
+        /// Occurs when menu item is closed.
+        /// </summary>
+        public event EventHandler? Closed;
+
+        /// <summary>
+        /// Occurs when menu item is highlighted.
+        /// </summary>
+        public event EventHandler? Highlighted;
 
         /// <summary>
         /// Occurs when the <see cref="Shortcut"/> property changes.
@@ -131,21 +168,65 @@ namespace Alternet.UI
         public override ControlTypeId ControlKind => ControlTypeId.MenuItem;
 
         /// <summary>
-        /// Gets or sets image associated with the menu item.
+        /// Gets or sets <see cref="ImageSet"/> associated with the menu item.
         /// </summary>
         public virtual ImageSet? Image
         {
             get
             {
-                return image;
+                return svgImage.GetImage(VisualControlState.Normal);
             }
 
             set
             {
-                if (image == value)
+                if (Image == value)
                     return;
-                image = value;
-                ImageChanged?.Invoke(this, EventArgs.Empty);
+                svgImage.SetImage(VisualControlState.Normal, value);
+                RaiseImageChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="SvgImage"/> associated with the menu item.
+        /// </summary>
+        public virtual SvgImage? SvgImage
+        {
+            get
+            {
+                return svgImage.SvgImage;
+            }
+
+            set
+            {
+                if (svgImage.SvgImage == value)
+                    return;
+                svgImage.SvgImage = value;
+                RaiseImageChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets size of the svg image.
+        /// </summary>
+        /// <remarks>
+        /// It is up to control to decide whether and how this property is used.
+        /// When this property is changed, you need to repaint the item.
+        /// Currently only rectangular svg images are supported.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual SizeI? SvgImageSize
+        {
+            get => svgImage.SvgSize;
+
+            set
+            {
+                if (SvgImageSize == value)
+                    return;
+                svgImage.SvgSize = value;
+                if(SvgImage is not null)
+                {
+                    RaiseImageChanged();
+                }
             }
         }
 
@@ -156,15 +237,15 @@ namespace Alternet.UI
         {
             get
             {
-                return disabledImage;
+                return svgImage.GetImage(VisualControlState.Disabled);
             }
 
             set
             {
-                if (disabledImage == value)
+                if (DisabledImage == value)
                     return;
-                disabledImage = value;
-                DisabledImageChanged?.Invoke(this, EventArgs.Empty);
+                svgImage.SetImage(VisualControlState.Disabled, value);
+                RaiseDisabledImageChanged();
             }
         }
 
@@ -216,11 +297,7 @@ namespace Alternet.UI
             get => action;
             set
             {
-                if (action != null)
-                    Click -= OnClickAction;
                 action = value;
-                if (action != null)
-                    Click += OnClickAction;
             }
         }
 
@@ -249,6 +326,25 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether <see cref="Shortcut"/> is enabled.
+        /// </summary>
+        public virtual bool IsShortcutEnabled
+        {
+            get
+            {
+                return shortcutEnabled;
+            }
+
+            set
+            {
+                if (shortcutEnabled == value)
+                    return;
+                shortcutEnabled = value;
+                RaiseShortcutChanged();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value indicating the shortcut key associated with
         /// the menu item.
         /// </summary>
@@ -265,7 +361,7 @@ namespace Alternet.UI
                     return;
 
                 shortcut = value;
-                ShortcutChanged?.Invoke(this, EventArgs.Empty);
+                RaiseShortcutChanged();
             }
         }
 
@@ -330,16 +426,27 @@ namespace Alternet.UI
         {
             get
             {
-                return command;
+                return commandSource.Command;
             }
 
             set
             {
-                if (command == value)
-                    return;
-                var oldCommand = command;
-                command = value;
-                OnCommandChanged(oldCommand, value);
+                commandSource.Command = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        [Browsable(false)]
+        public virtual object? CommandTarget
+        {
+            get
+            {
+                return commandSource.CommandParameter;
+            }
+
+            set
+            {
+                commandSource.CommandParameter = value;
             }
         }
 
@@ -348,30 +455,12 @@ namespace Alternet.UI
         {
             get
             {
-                return commandParameter;
+                return commandSource.CommandParameter;
             }
 
             set
             {
-                if (commandParameter == value)
-                    return;
-                commandParameter = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual object? CommandTarget
-        {
-            get
-            {
-                return commandTarget;
-            }
-
-            set
-            {
-                if (commandTarget == value)
-                    return;
-                commandTarget = value;
+                commandSource.CommandParameter = value;
             }
         }
 
@@ -396,6 +485,27 @@ namespace Alternet.UI
         public void SetShortcutKeys(Keys keys) => ShortcutKeys = keys;
 
         /// <summary>
+        /// Raises <see cref="Opened"/> event.
+        /// </summary>
+        public void RaiseOpened()
+        {
+            Opened?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises <see cref="Closed"/> event.
+        /// </summary>
+        public void RaiseClosed()
+        {
+            Closed?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises <see cref="Highlighted"/> event.
+        /// </summary>
+        public void RaiseHighlighted() => Highlighted?.Invoke(this, EventArgs.Empty);
+
+        /// <summary>
         /// Returns a string that represents the current object.
         /// </summary>
         /// <returns>A string that represents the current object.</returns>
@@ -407,68 +517,72 @@ namespace Alternet.UI
                 return Text;
         }
 
+        /// <summary>
+        /// Raises <see cref="ShortcutChanged"/> event.
+        /// </summary>
+        public void RaiseShortcutChanged()
+        {
+            ShortcutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises <see cref="ImageChanged"/> event.
+        /// </summary>
+        public void RaiseImageChanged()
+        {
+            ImageChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises <see cref="DisabledImageChanged"/> event.
+        /// </summary>
+        public void RaiseDisabledImageChanged()
+        {
+            DisabledImageChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Gets real menu image for the specified state constructed from the
+        /// following properties: <see cref="Image"/>, <see cref="DisabledImage"/>,
+        /// <see cref="SvgImage"/>, <see cref="SvgImageSize"/>.
+        /// </summary>
+        /// <param name="state">Item state.</param>
+        /// <param name="isDark">Light/dark theme flag.</param>
+        /// <param name="control">Control which scale factor is used.</param>
+        /// <returns></returns>
+        public virtual ImageSet? GetRealImage(
+            VisualControlState state,
+            bool? isDark = null,
+            Control? control = null)
+        {
+            svgImage.UpdateImageSet(
+                state,
+                isDark ?? control?.IsDarkBackground ?? SystemSettings.IsUsingDarkBackground,
+                control);
+
+            var img = state == VisualControlState.Disabled ? DisabledImage : Image;
+            return img;
+        }
+
         /// <inheritdoc />
         protected override void OnClick(EventArgs e)
         {
             base.OnClick(e);
-            CommandHelpers.ExecuteCommandSource(this);
+            action?.Invoke();
+            commandSource.Execute();
+        }
+
+        /// <inheritdoc/>
+        protected override void DisposeManaged()
+        {
+            commandSource.Changed = null;
+            base.DisposeManaged();
         }
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return ControlFactory.Handler.CreateMenuItemHandler(this);
-        }
-
-        private void OnCommandChanged(ICommand? oldCommand, ICommand? newCommand)
-        {
-            if (oldCommand != null)
-                UnhookCommand(oldCommand);
-
-            if (newCommand != null)
-                HookCommand(newCommand);
-
-            if (oldCommand != null && newCommand != null)
-            {
-                Enabled = preCommandEnabledValue;
-            }
-            else
-            {
-                if (oldCommand == null && newCommand != null)
-                    preCommandEnabledValue = Enabled;
-
-                UpdateCanExecute();
-            }
-        }
-
-        private void UnhookCommand(ICommand command)
-        {
-            CanExecuteChangedEventManager.RemoveHandler(
-                command,
-                OnCanExecuteChanged);
-            UpdateCanExecute();
-        }
-
-        private void HookCommand(ICommand command)
-        {
-            CanExecuteChangedEventManager.AddHandler(command, OnCanExecuteChanged);
-            UpdateCanExecute();
-        }
-
-        private void OnCanExecuteChanged(object? sender, EventArgs e)
-        {
-            UpdateCanExecute();
-        }
-
-        private void UpdateCanExecute()
-        {
-            if (Command != null)
-                Enabled = CommandHelpers.CanExecuteCommandSource(this);
-        }
-
-        private void OnClickAction(object? sender, EventArgs? e)
-        {
-            action?.Invoke();
+            return (IControlHandler)ControlFactory.Handler.CreateMenuItemHandler(this);
         }
     }
 }

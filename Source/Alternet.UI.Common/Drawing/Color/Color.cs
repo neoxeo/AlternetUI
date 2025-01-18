@@ -33,7 +33,7 @@ namespace Alternet.Drawing
     /// <see cref="FromArgb(int)"/> method.
     /// </para>
     /// </remarks>
-    [DebuggerDisplay("{NameAndARGBValue}")]
+    [DebuggerDisplay("{DebugString}")]
     [Serializable]
     [TypeConverter(typeof(ColorConverter))]
     public partial class Color : IEquatable<Color>
@@ -144,7 +144,8 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> class from the <see cref="ColorStruct"/>.
+        /// Initializes a new instance of the <see cref="Color"/> class from
+        /// the <see cref="ColorStruct"/>.
         /// </summary>
         /// <param name="value">Color specified using <see cref="ColorStruct"/> value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,7 +156,8 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Color"/> class from the <see cref="KnownColor"/>.
+        /// Initializes a new instance of the <see cref="Color"/> class
+        /// from the <see cref="KnownColor"/>.
         /// </summary>
         /// <param name="knownColor">Color specified using <see cref="KnownColor"/> value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -213,12 +215,13 @@ namespace Alternet.Drawing
         public static event EventHandler<ValueConvertEventArgs<string?, Color?>>? StringToColor;
 
         /// <summary>
-        /// Occurs when <see cref="string"/> is converted to <see cref="Color"/>.
+        /// Occurs when <see cref="Color"/> is converted to <see cref="string"/>.
         /// </summary>
         public static event EventHandler<ValueConvertEventArgs<Color?, string?>>? ColorToString;
 
         /// <summary>
-        /// Occurs when <see cref="string"/> is converted to <see cref="Color"/>.
+        /// Occurs when <see cref="Color"/> is converted to <see cref="string"/>
+        /// for the display purposes.
         /// </summary>
         public static event EventHandler<ValueConvertEventArgs<Color?, string?>>? ColorToDisplayString;
 
@@ -507,7 +510,7 @@ namespace Alternet.Drawing
         {
             get
             {
-                return state.HasFlag(StateFlags.NameValid | StateFlags.KnownColorValid);
+                return state.HasFlag(StateFlags.NameValid) || state.HasFlag(StateFlags.KnownColorValid);
             }
         }
 
@@ -554,7 +557,13 @@ namespace Alternet.Drawing
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return asPen ??= new(this, 1);
+                return asPen ??= new(
+                    this,
+                    1,
+                    DashStyle.Solid,
+                    LineCap.Flat,
+                    LineJoin.Miter,
+                    immutable: true);
             }
         }
 
@@ -634,8 +643,52 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
-        /// Gets color name and ARGB for the debug purposes.
+        /// Gets the localized name of this <see cref="Color"/>.
         /// </summary>
+        /// <value>The localized name of this <see cref="Color"/>.</value>
+        /// <remarks>
+        /// This method returns either the user-defined name of the color, if
+        /// the color was created from a name,
+        /// or the name of the known color. For custom colors, the RGB value
+        /// is returned.
+        /// </remarks>
+        /// <remarks>
+        /// In order to get localized name of the known color, getter of this property calls
+        /// <see cref="ColorUtils.GetColorInfo(KnownColor)"/> and uses
+        /// <see cref="IKnownColorInfo.LabelLocalized"/> property.
+        /// </remarks>
+        public string NameLocalized
+        {
+            get
+            {
+                if (IsKnownColor)
+                {
+                    var info = ColorUtils.GetColorInfo(knownColor);
+                    var result = info.LabelLocalized;
+                    if (!string.IsNullOrEmpty(result))
+                        return result;
+                }
+
+                return Name;
+            }
+        }
+
+        /// <summary>
+        /// Gets color value as text the debug purposes.
+        /// </summary>
+        [Browsable(false)]
+        public virtual string DebugString
+        {
+            get
+            {
+                return NameAndARGBValue;
+            }
+        }
+
+        /// <summary>
+        /// Gets color name and ARGB.
+        /// </summary>
+        [Browsable(false)]
         public string NameAndARGBValue
         {
             get
@@ -739,8 +792,8 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator System.Drawing.Color(Color color)
         {
-            if (color.IsEmpty)
-                return Color.Empty;
+            if (color is null || color.IsEmpty)
+                return System.Drawing.Color.Empty;
             var argb = color.ToArgb();
             return System.Drawing.Color.FromArgb(argb);
         }
@@ -762,24 +815,16 @@ namespace Alternet.Drawing
         /// Implicit operator convertion from tuple with three <see cref="byte"/> values
         /// to <see cref="Color"/>. Tuple values define RGB of the color.
         /// </summary>
-        /// <param name="d">New color value.</param>
-        /// <remarks>
-        /// This operator uses
-        /// <see cref="Color.FromRgb(byte, byte, byte)"/> internally.
-        /// </remarks>
+        /// <param name="d">New color value specified as tuple with three <see cref="byte"/> values.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Color((byte, byte, byte) d) =>
             new(d.Item1, d.Item2, d.Item3);
 
         /// <summary>
-        /// Implicit operator convertion from tuple with three <see cref="byte"/> values
+        /// Implicit operator convertion from tuple with four <see cref="byte"/> values
         /// to <see cref="Color"/>. Tuple values define ARGB of the color.
         /// </summary>
-        /// <param name="d">New color value.</param>
-        /// <remarks>
-        /// This operator uses
-        /// <see cref="Color.FromArgb(byte, byte, byte, byte)"/> internally.
-        /// </remarks>
+        /// <param name="d">New color value specified as tuple with four <see cref="byte"/> values.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Color((byte, byte, byte, byte) d) =>
             new(d.Item1, d.Item2, d.Item3, d.Item4);
@@ -810,7 +855,7 @@ namespace Alternet.Drawing
             if (left is null || right is null)
                 return false;
 
-            return left.color == right.color
+            return left.AsStruct == right.AsStruct
                 && left.state == right.state
                 && left.knownColor == right.knownColor
                 && left.name == right.name;
@@ -872,7 +917,7 @@ namespace Alternet.Drawing
         /// respectively, are the color components red, green, and blue, respectively.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Color FromArgb(int argb) => new(unchecked((uint)argb));
+        public static Color FromArgb(int argb) => new(argb);
 
         /// <summary>
         /// Creates a <see cref="Color"/> structure from the four ARGB
@@ -1049,12 +1094,12 @@ namespace Alternet.Drawing
         /// </remarks>
         public static Color FromName(string name)
         {
-            // try to get a known color first
-            if (ColorTable.TryGetNamedColor(name, out Color color))
-                return color;
+            var color = NamedColors.GetColorOrDefault(name, () =>
+            {
+                return new Color(0, StateFlags.NameValid, name, 0);
+            });
 
-            // otherwise treat it as a named color
-            return new Color(0, StateFlags.NameValid, name, 0);
+            return color;
         }
 
         /// <summary>
@@ -1278,6 +1323,18 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Creates <see cref="LightDarkColor"/> with the specified two colors used
+        /// in light and dark themes.
+        /// </summary>
+        /// <param name="light">Color used when light theme is on.</param>
+        /// <param name="dark">Color used when dark theme is on.</param>
+        /// <returns></returns>
+        public static LightDarkColor LightDark(Color light, Color dark)
+        {
+            return new LightDarkColor(light, dark);
+        }
+
+        /// <summary>
         /// Converts <see cref="HSVValue"/> to RGB color.
         /// </summary>
         /// <param name="hsv"></param>
@@ -1399,7 +1456,7 @@ namespace Alternet.Drawing
                 colors.Add(new Color(item.KnownColor));
             }
 
-            colors.Sort(new ColorNameComparer());
+            colors.Sort(new ColorNameLocalizedComparer());
             return colors;
         }
 
@@ -1538,6 +1595,18 @@ namespace Alternet.Drawing
             GenericImage image = new(size.Width, size.Height);
             image.SetRGBRect(this);
             return image;
+        }
+
+        /// <summary>
+        /// Creates <see cref="ImageSet"/> of the specified <paramref name="size"/>
+        /// filled with this color.
+        /// </summary>
+        /// <param name="size">Size of the created image.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ImageSet AsImageSet(SizeI size)
+        {
+            return (ImageSet)(Image)AsImage(size);
         }
 
         /// <summary>
@@ -1683,6 +1752,8 @@ namespace Alternet.Drawing
         /// </remarks>
         public override string? ToString()
         {
+            RequireArgb();
+
             if (ColorToString is not null)
             {
                 var e = new ValueConvertEventArgs<Color?, string?>(this);
@@ -1815,6 +1886,10 @@ namespace Alternet.Drawing
         /// Gets whether color is dark.
         /// </summary>
         /// <returns></returns>
+        /// <remarks>
+        /// Body of this function doesn't use logical not of <see cref="IsLight"/>,
+        /// it implements completely different approach.
+        /// </remarks>
         public bool IsDark()
         {
             RequireArgb();
@@ -1833,6 +1908,27 @@ namespace Alternet.Drawing
                 return false;
             else
                 return true;
+        }
+
+        /// <summary>
+        /// Gets whether color is light.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>
+        /// This function is suggested in
+        /// <see href="https://learn.microsoft.com/en-us/uwp/api/windows.ui.color.b?view=winrt-26100"/>
+        /// and it's implementation doesn't use logical not of <see cref="IsDark"/>.
+        /// </remarks>
+        public bool IsLight()
+        {
+            RequireArgb();
+            var r = color.R;
+            var g = color.G;
+            var b = color.B;
+
+            int v = (5 * g) + (2 * r) + b;
+
+            return v > 8 * 128;
         }
 
         /// <summary>
@@ -1887,6 +1983,26 @@ namespace Alternet.Drawing
              => KnownColorTable.ColorKindTable[(int)knownColor] ==
                  KnownColorTable.KnownColorKindSystem;
 
+        internal static LightDarkColor LightDark(Color lightDark)
+        {
+            return new LightDarkColor(lightDark, lightDark);
+        }
+
+        /// <summary>
+        /// This method is called each time before argb value of the color
+        /// is returned to the caller.
+        /// </summary>
+        /// <remarks>
+        /// You can override this method in order to provide alternative mechanism
+        /// for loading and preparing argb values of the color.
+        /// </remarks>
+        /// <param name="val">This output parameter must be set if argb of the color is changed.</param>
+        protected virtual void RequireArgb(ref ColorStruct val)
+        {
+            if (state.HasFlag(StateFlags.KnownColorValid))
+                val = KnownColorTable.KnownColorToArgb(knownColor);
+        }
+
         private static void CheckByte(int value, string name)
         {
             static void ThrowOutOfByteRange(int v, string n) =>
@@ -1909,12 +2025,31 @@ namespace Alternet.Drawing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RequireArgb()
         {
-            if (state.HasFlag(StateFlags.KnownColorValid))
-                color = KnownColorTable.KnownColorToArgb(knownColor);
+            RequireArgb(ref color);
         }
 
-        internal class ColorNameComparer : IComparer<Color>
+        /// <summary>
+        /// Implements <see cref="IComparer{Color}"/> interface. Compares two colors
+        /// using string compare of their names.
+        /// </summary>
+        public class ColorNameLocalizedComparer : IComparer<Color>
         {
+            /// <inheritdoc/>
+            public int Compare(Color? color1, Color? color2)
+            {
+                var name1 = color1?.NameLocalized;
+                var name2 = color2?.NameLocalized;
+                return string.Compare(name1, name2);
+            }
+        }
+
+        /// <summary>
+        /// Implements <see cref="IComparer{Color}"/> interface. Compares two colors
+        /// using string compare of their names.
+        /// </summary>
+        public class ColorNameComparer : IComparer<Color>
+        {
+            /// <inheritdoc/>
             public int Compare(Color? color1, Color? color2)
             {
                 var name1 = color1?.Name;

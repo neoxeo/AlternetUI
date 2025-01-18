@@ -6,10 +6,19 @@ using System.Threading.Tasks;
 
 namespace Alternet.UI
 {
+    /// <summary>
+    /// Contains <see cref="Label"/> and <see cref="MainControl"/> properties.
+    /// </summary>
     public interface IControlAndLabel
     {
-        Control Label { get; }
+        /// <summary>
+        /// Gets label control.
+        /// </summary>
+        AbstractControl Label { get; }
 
-        Control MainControl { get; }
+        /// <summary>
+        /// Gets main control.
+        /// </summary>
+        AbstractControl MainControl { get; }
     }
 }

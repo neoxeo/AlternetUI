@@ -22,8 +22,6 @@ namespace Alternet::UI
     {
     }
 
-    // ------------
-
     Window::Window()
         : Window(0)
     {
@@ -56,8 +54,6 @@ namespace Alternet::UI
             &Window::ApplyTitle),
         _menu(*this, nullptr, &Control::IsWxWindowCreated, &Window::RetrieveMenu,   
             &Window::ApplyMenu)
-        /*_toolbar(*this, nullptr, &Control::IsWxWindowCreated, &Window::RetrieveToolbar, 
-            &Window::ApplyToolbar)*/
     {
         GetDelayedValues().Add(&_title);
         GetDelayedValues().Add(&_delayedFlags);
@@ -70,88 +66,6 @@ namespace Alternet::UI
     {
         if (_icon != nullptr)
             _icon->Release();
-    }
-
-    void Window::AddInputBinding(const string& managedCommandId, Key key,
-        ModifierKeys modifiers)
-    {
-        if (managedCommandId.empty())
-        {
-            DebugLogInvalidArg(managedCommandId, u"Command ID must not be empty.");
-            return;
-        }
-
-        if (_acceleratorsByCommandIds.find(managedCommandId) !=
-            _acceleratorsByCommandIds.end())
-        {
-            DebugLogInvalidArg(managedCommandId,
-                u"Input binding with this command ID was already added to this window.");
-        }
-
-        auto keyboard = Application::GetCurrent()->GetKeyboardInternal();
-        auto wxKey = keyboard->KeyToWxKey(key);
-        auto acceleratorFlags = keyboard->ModifierKeysToAcceleratorFlags(modifiers);
-
-        _acceleratorsByCommandIds[managedCommandId] =
-            wxAcceleratorEntry(acceleratorFlags, wxKey, IdManager::AllocateId());
-
-        UpdateAcceleratorTable(GetWxWindow());
-    }
-
-    void Window::RemoveInputBinding(const string& managedCommandId)
-    {
-        if (managedCommandId.empty())
-        {
-            DebugLogInvalidArg(managedCommandId, u"Command ID must not be empty.");
-            return;
-        }
-
-        auto it = _acceleratorsByCommandIds.find(managedCommandId);
-        if (it == _acceleratorsByCommandIds.end()) 
-        {
-            DebugLogInvalidArg(managedCommandId,
-                u"Input binding with this command ID was not found in this window.");
-            return;
-        }
-
-        IdManager::FreeId(it->second.GetCommand());
-
-        _acceleratorsByCommandIds.erase(it);
-
-        UpdateAcceleratorTable(GetWxWindow());
-    }
-
-    void Window::UpdateAcceleratorTable(wxWindow* frame)
-    {
-        if (frame == nullptr)
-            return;
-
-        std::vector<wxAcceleratorEntry> entries;
-        for (auto& pair : _acceleratorsByCommandIds)
-            entries.push_back(pair.second);
-
-        frame->SetAcceleratorTable(entries.empty() ?
-            wxNullAcceleratorTable : wxAcceleratorTable(entries.size(), &entries[0]));
-    }
-
-    void Window::OnCommand(wxCommandEvent& event)
-    {
-        auto id = event.GetId();
-
-        optional<string> foundManagedCommandId;
-        for (auto& pair : _acceleratorsByCommandIds)
-        {
-            if (pair.second.GetCommand() == id)
-                foundManagedCommandId = pair.first;
-        }
-
-        if (!foundManagedCommandId.has_value())
-            return;
-
-        CommandEventData data{ const_cast<char16_t*>(foundManagedCommandId.value().c_str()) };
-        bool handled = RaiseEvent(WindowEvent::InputBindingCommandExecuted, &data);
-        if (!handled)
-            event.Skip();
     }
 
     void Window::OnCharHook(wxKeyEvent& event)
@@ -176,17 +90,6 @@ namespace Alternet::UI
         _menu.Set(value);
     }
 
-    /*Toolbar* Window::GetToolbar()
-    {
-        return _toolbar.Get();
-    }
-
-    void Window::SetToolbar(Toolbar* value)
-    {
-        _storedToolbar = value;
-        _toolbar.Set(value);
-    }*/
-
     MainMenu* Window::RetrieveMenu()
     {
         return _storedMenu;
@@ -201,23 +104,6 @@ namespace Alternet::UI
         frame->Layout();
         frame->PostSizeEvent();
     }
-
-    /*Toolbar* Window::RetrieveToolbar()
-    {
-        return _storedToolbar;
-    }
-
-    void Window::ApplyToolbar(Toolbar* const& value)
-    {
-        if (value != nullptr)
-            value->SetOwnerWindow(this);
-        auto frame = GetFrame();
-        if (frame == nullptr)
-            return;
-        frame->SetToolBar(value == nullptr ? nullptr : value->GetWxToolBar());
-        frame->Layout();
-        frame->PostSizeEvent();
-    }*/
 
     void* Window::GetWxStatusBar()
     {
@@ -243,22 +129,6 @@ namespace Alternet::UI
 
         bool recreatingWxWindow = IsRecreatingWxWindow();
 
-        /*if (GetModal())
-        {
-            if (!recreatingWxWindow)
-                _flags.Set(WindowFlags::ModalLoopStopRequested, true);
-
-            if (_modalWindowDisabler != nullptr)
-            {
-                delete _modalWindowDisabler;
-                _modalWindowDisabler = nullptr;
-
-                _modalWindows.pop();
-                if (!_modalWindows.empty())
-                    _modalWindowDisabler = new FrameDisabler(_modalWindows.top()->_frame);
-            }
-        }*/
-
         if (_flags.IsSet(WindowFlags::Modal) && !recreatingWxWindow)
             _flags.Set(WindowFlags::Modal, false);
 
@@ -275,54 +145,9 @@ namespace Alternet::UI
         wxWindow->Unbind(wxEVT_CLOSE_WINDOW, &Window::OnClose, this);
         wxWindow->Unbind(wxEVT_MAXIMIZE, &Window::OnMaximize, this);
         wxWindow->Unbind(wxEVT_ICONIZE, &Window::OnIconize, this);
-        wxWindow->Unbind(wxEVT_MENU, &Window::OnCommand, this);
         wxWindow->Unbind(wxEVT_CHAR_HOOK, &Window::OnCharHook, this);
     }
             
-    std::vector<Window*> Window::GetOwnedWindows()
-    {
-        std::vector<Window*> result;
-
-        for (auto child : GetChildren())
-        {
-            auto childWindow = dynamic_cast<Window*>(child);
-            if (childWindow != nullptr)
-                result.push_back(childWindow);
-        }
-
-        return result;
-    }
-
-    void Window::ShowCore()
-    {
-        bool hasHiddenOwner = GetParent() != nullptr && !GetParent()->GetVisible();
-
-        if (!hasHiddenOwner)
-            Control::ShowCore();
-
-        for (auto child : GetOwnedWindows())
-        {
-            if (_preservedHiddenOwnedWindows.find(child) == _preservedHiddenOwnedWindows.end())
-                child->SetVisible(true);
-        }
-
-        _preservedHiddenOwnedWindows.clear();
-    }
-
-    void Window::HideCore()
-    {
-        Control::HideCore();
-        
-        _preservedHiddenOwnedWindows.clear();
-        for (auto child : GetOwnedWindows())
-        {
-            if (!child->GetVisible())
-                _preservedHiddenOwnedWindows.insert(child);
-
-            child->SetVisible(false);
-        }
-    }
-
     string Window::GetTitle()
     {
         return _title.Get();
@@ -341,16 +166,6 @@ namespace Alternet::UI
     void Window::ApplyTitle(const string& value)
     {
         GetTopLevelWindow()->SetTitle(wxStr(value));
-    }
-
-    WindowStartLocation Window::GetWindowStartLocation()
-    {
-        return _startLocation;
-    }
-
-    void Window::SetWindowStartLocation(WindowStartLocation value)
-    {
-        _startLocation = value;
     }
 
     bool Window::GetIsPopupWindow()
@@ -474,12 +289,10 @@ namespace Alternet::UI
         }
 
         ApplyIcon(frame);
-        UpdateAcceleratorTable(frame);
 
         frame->Bind(wxEVT_CLOSE_WINDOW, &Window::OnClose, this);
         frame->Bind(wxEVT_MAXIMIZE, &Window::OnMaximize, this);
         frame->Bind(wxEVT_ICONIZE, &Window::OnIconize, this);
-        frame->Bind(wxEVT_MENU, &Window::OnCommand, this);
         frame->Bind(wxEVT_CHAR_HOOK, &Window::OnCharHook, this);
 
         auto panelColor =
@@ -708,28 +521,6 @@ namespace Alternet::UI
         }
     }
 
-    void* Window::OpenOwnedWindowsArray()
-    {
-        return new std::vector<Window*>(GetOwnedWindows());
-    }
-
-    int Window::GetOwnedWindowsItemCount(void* array)
-    {
-        return ((std::vector<Window*>*)array)->size();
-    }
-
-    Window* Window::GetOwnedWindowsItemAt(void* array, int index)
-    {
-        auto window = (*((std::vector<Window*>*)array))[index];
-        window->AddRef();
-        return window;
-    }
-
-    void Window::CloseOwnedWindowsArray(void* array)
-    {
-        delete (std::vector<Window*>*)array;
-    }
-
     /*static*/ Window* Window::GetActiveWindow()
     {
         wxTopLevelWindow* window = NULL;
@@ -802,19 +593,6 @@ namespace Alternet::UI
         else
         {
             event.Skip();
-
-            auto parent = GetParent();
-
-            if (parent != nullptr) 
-            {
-                parent->RemoveChild(this);
-            }
-
-            for (auto window : GetOwnedWindows())
-            {
-                RemoveChild(window);
-                window->Close();
-            }
         }
     }
 

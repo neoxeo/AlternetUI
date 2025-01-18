@@ -10,13 +10,16 @@ namespace Alternet.UI.Integration
 {
     public static class Log
     {
+        public static bool InformationLogged = true;
+        public static bool VerboseLogged = true;
+
         public static Action<string> Write;
 
-        private static CancellationToken cancellationToken = new();
-
-        public static void Information(string s)
+        public static void Information(string s = null)
         {
-            Write($"Information: {s}");
+            s ??= string.Empty;
+            if(InformationLogged)
+                Write($"Information: {s}");
         }
 
         public static void Error(string s)
@@ -26,7 +29,8 @@ namespace Alternet.UI.Integration
 
         public static void Verbose(string s)
         {
-            Write($"Verbose: {s}");
+            if(VerboseLogged)
+                Write($"Verbose: {s}");
         }
 
         [Conditional("DEBUG")]

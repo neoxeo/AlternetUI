@@ -15,14 +15,28 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="LinkLabel"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public LinkLabel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LinkLabel"/> class.
+        /// </summary>
         public LinkLabel()
         {
+            HorizontalAlignment = HorizontalAlignment.Left;
+            CanSelect = false;
+            TabStop = false;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinkLabel"/> class with the specified text.
         /// </summary>
         public LinkLabel(string? text)
+            : this()
         {
             Text = text ?? string.Empty;
         }
@@ -38,14 +52,11 @@ namespace Alternet.UI
         public static bool UseGenericControl { get; set; }
 
         /// <summary>
-        /// Gets or sets whether to use our <see cref="AppUtils.ShellExecute"/>
-        /// for opening the <see cref="Url"/> or allow native control to open it.
+        /// Gets control handler.
         /// </summary>
-        /// <remarks>
-        /// On Linux (Ubuntu 23) native control has errors with opening urls, so
-        /// this property is <c>true</c> by default and we do not use it.
-        /// </remarks>
-        public static bool UseShellExecute { get; set; } = true;
+        [Browsable(false)]
+        public new ILinkLabelHandler Handler =>
+            (ILinkLabelHandler)base.Handler;
 
         /// <inheritdoc/>
         public override string Text
@@ -57,11 +68,8 @@ namespace Alternet.UI
 
             set
             {
-                value ??= " ";
-                if (Text == value)
-                    return;
+                value ??= StringUtils.OneSpace;
                 base.Text = value;
-                Handler.Text = value;
             }
         }
 
@@ -71,15 +79,19 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets the URL associated with the hyperlink.
         /// </summary>
-        public string Url
+        public virtual string Url
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.Url;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.Url = value;
             }
         }
@@ -89,10 +101,21 @@ namespace Alternet.UI
         /// over the control.
         /// </summary>
         [Browsable(false)]
-        public Color HoverColor
+        public virtual Color HoverColor
         {
-            get => Handler.HoverColor;
-            set => Handler.HoverColor = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return Color.Empty;
+                return Handler.HoverColor;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.HoverColor = value;
+            }
         }
 
         /// <summary>
@@ -101,10 +124,21 @@ namespace Alternet.UI
         /// not over the control.
         /// </summary>
         [Browsable(false)]
-        public Color NormalColor
+        public virtual Color NormalColor
         {
-            get => Handler.NormalColor;
-            set => Handler.NormalColor = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return Color.Empty;
+                return Handler.NormalColor;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.NormalColor = value;
+            }
         }
 
         /// <summary>
@@ -113,10 +147,21 @@ namespace Alternet.UI
         /// before (i.e. the link has been visited).
         /// </summary>
         [Browsable(false)]
-        public Color VisitedColor
+        public virtual Color VisitedColor
         {
-            get => Handler.VisitedColor;
-            set => Handler.VisitedColor = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return Color.Empty;
+                return Handler.VisitedColor;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.VisitedColor = value;
+            }
         }
 
         /// <summary>
@@ -124,10 +169,21 @@ namespace Alternet.UI
         /// the user at least one time.
         /// </summary>
         [Browsable(false)]
-        public bool Visited
+        public virtual bool Visited
         {
-            get => Handler.Visited;
-            set => Handler.Visited = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.Visited;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.Visited = value;
+            }
         }
 
         [Browsable(false)]
@@ -136,19 +192,18 @@ namespace Alternet.UI
             get => base.Layout;
         }
 
-        internal new ILinkLabelHandler Handler =>
-            (ILinkLabelHandler)base.Handler;
-
         /// <summary>
         /// Raises <see cref="LinkClicked"/> event.
         /// </summary>
-        /// <param name="e"></param>
+        /// <param name="e">Event arguments.</param>
         public void RaiseLinkClicked(CancelEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnLinkClicked(e);
             if (!e.Cancel)
                 LinkClicked?.Invoke(this, e);
-            if (!e.Cancel && UseShellExecute)
+            if (!e.Cancel)
             {
                 e.Cancel = true;
                 AppUtils.OpenUrl(Url);

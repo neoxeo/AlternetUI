@@ -9,9 +9,13 @@ namespace Alternet.UI
     {
         private object? statusBar;
 
-        public Action<HandledEventArgs<string>>? InputBindingCommandExecuted { get; set; }
-
-        public Action<CancelEventArgs>? Closing { get; set; }
+        public override bool VisibleOnScreen
+        {
+            get
+            {
+                return Visible;
+            }
+        }
 
         public bool ShowInTaskbar
         {
@@ -55,7 +59,7 @@ namespace Alternet.UI
             set => NativeControl.Resizable = value;
         }
 
-        public bool HasBorder
+        public override bool HasBorder
         {
             get => NativeControl.HasBorder;
             set => NativeControl.HasBorder = value;
@@ -79,32 +83,6 @@ namespace Alternet.UI
             set => NativeControl.Title = value;
         }
 
-        public Action? StateChanged
-        {
-            get
-            {
-                return NativeControl.StateChanged;
-            }
-
-            set
-            {
-                NativeControl.StateChanged = value;
-            }
-        }
-
-        public WindowStartLocation StartLocation
-        {
-            get
-            {
-                return NativeControl.WindowStartLocation;
-            }
-
-            set
-            {
-                NativeControl.WindowStartLocation = value;
-            }
-        }
-
         public WindowState State
         {
             get
@@ -115,17 +93,6 @@ namespace Alternet.UI
             set
             {
                 NativeControl.State = value;
-            }
-        }
-
-        public Window[] OwnedWindows
-        {
-            get
-            {
-                var result = NativeControl.OwnedWindows.Select(
-                    x => ((WindowHandler)(WxControlHandler.NativeControlToHandler(x) ??
-                    throw new Exception())).Control).ToArray();
-                return result;
             }
         }
 
@@ -151,6 +118,8 @@ namespace Alternet.UI
 
             set
             {
+                if (Control is null)
+                    return;
                 if (Control.GetWindowKind() == WindowKind.Dialog)
                 {
                     statusBar = value;
@@ -173,7 +142,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets a <see cref="Window"/> this handler provides the implementation for.
         /// </summary>
-        public new Window Control => (Window)base.Control;
+        public new Window? Control => (Window?)base.Control;
 
         public new Native.Window NativeControl => (Native.Window)base.NativeControl;
 
@@ -210,6 +179,12 @@ namespace Alternet.UI
 
         public ModalResult ShowModal(IWindow? owner)
         {
+            if(owner is not null)
+            {
+                if (owner.GetWindowKind() == WindowKind.Control)
+                    owner = null;
+            }
+
             NativeControl.ShowModal(WxApplicationHandler.WxWidget(owner));
             return ModalResult;
         }
@@ -225,6 +200,9 @@ namespace Alternet.UI
                 NativeControl.Close();
             else
             {
+                if (Control is null)
+                    return;
+
                 if (!Control.Modal)
                     Control.Dispose();
             }
@@ -232,23 +210,7 @@ namespace Alternet.UI
 
         internal override Native.Control CreateNativeControl()
         {
-            return new NativeWindow((int)Control.GetWindowKind());
-        }
-
-        protected override void OnDetach()
-        {
-            NativeControl.Closing -= NativeControl_Closing;
-            NativeControl.InputBindingCommandExecuted -= NativeControl_InputBindingCommandExecuted;
-
-            base.OnDetach();
-        }
-
-        protected override void OnAttach()
-        {
-            base.OnAttach();
-
-            NativeControl.Closing += NativeControl_Closing;
-            NativeControl.InputBindingCommandExecuted += NativeControl_InputBindingCommandExecuted;
+            return new NativeWindow((int)(Control?.GetWindowKind() ?? WindowKind.Control));
         }
 
         private void SetStatusBar(object? oldValue, object? value)
@@ -259,7 +221,7 @@ namespace Alternet.UI
             {
                 if ((value as IDisposableObject)?.IsDisposed ?? false)
                     throw new ObjectDisposedException(nameof(StatusBar));
-                if (asStatusBar.Window is not null && asStatusBar.Window != Control)
+                if (asStatusBar.AttachedTo is not null && asStatusBar.AttachedTo != Control)
                 {
                     throw new Exception("Object is already attached to the window");
                 }
@@ -283,49 +245,8 @@ namespace Alternet.UI
             void SetWindow(StatusBar sb, Window? window)
             {
                 if (sb.Handler is StatusBarHandler handler)
-                    handler.Window = window;
+                    handler.AttachedTo = window;
             }
-        }
-
-        private void NativeControl_InputBindingCommandExecuted(
-            object? sender,
-            Native.NativeEventArgs<Native.CommandEventData> e)
-        {
-            if(InputBindingCommandExecuted is not null)
-            {
-                HandledEventArgs<string> args = new(e.Data.managedCommandId);
-                InputBindingCommandExecuted.Invoke(args);
-                e.Handled = args.Handled;
-            }
-        }
-
-        public void AddInputBinding(InputBinding value)
-        {
-            var keyBinding = (KeyBinding)value;
-            NativeControl.AddInputBinding(
-                keyBinding.ManagedCommandId,
-                keyBinding.Key,
-                keyBinding.Modifiers);
-        }
-
-        public void RemoveInputBinding(InputBinding item)
-        {
-            NativeControl.RemoveInputBinding(item.ManagedCommandId);
-        }
-
-        public void SetOwner(Window? owner)
-        {
-            var newOwner = (owner as IControl)?.NativeControl as UI.Native.Control;
-            var oldOwner = NativeControl.ParentRefCounted;
-            if (newOwner == oldOwner)
-                return;
-
-            oldOwner?.RemoveChild(NativeControl);
-
-            if (newOwner == null)
-                return;
-
-            newOwner.AddChild(NativeControl);
         }
 
         public void SetIcon(IconSet? value)
@@ -336,11 +257,6 @@ namespace Alternet.UI
         public void SetMenu(object? value)
         {
             NativeControl.Menu = (value as IControl)?.NativeControl as Native.MainMenu;
-        }
-
-        private void NativeControl_Closing(object? sender, CancelEventArgs e)
-        {
-            Closing?.Invoke(e);
         }
 
         private class NativeWindow : Native.Window

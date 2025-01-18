@@ -115,7 +115,6 @@ namespace Alternet.UI.Markup.Xaml.XamlIl
             var prop = tb.DefineProperty("AssemblyName", PropertyAttributes.None, typeof(string), Array.Empty<Type>());
             prop.SetGetMethod(propGet);
 
-
             var ctor = tb.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard,
                 new[] { typeof(string) });
             var ctorIl = ctor.GetILGenerator();
@@ -132,7 +131,9 @@ namespace Alternet.UI.Markup.Xaml.XamlIl
             tb.SetCustomAttribute(new CustomAttributeBuilder(
                 typeof(AttributeUsageAttribute).GetConstructor(new[] { typeof(AttributeTargets) }),
                 new object[] { AttributeTargets.Assembly },
-                new[] { typeof(AttributeUsageAttribute).GetProperty("AllowMultiple") },
+                new[] { AssemblyUtils.GetPropertySafe(
+                    typeof(AttributeUsageAttribute),
+                    nameof(AttributeUsageAttribute.AllowMultiple)) },
                 new object[] { true }));
 
             return tb.CreateTypeInfo();
@@ -216,7 +217,14 @@ namespace Alternet.UI.Markup.Xaml.XamlIl
             }
 
             compiler.IsDesignMode = isDesignMode;
-            compiler.ParseAndCompile(xaml, uri?.ToString(), null, _sreTypeSystem.CreateTypeBuilder(tb), overrideType);
+
+            var typeBuilder = _sreTypeSystem.CreateTypeBuilder(tb);
+            compiler.ParseAndCompile(
+                xaml,
+                uri?.ToString(),
+                null,
+                typeBuilder,
+                overrideType);
             var created = tb.CreateTypeInfo();
             clrPropertyBuilder.CreateTypeInfo();
 

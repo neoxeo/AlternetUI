@@ -16,6 +16,17 @@ namespace Alternet.UI
         private ControlStateImages? stateImages;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Button"/> class
+        /// with the specified parent control.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public Button(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
         /// Initializes a new <see cref="Button"/> instance.
         /// </summary>
         public Button()
@@ -29,6 +40,29 @@ namespace Alternet.UI
             : this()
         {
             Text = text;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Button"/> class
+        /// with the specified text, click action and parent control.
+        /// </summary>
+        public Button(Control parent, string text, Action? clickAction = null)
+            : this()
+        {
+            Text = text;
+            ClickAction = clickAction;
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Button"/> class
+        /// with the specified text and click action.
+        /// </summary>
+        public Button(string text, Action clickAction)
+            : this()
+        {
+            Text = text;
+            ClickAction = clickAction;
         }
 
         /// <summary>
@@ -91,12 +125,16 @@ namespace Alternet.UI
         {
             get
             {
-                return Handler.HasBorder;
+                if (DisposingOrDisposed)
+                    return default;
+                return base.Handler.HasBorder;
             }
 
             set
             {
-                Handler.HasBorder = value;
+                if (DisposingOrDisposed)
+                    return;
+                base.Handler.HasBorder = value;
             }
         }
 
@@ -207,8 +245,19 @@ namespace Alternet.UI
         /// </value>
         public virtual bool IsDefault
         {
-            get => Handler.IsDefault;
-            set => Handler.IsDefault = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.IsDefault;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.IsDefault = value;
+            }
         }
 
         /// <summary>
@@ -225,8 +274,19 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool ExactFit
         {
-            get => Handler.ExactFit;
-            set => Handler.ExactFit = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.ExactFit;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.ExactFit = value;
+            }
         }
 
         /// <summary>
@@ -241,8 +301,19 @@ namespace Alternet.UI
         /// </value>
         public virtual bool IsCancel
         {
-            get => Handler.IsCancel;
-            set => Handler.IsCancel = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.IsCancel;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.IsCancel = value;
+            }
         }
 
         /// <summary>
@@ -250,9 +321,26 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool TextVisible
         {
-            get => Handler.TextVisible;
-            set => Handler.TextVisible = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.TextVisible;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.TextVisible = value;
+            }
         }
+
+        /// <summary>
+        /// Gets a <see cref="IButtonHandler"/> associated with this class.
+        /// </summary>
+        [Browsable(false)]
+        public new IButtonHandler Handler => (IButtonHandler)base.Handler;
 
         /// <summary>
         /// Sets the position at which the text is displayed.
@@ -262,8 +350,19 @@ namespace Alternet.UI
         /// </remarks>
         public virtual GenericDirection TextAlign
         {
-            get => Handler.TextAlign;
-            set => Handler.TextAlign = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.TextAlign;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.TextAlign = value;
+            }
         }
 
         [Browsable(false)]
@@ -286,12 +385,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="IButtonHandler"/> associated with this class.
-        /// </summary>
-        [Browsable(false)]
-        internal new IButtonHandler Handler => (IButtonHandler)base.Handler;
-
-        /// <summary>
         /// Sets the position at which the image is displayed.
         /// </summary>
         /// <remarks>
@@ -301,6 +394,8 @@ namespace Alternet.UI
         /// <param name="dir">New image position (left, top, right, bottom).</param>
         public virtual void SetImagePosition(GenericDirection dir)
         {
+            if (DisposingOrDisposed)
+                return;
             if (dir == GenericDirection.Left || dir == GenericDirection.Right ||
                 dir == GenericDirection.Top || dir == GenericDirection.Bottom)
                 Handler.SetImagePosition(dir);
@@ -316,60 +411,62 @@ namespace Alternet.UI
         /// </remarks>
         /// <param name="x">New horizontal margin.</param>
         /// <param name="y">New vertical margin.</param>
-        public virtual void SetImageMargins(double x, double? y = null)
+        public virtual void SetImageMargins(Coord x, Coord? y = null)
         {
+            if (DisposingOrDisposed)
+                return;
             y ??= x;
             Handler.SetImageMargins(x, y.Value);
         }
 
         void IControlStateObjectChanged.DisabledChanged(object? sender)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.DisabledImage = stateImages?.Disabled;
             PerformLayoutAndInvalidate();
         }
 
         void IControlStateObjectChanged.NormalChanged(object? sender)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.NormalImage = stateImages?.Normal;
             PerformLayoutAndInvalidate();
         }
 
         void IControlStateObjectChanged.FocusedChanged(object? sender)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.FocusedImage = stateImages?.Focused;
             PerformLayoutAndInvalidate();
         }
 
         void IControlStateObjectChanged.HoveredChanged(object? sender)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.HoveredImage = stateImages?.Hovered;
             PerformLayoutAndInvalidate();
         }
 
         void IControlStateObjectChanged.PressedChanged(object? sender)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.PressedImage = stateImages?.Pressed;
             PerformLayoutAndInvalidate();
+        }
+
+        void IControlStateObjectChanged.SelectedChanged(object? sender)
+        {
         }
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
             return ControlFactory.Handler.CreateButtonHandler(this);
-        }
-
-        /// <inheritdoc/>
-        protected override void BindHandlerEvents()
-        {
-            base.BindHandlerEvents();
-            Handler.Click = RaiseClick;
-        }
-
-        /// <inheritdoc/>
-        protected override void UnbindHandlerEvents()
-        {
-            base.UnbindHandlerEvents();
-            Handler.Click = null;
         }
     }
 }

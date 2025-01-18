@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,23 @@ namespace Alternet.UI
         private DateTime min = DateTime.MinValue;
         private bool useMinDate = false;
         private bool useMaxDate = false;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomDateEdit"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public CustomDateEdit(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomDateEdit"/> class.
+        /// </summary>
+        public CustomDateEdit()
+        {
+        }
 
         /// <summary>Gets the maximum date value allowed for the control.</summary>
         /// <returns>A <see cref="System.DateTime" /> representing the
@@ -122,6 +140,7 @@ namespace Alternet.UI
         /// Gets or sets whether to use <see cref="MaxDate"/> and
         /// <see cref="MinDate"/> for the date range limitation.
         /// </summary>
+        [Browsable(false)]
         public virtual bool UseMinMaxDate
         {
             get
@@ -196,6 +215,13 @@ namespace Alternet.UI
             }
         }
 
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
         internal static DateTime EffectiveMaxDate(DateTime maxDate)
         {
             DateTime maximumDateTime = MaximumDateTime;
@@ -228,7 +254,7 @@ namespace Alternet.UI
         /// <summary>
         /// Updates possible date range using current settings.
         /// </summary>
-        protected void SetRange()
+        protected virtual void SetRange()
         {
             if (UseMinDate)
             {

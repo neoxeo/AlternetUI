@@ -14,14 +14,26 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default size of the color image.
         /// </summary>
-        public static SizeI DefaultColorImageSize = 24;
+        public static SizeD DefaultColorImageSizeDips = 12;
 
         private Color? color = Color.Black;
-        private SizeI colorImageSize = DefaultColorImageSize;
+        private SizeD colorImageSize = DefaultColorImageSizeDips;
         private ColorDialog? colorDialog;
         private PopupColorListBox? popupWindow;
-        private bool showDialog = false;
-        private bool showPopupWindow = true;
+        private ClickActionKind actionKind = ClickActionKind.ShowPopup;
+        private ClickActionKind longTapAction = ClickActionKind.None;
+        private Color? disabledImageColor;
+        private bool useDisabledImageColor = true;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SpeedColorButton"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public SpeedColorButton(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SpeedColorButton"/> class.
@@ -29,7 +41,7 @@ namespace Alternet.UI
         public SpeedColorButton()
         {
             TextVisible = true;
-            UpdateImage();
+            OnColorImageChanged(false);
         }
 
         /// <summary>
@@ -48,16 +60,38 @@ namespace Alternet.UI
         public event EventHandler<ValueConvertEventArgs<Color?, string?>>? ColorToString;
 
         /// <summary>
+        /// Enumerates possible actions when the user clicks on the button.
+        /// </summary>
+        public enum ClickActionKind
+        {
+            /// <summary>
+            /// Popup with <see cref="ColorListBox"/> is shown when button is clicked.
+            /// </summary>
+            ShowPopup,
+
+            /// <summary>
+            /// <see cref="ColorDialog"/> is shown when button is clicked.
+            /// </summary>
+            ShowDialog,
+
+            /// <summary>
+            /// No action is performed when button is clicked.
+            /// </summary>
+            None,
+        }
+
+        /// <summary>
         /// Gets attached popup window with <see cref="ColorListBox"/>.
         /// </summary>
-        public PopupColorListBox PopupWindow
+        [Browsable(false)]
+        public virtual PopupColorListBox PopupWindow
         {
             get
             {
                 if(popupWindow is null)
                 {
                     popupWindow = new();
-                    popupWindow.AfterHide += PopupWindow_AfterHide;
+                    popupWindow.AfterHide += PopupWindowAfterHideHandler;
                 }
 
                 return popupWindow;
@@ -68,17 +102,34 @@ namespace Alternet.UI
         /// Gets or sets whether to show <see cref="ColorDialog"/> when
         /// button is clicked.
         /// </summary>
-        public virtual bool ShowDialog
+        [Browsable(false)]
+        public bool ShowDialog
         {
-            get => showDialog;
+            get => actionKind == ClickActionKind.ShowDialog;
 
             set
             {
-                if (showDialog = value)
+                if (ShowDialog = value)
                     return;
-                showDialog = value;
-                if (value)
-                    showPopupWindow = false;
+                actionKind = ClickActionKind.ShowDialog;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets what happens when the user clicks this button.
+        /// </summary>
+        public virtual ClickActionKind ActionKind
+        {
+            get
+            {
+                return actionKind;
+            }
+
+            set
+            {
+                if (actionKind == value)
+                    return;
+                actionKind = value;
             }
         }
 
@@ -86,33 +137,45 @@ namespace Alternet.UI
         /// Gets or sets whether to show popup window with <see cref="ColorListBox"/> when
         /// button is clicked.
         /// </summary>
-        public virtual bool ShowPopupWindow
+        [Browsable(false)]
+        public bool ShowPopupWindow
         {
-            get => showPopupWindow;
+            get => actionKind == ClickActionKind.ShowPopup;
 
             set
             {
-                if (showPopupWindow = value)
+                if (ShowPopupWindow = value)
                     return;
-                showPopupWindow = value;
-                if (value)
-                    showDialog = false;
+                actionKind = ClickActionKind.ShowPopup;
             }
         }
 
         /// <summary>
-        /// Gets or sets size of the color image.
+        /// Gets or sets size of the color image in device-independent units.
         /// </summary>
-        public virtual SizeI ColorImageSize
+        public virtual SizeD ColorImageSizeDips
         {
             get => colorImageSize;
+
             set
             {
                 if (colorImageSize == value)
                     return;
                 colorImageSize = value;
-                UpdateImage();
-                Invalidate();
+                OnColorImageChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets <see cref="ColorDialog"/> used in the control.
+        /// </summary>
+        [Browsable(false)]
+        public virtual ColorDialog ColorDialog
+        {
+            get
+            {
+                colorDialog ??= new ColorDialog();
+                return colorDialog;
             }
         }
 
@@ -131,10 +194,57 @@ namespace Alternet.UI
                 if (color == value)
                     return;
                 color = value;
-                base.Text = InternalAsString() ?? string.Empty;
+                base.Text = GetColorAsString() ?? string.Empty;
                 ValueChanged?.Invoke(this, EventArgs.Empty);
-                UpdateImage();
-                Refresh();
+                OnColorImageChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets disabled image color.
+        /// </summary>
+        /// <remarks>
+        /// This color is used for painting color image when control is disabled.
+        /// If this property is null, color image will be painted using
+        /// <see cref="ColorComboBox.DefaultDisabledImageColor"/>.
+        /// </remarks>
+        public virtual Color? DisabledImageColor
+        {
+            get
+            {
+                return disabledImageColor;
+            }
+
+            set
+            {
+                if (disabledImageColor == value)
+                    return;
+                disabledImageColor = value;
+                if (Enabled)
+                    return;
+                OnColorImageChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether to use <see cref="DisabledImageColor"/> for painting of the color image
+        /// when control is disabled.
+        /// </summary>
+        public virtual bool UseDisabledImageColor
+        {
+            get
+            {
+                return useDisabledImageColor;
+            }
+
+            set
+            {
+                if (useDisabledImageColor == value)
+                    return;
+                useDisabledImageColor = value;
+                if (Enabled)
+                    return;
+                OnColorImageChanged();
             }
         }
 
@@ -146,7 +256,7 @@ namespace Alternet.UI
         {
             get
             {
-                return InternalAsString();
+                return GetColorAsString();
             }
 
             set
@@ -166,6 +276,25 @@ namespace Alternet.UI
             }
         }
 
+        /// <summary>
+        /// Gets or sets action to call on long tap event.
+        /// </summary>
+        internal virtual ClickActionKind LongTapAction
+        {
+            get
+            {
+                return longTapAction;
+            }
+
+            set
+            {
+                if (longTapAction == value)
+                    return;
+                longTapAction = value;
+                CanLongTap = longTapAction != ClickActionKind.None;
+            }
+        }
+
         internal new Image? Image
         {
             get => base.Image;
@@ -178,50 +307,79 @@ namespace Alternet.UI
             set => base.DisabledImage = value;
         }
 
-        /// <inheritdoc/>
-        protected override void OnClick(EventArgs e)
+        /// <summary>
+        /// Shows color popup or dialog (depends on the value of <see cref="ActionKind"/> property).
+        /// Called when control is clicked.
+        /// </summary>
+        public virtual void ShowColorSelector(ClickActionKind? kind = null)
         {
-            base.OnClick(e);
-            if (!Enabled)
-                return;
-
-            if (ShowDialog)
+            switch (kind ?? ActionKind)
             {
-                colorDialog ??= new ColorDialog();
-                if (Value is not null)
-                    colorDialog.Color = Value;
-                if (colorDialog.ShowModal() == ModalResult.Accepted)
-                    Value = colorDialog.Color;
-            }
-            else
-            if(ShowPopupWindow)
-            {
-                PopupWindow.MainControl.Value = Value;
-                PopupWindow.ShowPopup(this);
+                case ClickActionKind.ShowPopup:
+                    ShowColorPopup();
+                    break;
+                case ClickActionKind.ShowDialog:
+                    ShowColorDialog();
+                    break;
             }
         }
 
         /// <summary>
-        /// Updates color image using <see cref="Value"/> and <see cref="ColorImageSize"/>
-        /// settings.
+        /// Shows color dialog.
         /// </summary>
-        protected virtual void UpdateImage()
+        public virtual void ShowColorDialog()
         {
-            if (color is null)
-                Image = (Bitmap)Color.Transparent.AsImage(colorImageSize);
-            else
+            if (!Enabled)
+                return;
+
+            if (Value is not null)
+                ColorDialog.Color = Value;
+
+            ColorDialog.ShowAsync((dlg, dlgResult) =>
             {
-                Image = (Bitmap)color.AsImage(colorImageSize);
-            }
+                if (IsDisposed)
+                    return;
+                if (dlgResult)
+                    Value = ColorDialog.Color;
+            });
         }
 
-        private void PopupWindow_AfterHide(object? sender, EventArgs e)
+        /// <summary>
+        /// Shows color popup.
+        /// </summary>
+        public virtual void ShowColorPopup()
         {
-            if (PopupWindow.PopupResult == ModalResult.Accepted)
-                Value = PopupWindow.ResultValue ?? Color.Black;
+            if (!Enabled)
+                return;
+
+            PopupWindow.MainControl.Value = Value;
+            PopupWindow.ShowPopup(this);
         }
 
-        private string? InternalAsString()
+        /// <inheritdoc/>
+        protected override void OnLongTap(LongTapEventArgs e)
+        {
+            if (!Enabled)
+                return;
+            App.AddIdleTask(() =>
+            {
+                if(!IsDisposed)
+                    ShowColorSelector(LongTapAction);
+            });
+        }
+
+        /// <inheritdoc/>
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            ShowColorSelector();
+        }
+
+        /// <summary>
+        /// Gets color value as string.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual string? GetColorAsString()
         {
             if (ColorToString is not null)
             {
@@ -232,6 +390,47 @@ namespace Alternet.UI
             }
 
             return Value?.ToDisplayString();
+        }
+
+        /// <inheritdoc/>
+        protected override void OnEnabledChanged(EventArgs e)
+        {
+            base.OnEnabledChanged(e);
+            OnColorImageChanged();
+        }
+
+        /// <summary>
+        /// Fired after popup window is closed. Applies color selected in the popup window
+        /// to the control.
+        /// </summary>
+        /// <param name="sender">Event sender.</param>
+        /// <param name="e">Event arguments</param>
+        protected virtual void PopupWindowAfterHideHandler(object? sender, EventArgs e)
+        {
+            if (PopupWindow.PopupResult == ModalResult.Accepted)
+                Value = PopupWindow.ResultValue ?? Color.Black;
+        }
+
+        /// <summary>
+        /// Raised when color image is changed.
+        /// </summary>
+        protected virtual void OnColorImageChanged(bool refresh = true)
+        {
+            var size = GraphicsFactory.PixelFromDip(colorImageSize, ScaleFactor);
+
+            var imageColor = color ?? Color.Transparent;
+
+            if (!Enabled && useDisabledImageColor)
+            {
+                var disabledColor = DisabledImageColor ?? ColorComboBox.DefaultDisabledImageColor;
+                if (disabledColor is not null)
+                    imageColor = disabledColor;
+            }
+
+            Image = (Bitmap)imageColor.AsImage(size);
+
+            if(refresh)
+                Refresh();
         }
     }
 }

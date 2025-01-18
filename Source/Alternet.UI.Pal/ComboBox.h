@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include "Control.h"
+#include "VListBox.h"
 
 #include <wx/odcombo.h>
 
@@ -8,9 +9,12 @@ namespace Alternet::UI
 {
     class wxVListBoxComboPopup2 : public wxVListBoxComboPopup, public wxWidgetExtender
     {
+    private:
+        Control* _owner;
     public:
-        wxVListBoxComboPopup2()
+        wxVListBoxComboPopup2(Control* owner)
         {
+            _owner = owner;
         }
 
         virtual bool Create(wxWindow* parent) wxOVERRIDE
@@ -19,6 +23,17 @@ namespace Alternet::UI
             if (result)
                 SetDoubleBuffered(true);
             return result;
+        }
+
+        // Called immediately after the popup is shown
+        void OnPopup() override;
+
+        // Called when popup is dismissed
+        void OnDismiss() override;
+
+        void ItemWidthChanged(unsigned int item)
+        {
+            wxVListBoxComboPopup::ItemWidthChanged(item);
         }
     };
 
@@ -44,7 +59,7 @@ namespace Alternet::UI
 
         virtual void DoSetPopupControl(wxComboPopup* popup) wxOVERRIDE
         {
-            wxOwnerDrawnComboBox::DoSetPopupControl(new wxVListBoxComboPopup2());
+            wxOwnerDrawnComboBox::DoSetPopupControl(new wxVListBoxComboPopup2(_palControl));
         }
 
         virtual unsigned int GetCount() const wxOVERRIDE
@@ -189,11 +204,27 @@ namespace Alternet::UI
         wxCoord OnMeasureItem(size_t item);
         wxCoord OnMeasureItemWidth(size_t item);
         void OnDrawBackground(wxDC& dc, const wxRect& rect, int item, int flags);
+
+        void OnPopup();
+        void OnDismiss();
+
+        virtual Size GetPreferredSize(const Size& availableSize) override
+        {
+            return Control::GetPreferredSize(availableSize);
+        }
+
+        virtual void InvalidateBestSize() override
+        {
+            Control::InvalidateBestSize();
+        }
+
     protected:
         void OnWxWindowCreated() override;
         void OnBeforeDestroyWxWindow() override;
 
     private:
+        VListBox* _popupControl = nullptr;
+        
         wxDC* eventDc = nullptr;
         RectI eventRect;
         int eventItem = -1;
@@ -208,22 +239,14 @@ namespace Alternet::UI
         bool IsUsingComboBoxControl();
         bool hasBorder = true;
 
-        std::vector<string> _items;
-
-        DelayedValue<ComboBox, int> _selectedIndex;
         DelayedValue<ComboBox, string> _text;
 
         bool _isEditable = true;
 
-        void ApplyItems();
-        void ReceiveItems();
-
-        int RetrieveSelectedIndex();
-        void ApplySelectedIndex(const int& value);
-
         string RetrieveText();
         void ApplyText(const string& value);
 
+        wxVListBoxComboPopup2* GetPopup();
         wxOwnerDrawnComboBox2* GetComboBox();
         wxItemContainer* GetItemContainer();
         wxControlWithItems* GetControlWithItems();

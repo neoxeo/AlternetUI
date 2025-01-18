@@ -15,22 +15,30 @@ namespace Alternet.Drawing
     {
         private string name = string.Empty;
         private FontStyle style = FontStyle.Regular;
-        private double sizeInPoints = 12;
+        private Coord sizeInPoints = 12;
         private FontWeight weight = FontWeight.Normal;
         private FontEncoding encoding = FontEncoding.Default;
-        private bool isFixedWidth = false;
         private string? serialized;
 
-        public PlessFontHandler(string name, double sizeInPoints)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlessFontHandler"/> class.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="sizeInPoints"></param>
+        public PlessFontHandler(string name, Coord sizeInPoints)
         {
             this.Name = name;
             this.SizeInPoints = sizeInPoints;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlessFontHandler"/> class.
+        /// </summary>
         public PlessFontHandler()
         {
         }
 
+        /// <inheritdoc/>
         public virtual string Description
         {
             get
@@ -39,6 +47,7 @@ namespace Alternet.Drawing
             }
         }
 
+        /// <inheritdoc/>
         public virtual string Name
         {
             get
@@ -55,6 +64,9 @@ namespace Alternet.Drawing
             }
         }
 
+        /// <summary>
+        /// Gets or sets font style.
+        /// </summary>
         public virtual FontStyle Style
         {
             get
@@ -71,7 +83,8 @@ namespace Alternet.Drawing
             }
         }
 
-        public virtual double SizeInPoints
+        /// <inheritdoc/>
+        public virtual Coord SizeInPoints
         {
             get
             {
@@ -87,23 +100,30 @@ namespace Alternet.Drawing
             }
         }
 
-        public virtual FontEncoding GetEncoding()
+        /// <inheritdoc/>
+        public virtual FontEncoding GetEncoding(Font font)
         {
             return encoding;
         }
 
+        /// <summary>
+        /// Sets font encoding.
+        /// </summary>
+        /// <param name="value"></param>
         public virtual void SetEncoding(FontEncoding value)
         {
             encoding = value;
             Changed();
         }
 
-        public virtual int GetNumericWeight()
+        /// <inheritdoc/>
+        public virtual int GetNumericWeight(Font font)
         {
             return Font.GetNumericWeightOf(weight);
         }
 
-        public virtual int GetPixelSize()
+        /// <inheritdoc/>
+        public virtual int GetPixelSize(Font font)
         {
             var result = GraphicsUnitConverter.Convert(
                 GraphicsUnit.Point,
@@ -113,32 +133,44 @@ namespace Alternet.Drawing
             return (int)result;
         }
 
+        /// <inheritdoc/>
         public virtual bool GetItalic()
         {
             return style.HasFlag(FontStyle.Italic);
         }
 
+        /// <inheritdoc/>
         public virtual bool GetStrikethrough()
         {
             return style.HasFlag(FontStyle.Strikeout);
         }
 
+        /// <inheritdoc/>
         public virtual bool GetUnderlined()
         {
             return style.HasFlag(FontStyle.Underline);
         }
 
+        /// <inheritdoc/>
         public virtual FontWeight GetWeight()
         {
             return weight;
         }
 
+        /// <summary>
+        /// Sets font weight as numeric value.
+        /// </summary>
+        /// <param name="value"></param>
         public virtual void SetNumericWeight(int value)
         {
             var newWeight = Font.GetWeightClosestToNumericValue(value);
             SetWeight(newWeight);
         }
 
+        /// <summary>
+        /// Sets font weight.
+        /// </summary>
+        /// <param name="value"></param>
         public virtual void SetWeight(FontWeight value)
         {
             if (weight == value)
@@ -148,22 +180,19 @@ namespace Alternet.Drawing
             Changed();
         }
 
-        public virtual bool IsFixedWidth()
-        {
-            return isFixedWidth;
-        }
-
-        public virtual void SetIsFixedWidth(bool value)
-        {
-            isFixedWidth = value;
-            Changed();
-        }
-
-        public virtual bool IsUsingSizeInPixels()
+        /// <inheritdoc/>
+        public virtual bool IsFixedWidth(Font font)
         {
             return false;
         }
 
+        /// <inheritdoc/>
+        public virtual bool IsUsingSizeInPixels(Font font)
+        {
+            return false;
+        }
+
+        /// <inheritdoc/>
         public virtual bool Equals(Font font)
         {
             var thisSerialized = Serialize();
@@ -171,17 +200,22 @@ namespace Alternet.Drawing
             return thisSerialized == otherSerialized;
         }
 
+        /// <inheritdoc/>
         public virtual string Serialize()
         {
             return serialized ??= Font.ToUserString(this);
         }
 
+        /// <summary>
+        /// Called when font properties are changed.
+        /// </summary>
         public virtual void Changed()
         {
             serialized = null;
         }
 
-        public virtual void Update(IFontHandler.FontParams prm)
+        /// <inheritdoc/>
+        public virtual void Update(Font font, IFontHandler.FontParams prm)
         {
             Font.CoerceFontParams(prm);
             if (prm.GenericFamily is null)

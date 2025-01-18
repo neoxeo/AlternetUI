@@ -9,16 +9,27 @@ using Alternet.Base.Collections;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Implements <see cref="UI.ComboBox"/> with attached <see cref="Label"/>.
+    /// Implements <see cref="UI.ComboBox"/> with attached label.
     /// </summary>
     [ControlCategory("Editors")]
-    public partial class ComboBoxAndLabel : ControlAndLabel
+    public partial class ComboBoxAndLabel : ControlAndLabel<ComboBox, Label>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ComboBoxAndLabel"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ComboBoxAndLabel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ComboBoxAndLabel"/> class.
         /// </summary>
         /// <param name="label">Label text.</param>
         public ComboBoxAndLabel(string label)
+            : this()
         {
             Label.Text = label;
         }
@@ -31,16 +42,36 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets main child control.
+        /// Occurs when <see cref="ComboBox.SelectedIndexChanged"/> event of the
+        /// attached combobox control is changed.
         /// </summary>
-        [Browsable(false)]
-        public new ComboBox MainControl => (ComboBox)base.MainControl;
+        public event EventHandler? SelectedIndexChanged
+        {
+            add => ComboBox.SelectedIndexChanged += value;
+            remove => ComboBox.SelectedIndexChanged -= value;
+        }
 
         /// <summary>
-        /// Gets main child control, same as <see cref="MainControl"/>.
+        /// Gets or sets whether main inner control has border.
+        /// </summary>
+        public virtual bool HasInnerBorder
+        {
+            get
+            {
+                return MainControl.HasBorder;
+            }
+
+            set
+            {
+                MainControl.HasBorder = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets inner <see cref="ComboBox"/> control.
         /// </summary>
         [Browsable(false)]
-        public ComboBox ComboBox => (ComboBox)base.MainControl;
+        public ComboBox ComboBox => MainControl;
 
         /// <inheritdoc cref="ComboBox.SelectedItem"/>
         public virtual object? SelectedItem
@@ -63,22 +94,12 @@ namespace Alternet.UI
             set => ComboBox.SelectedIndex = value;
         }
 
-        /// <inheritdoc cref="ListControl.Items"/>
+        /// <inheritdoc cref="ListControl{T}.Items"/>
         [Content]
         public virtual IListControlItems<object> Items
         {
             get => ComboBox.Items;
             set => ComboBox.Items = value;
-        }
-
-        /// <inheritdoc/>
-        protected override Control CreateControl() => new ComboBox();
-
-        /// <inheritdoc/>
-        protected override void BindHandlerEvents()
-        {
-            base.BindHandlerEvents();
-            Handler.TextChanged = null;
         }
     }
 }

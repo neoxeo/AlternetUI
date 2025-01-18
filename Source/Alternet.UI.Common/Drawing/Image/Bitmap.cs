@@ -15,6 +15,8 @@ namespace Alternet.Drawing
     /// </summary>
     public class Bitmap : Image
     {
+        private static Bitmap? empty;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Bitmap"/> class from a stream.
         /// </summary>
@@ -142,7 +144,7 @@ namespace Alternet.Drawing
         /// <param name="imageSet">Source of the image.</param>
         /// <param name="control">Control used to get dpi.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Bitmap(ImageSet imageSet, Control control)
+        public Bitmap(ImageSet imageSet, AbstractControl control)
             : base(GraphicsFactory.Handler.CreateImageHandler(imageSet, control))
         {
         }
@@ -228,7 +230,7 @@ namespace Alternet.Drawing
         /// <param name="size">The size, in device pixels, of the new <see cref="Bitmap"/>.</param>
         /// <param name="control">The control from which pixel scaling factor is used.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Bitmap(SizeI size, Control control)
+        public Bitmap(SizeI size, AbstractControl control)
             : this(size)
         {
             ScaleFactor = control.ScaleFactor;
@@ -242,6 +244,17 @@ namespace Alternet.Drawing
         public Bitmap(IImageHandler nativeImage)
             : base(nativeImage)
         {
+        }
+
+        /// <summary>
+        /// Gets an empty bitmap.
+        /// </summary>
+        public static Bitmap Empty
+        {
+            get
+            {
+                return empty ??= new Bitmap();
+            }
         }
 
         /// <summary>

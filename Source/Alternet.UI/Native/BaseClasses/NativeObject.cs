@@ -33,6 +33,14 @@ namespace Alternet.UI.Native
 
         public IntPtr NativePointer { get; private set; }
 
+        public static Window? GetNativeWindow(Alternet.UI.Window? window)
+        {
+            if (window?.Handler is not WindowHandler handler)
+                return null;
+            var result = handler.NativeControl;
+            return result;
+        }
+
         public static T? GetFromNativePointer<T>(
             IntPtr pointer,
             Func<IntPtr, T>? fromPointerFactory)
@@ -76,13 +84,30 @@ namespace Alternet.UI.Native
 
         protected void SetNativePointer(IntPtr value)
         {
-            if (value == IntPtr.Zero)
-                InstancesByNativePointers.Remove(NativePointer);
+            // New value is the same as the old one.
+            if (value == NativePointer)
+                return;
 
+            // New value is zero so just remove
+            if(value == default)
+            {
+                InstancesByNativePointers.Remove(NativePointer);
+                NativePointer = default;
+                return;
+            }
+
+            // Old value is zero so just add
+            if(NativePointer == default)
+            {
+                InstancesByNativePointers.Add(value, this);
+                NativePointer = value;
+                return;
+            }
+
+            InstancesByNativePointers[value] = this;
             NativePointer = value;
 
-            if (value != IntPtr.Zero)
-                InstancesByNativePointers.Add(NativePointer, this);
+            /*Debug.WriteLineIf(true, $"SetNativePointer: {this.GetType()} : {value}");*/
         }
 
         protected virtual void Dispose(bool disposing)

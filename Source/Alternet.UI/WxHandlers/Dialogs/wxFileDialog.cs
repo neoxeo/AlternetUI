@@ -13,9 +13,12 @@ namespace Alternet.UI.Native
 
         public Alternet.UI.ModalResult ShowModal(Alternet.UI.Window? owner)
         {
-            var nativeOwner = owner == null ?
-                null : ((WindowHandler)owner.Handler).NativeControl;
-            return ShowModal(nativeOwner);
+            return ShowModal(GetNativeWindow(owner));
+        }
+
+        public void ShowAsync(Alternet.UI.Window? owner, Action<bool>? onClose)
+        {
+            ColorDialog.DefaultShowAsync(owner, onClose, ShowModal);
         }
     }
 }

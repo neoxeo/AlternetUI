@@ -7,12 +7,16 @@
         },
       "src": [
         {
-          "src": "../../Source/Alternet.UI",
-          "files": [ "**/*.csproj" ],
+          "src": "../../Source",
+          "files": [
+		 "Alternet.UI.Interfaces/Alternet.UI.Interfaces.csproj",
+		 "Alternet.UI.Common/Alternet.UI.Common.csproj",
+		 "Alternet.UI/Alternet.UI.csproj"
+		 ],
           "exclude":
 		 [
-		 	"/Port/**",
-		 	"/Xaml/**",
+		 	"Alternet.UI.Common/Port/**",
+		 	"Alternet.UI.Common/Xaml/**",
 			"**/bin/**",
 		 	"**/obj/**"
 		 ]
@@ -26,6 +30,13 @@
     }
   ],
   "build": {
+    "fileMetadata": {
+      "pdf": {
+        "pdf/**/toc.yml": true,
+        "navigation/**/toc.yml": false,
+        "api/**/toc.yml": false
+      },
+    },
     "content": [
       {
         "files": "navigation/**"
@@ -38,6 +49,7 @@
       },
       {
         "files": [
+          "pdf/**/toc.yml",
           "articles/**.md",
           "articles/**/toc.yml",
           "introduction/**.md",
@@ -84,9 +96,6 @@
  	"default",
       	"modern",
 	"templates/newoverride"
-      //"templates/alternet_new",
-      //"templates/memberpage",
-      //"templates/memberpage-postprocess"
     ],
     "xrefservice": [ "https://xref.docs.microsoft.com/query?uid={uid}" ],
     "postProcessors": [ "ExtractSearchIndex" ],
@@ -96,14 +105,16 @@
     "cleanupCacheHistory": false,
     "disableGitFeatures": false,
     "globalMetadata": {
-	"_appLogoUrl":"https://www.alternet-ui.com/",
+      "pdf": true,
+      "pdfTocPage": true,
+      "_appLogoUrl":"https://www.alternet-ui.com/",
       "_appLogoPath": "images/logo/logo.svg",
       "_appFaviconPath": "images/logo/favicon.ico",
       "_disableContribution": true,
       "_enableNewTab": false,
 	//"_appName": "AlterNET UI",
-	"_appTitle": "AlterNET UI Documentation",
-      "_appFooter": "Copyright (c) 2021-2024 AlterNET Software",
+      "_appTitle": "AlterNET UI Documentation",
+      "_appFooter": "<span>Download <a href='https://docs.alternet-ui.com/pdf/alternet-ui-manual.pdf'>PDF</a>. Copyright (c) 2021-2024 AlterNET Software</span>",
       "_enableSearch": true
     },
     "sitemap": {

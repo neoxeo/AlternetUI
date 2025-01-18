@@ -14,7 +14,7 @@ namespace Alternet.UI
     /// </summary>
     /// <typeparam name="T">Type of the main control.</typeparam>
     public partial class PopupWindow<T> : DialogWindow
-        where T : Control, new()
+        where T : AbstractControl, new()
     {
         private readonly VerticalStackPanel mainPanel = new();
         private readonly ToolBar bottomToolBar = new();
@@ -68,9 +68,10 @@ namespace Alternet.UI
         /// </summary>
         public static Thickness DefaultPadding { get; set; } = (5, 5, 5, 10);
 
+/*
         /// <summary>
         /// Gets or sets whether popups are shown using <see cref="DialogWindow.ShowModal()"/>
-        /// (true) or <see cref="Control.Show"/> (false).
+        /// (true) or <see cref="AbstractControl.Show"/> (false).
         /// </summary>
         /// <remarks>
         /// Under Linux popups are always shown as modal dialogs.
@@ -80,11 +81,12 @@ namespace Alternet.UI
             get;
             set;
         }
+*/
 
         /// <summary>
         /// Gets or sets whether 'Ok' button is visible.
         /// </summary>
-        public bool ShowOkButton
+        public virtual bool ShowOkButton
         {
             get
             {
@@ -102,7 +104,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets whether 'Cancel' button is visible.
         /// </summary>
-        public bool ShowCancelButton
+        public virtual bool ShowCancelButton
         {
             get
             {
@@ -133,7 +135,7 @@ namespace Alternet.UI
         /// Gets main panel (parent of the main control).
         /// </summary>
         [Browsable(false)]
-        public Control MainPanel => mainPanel;
+        public AbstractControl MainPanel => mainPanel;
 
         /// <summary>
         /// Gets bottom toolbar with 'Ok', 'Cancel' and other buttons.
@@ -157,7 +159,7 @@ namespace Alternet.UI
         /// Gets default value of the <see cref="Window.HasTitleBar"/> property.
         /// </summary>
         [Browsable(false)]
-        public virtual bool DefaultHasTitleBar => false;
+        public virtual bool DefaultHasTitleBar => true;
 
         /// <summary>
         /// Gets default value of the <see cref="Window.TopMost"/> property.
@@ -175,21 +177,21 @@ namespace Alternet.UI
         /// Gets whether popup window was already shown at least one time.
         /// </summary>
         [Browsable(false)]
-        public bool WasShown { get; set; } = false;
+        public virtual bool WasShown { get; set; } = false;
 
         /// <summary>
         /// Gets or sets a value indicating whether a popup window disappears automatically
         /// when the user presses "Escape" key.
         /// </summary>
-        public bool HideOnEscape { get; set; } = true;
+        public virtual bool HideOnEscape { get; set; } = true;
 
         /// <summary>
         /// Gets or sets owner of the popup window.
         /// </summary>
         /// <remarks>Usually owner of the popup window is a control under which popup is
-        /// shown using <see cref="ShowPopup(Control)"/> method.</remarks>
+        /// shown using <see cref="ShowPopup(AbstractControl)"/> method.</remarks>
         [Browsable(false)]
-        public Control? PopupOwner { get; set; }
+        public AbstractControl? PopupOwner { get; set; }
 
         /// <summary>
         /// Gets or sets whether to focus <see cref="PopupOwner"/> control when popup is closed.
@@ -334,7 +336,7 @@ namespace Alternet.UI
         /// Shows popup under bottom left corner of the specified control.
         /// </summary>
         /// <param name="control">Control.</param>
-        public virtual void ShowPopup(Control control)
+        public virtual void ShowPopup(AbstractControl control)
         {
             PopupOwner = control;
 
@@ -342,7 +344,7 @@ namespace Alternet.UI
             var szDip = control.Size;
             var sz = (0, szDip.Height);
 
-            control.BeginInvoke(() =>
+            BeginInvoke(() =>
             {
                 ShowPopup(posDip, sz);
             });
@@ -375,6 +377,8 @@ namespace Alternet.UI
             Show();
             WasShown = true;
             FocusMainControl();
+
+            /*
             if (App.IsLinuxOS || ModalPopups)
             {
                 if (ShowModal() == ModalResult.Accepted)
@@ -382,6 +386,7 @@ namespace Alternet.UI
                 else
                     HidePopup(ModalResult.Canceled);
             }
+            */
         }
 
         /// <summary>
@@ -451,7 +456,7 @@ namespace Alternet.UI
 
             // is there enough space to put the popup below the window (where we put it
             // by default)?
-            double y = ptOrigin.Y + size.Height;
+            Coord y = ptOrigin.Y + size.Height;
             if (y + sizeSelf.Height > posScreen.Y + sizeScreen.Height)
             {
                 // check if there is enough space above
@@ -465,7 +470,7 @@ namespace Alternet.UI
             }
 
             // now check left/right too
-            double x = ptOrigin.X;
+            Coord x = ptOrigin.X;
 
             if (App.Current.LangDirection == LangDirection.RightToLeft)
             {
@@ -521,7 +526,7 @@ namespace Alternet.UI
         /// Override to bind events to the main control of the popup window.
         /// </summary>
         /// <param name="control">Control which events are binded.</param>
-        protected virtual void BindEvents(Control? control)
+        protected virtual void BindEvents(AbstractControl? control)
         {
             if (control is null)
                 return;
@@ -533,7 +538,7 @@ namespace Alternet.UI
         /// Override to unbind events to the main control of the popup window.
         /// </summary>
         /// <param name="control">Control which events are unbinded.</param>
-        protected virtual void UnbindEvents(Control? control)
+        protected virtual void UnbindEvents(AbstractControl? control)
         {
             if (control is null)
                 return;

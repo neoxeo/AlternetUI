@@ -15,10 +15,20 @@ namespace Alternet.UI
     public class SplittedControlsPanel : SplittedPanel
     {
         private TreeView? leftTreeView;
-        private VListBox? leftListBox;
+        private VirtualListBox? leftListBox;
         private PropertyGrid? propertyGrid;
         private LogListBox? logControl;
-        private ListBox? actionsControl;
+        private VirtualListBox? actionsControl;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SplittedControlsPanel"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public SplittedControlsPanel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SplittedControlsPanel"/> class.
@@ -27,6 +37,11 @@ namespace Alternet.UI
         {
             TopVisible = false;
         }
+
+        /// <summary>
+        /// Occurs after an action is double clicked in the <see cref="ActionsControl"/>.
+        /// </summary>
+        public event EventHandler? AfterDoubleClickAction;
 
         /// <inheritdoc/>
         public override Thickness DefaultPanelSize => (200, 5, 350, 150);
@@ -37,13 +52,13 @@ namespace Alternet.UI
         /// <remarks>
         /// This property must be assigned before first use of <see cref="LeftTreeView"/>
         /// </remarks>
-        public bool LeftTreeViewAsListBox { get; set; } = false;
+        public virtual bool LeftTreeViewAsListBox { get; set; } = false;
 
         /// <summary>
         /// Gets the control with actions list.
         /// </summary>
         [Browsable(false)]
-        public Control ActionsControl
+        public VirtualListBox ActionsControl
         {
             get
             {
@@ -55,7 +70,6 @@ namespace Alternet.UI
                         Visible = false,
                         HasBorder = false,
                     };
-                    actionsControl.MouseDoubleClick += Actions_MouseDoubleClick;
                     RightPanel.Add(CommonStrings.Default.NotebookTabTitleActions, actionsControl);
                     RightPanel.SelectFirstTab();
                 }
@@ -125,7 +139,7 @@ namespace Alternet.UI
         /// Gets <see cref="TreeView"/> control on the left pane.
         /// </summary>
         [Browsable(false)]
-        public VListBox LeftListBox
+        public VirtualListBox LeftListBox
         {
             get
             {
@@ -168,6 +182,7 @@ namespace Alternet.UI
         /// Binds <see cref="LogControl"/> to show messages which are logged with
         /// <see cref="App.Log"/>.
         /// </summary>
+        [Browsable(false)]
         public virtual void BindApplicationLog()
         {
             LogControl.BindApplicationLog();
@@ -190,15 +205,24 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="title">Action title.</param>
         /// <param name="action">Action method.</param>
-        public virtual void AddAction(string title, Action? action)
+        public virtual ListControlItem AddAction(string title, Action? action)
         {
             ListControlItem item = new(title)
             {
-                Action = action,
+                DoubleClickAction = () =>
+                {
+                    BeginInvoke(() =>
+                    {
+                        logControl?.Log("Do action: " + title);
+                        action?.Invoke();
+                        AfterDoubleClickAction?.Invoke(this, EventArgs.Empty);
+                    });
+                },
             };
 
             ActionsControl.Required();
             actionsControl?.Add(item);
+            return item;
         }
 
         /// <summary>
@@ -220,9 +244,10 @@ namespace Alternet.UI
             var actions = PropertyGrid.GetSimpleActions(type);
             if (actions is null)
                 return;
-            foreach (var action in actions)
+            var orderedActions = actions.OrderBy(item => item.Title);
+            foreach (var action in orderedActions)
             {
-                AddAction(action.Item1, action.Item2);
+                AddAction(action.Title, action.Action);
             }
         }
 
@@ -237,21 +262,9 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        protected override Control CreateRightPanel()
+        protected override AbstractControl CreateRightPanel()
         {
             return new SideBarPanel();
-        }
-
-        private void Actions_MouseDoubleClick(object? sender, MouseEventArgs e)
-        {
-            var listBox = sender as ListBox;
-            if (listBox?.SelectedItem is not ListControlItem item || item.Action == null)
-                return;
-            logControl?.Log("Do action: " + item.Text);
-            BeginInvoke(() =>
-            {
-                item.Action();
-            });
         }
     }
 }

@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using Alternet.Drawing;
 
 namespace Alternet.UI
@@ -12,52 +13,84 @@ namespace Alternet.UI
     /// <summary>
     /// Implements labeled control.
     /// </summary>
-    /// <remarks> This is an abstract class. You can use <see cref="TextBoxAndLabel"/>,
-    /// <see cref="ComboBoxAndLabel"/> or derive from <see cref="ControlAndLabel"/>
+    /// <remarks> You can use <see cref="TextBoxAndLabel"/>,
+    /// <see cref="ComboBoxAndLabel"/> or derive from <see cref="ControlAndLabel{TControl,TLabel}"/>
     /// in order to implement your own custom labeled control.</remarks>
+    /// <typeparam name="TControl">Type of the inner control.</typeparam>
+    /// <typeparam name="TLabel">Type of the label.</typeparam>
     [ControlCategory("Hidden")]
-    public abstract partial class ControlAndLabel : Control, IControlAndLabel, INotifyDataErrorInfo
+    public partial class ControlAndLabel<TControl, TLabel>
+        : ControlAndControl, IControlAndLabel, INotifyDataErrorInfo
+        where TControl : AbstractControl, new()
+        where TLabel : AbstractControl, new()
     {
         /// <summary>
-        /// Gets or sets default distance between control and label.
+        /// Gets or sets function that creates default labels used in the control.
         /// </summary>
-        public static Coord DefaultControlLabelDistance = 5;
+        public static Func<AbstractControl> CreateDefaultLabel = () => new TLabel();
+
+        private readonly AbstractControl label;
+        private readonly TControl mainControl;
 
         /// <summary>
-        /// Gets or sets function that creates default labels for the <see cref="ControlAndLabel"/>
-        /// controls.
+        /// Initializes a new instance of the
+        /// <see cref="ControlAndLabel{TControl,TLabel}"/> class with
+        /// the specified parent control.
         /// </summary>
-        public static Func<Control> CreateDefaultLabel = () => new Label();
-
-        private readonly PictureBox errorPicture = new()
+        /// <param name="parent">Parent of the control.</param>
+        public ControlAndLabel(Control parent)
+            : this()
         {
-            Margin = new Thickness(DefaultControlLabelDistance, 0, 0, 0),
-        };
-
-        private readonly Control label;
-        private readonly Control mainControl;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ControlAndLabel"/> class.
-        /// </summary>
-        public ControlAndLabel()
-        {
-            label = CreateLabel();
-            label.Margin = new Thickness(0, 0, DefaultControlLabelDistance, 0);
-            label.VerticalAlignment = UI.VerticalAlignment.Center;
-
-            Layout = LayoutStyle.Horizontal;
-            label.Parent = this;
-            mainControl = CreateControl();
-            mainControl.VerticalAlignment = UI.VerticalAlignment.Center;
-            mainControl.Parent = this;
-            CustomTextBox.InitErrorPicture(errorPicture);
-            errorPicture.Parent = this;
+            Parent = parent;
         }
 
         /// <summary>
-        /// Gets or sets <see cref="Control.SuggestedWidth"/> property of the main child control.
+        /// Initializes a new instance of the <see cref="ControlAndLabel{TControl,TLabel}"/> class.
         /// </summary>
+        public ControlAndLabel()
+        {
+            SuspendHandlerTextChange();
+            ParentBackColor = true;
+            ParentForeColor = true;
+            Layout = LayoutStyle.Horizontal;
+
+            label = CreateLabel();
+            label.VerticalAlignment = UI.VerticalAlignment.Center;
+            label.HorizontalAlignment = HorizontalAlignment.Left;
+            label.Margin = (0, 0, KnownMetrics.ControlLabelDistance, 0);
+            label.Parent = this;
+
+            mainControl = CreateControl();
+            mainControl.Alignment = (HorizontalAlignment.Fill, VerticalAlignment.Center);
+            mainControl.MinWidth = KnownMetrics.InnerControlMinWidth;
+            mainControl.Parent = this;
+        }
+
+        /// <summary>
+        /// Occurs when <see cref="AbstractControl.TextChanged"/> event of the
+        /// inner control is changed.
+        /// </summary>
+        public new event EventHandler? TextChanged
+        {
+            add => MainControl.TextChanged += value;
+            remove => MainControl.TextChanged -= value;
+        }
+
+        /// <summary>
+        /// Occurs when <see cref="AbstractControl.DelayedTextChanged"/> event of the
+        /// inner control is changed.
+        /// </summary>
+        public new event EventHandler<EventArgs>? DelayedTextChanged
+        {
+            add => MainControl.DelayedTextChanged += value;
+            remove => MainControl.DelayedTextChanged -= value;
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="AbstractControl.SuggestedWidth"/> property of
+        /// the main child control.
+        /// </summary>
+        [DefaultValue(Coord.PositiveInfinity)]
         public virtual Coord LabelSuggestedWidth
         {
             get => Label.SuggestedWidth;
@@ -65,8 +98,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets <see cref="Control.SuggestedWidth"/> property of the main child control.
+        /// Gets or sets <see cref="AbstractControl.SuggestedWidth"/> property of
+        /// the main child control.
         /// </summary>
+        [DefaultValue(Coord.NaN)]
         public virtual Coord InnerSuggestedWidth
         {
             get => MainControl.SuggestedWidth;
@@ -74,8 +109,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets <see cref="Control.SuggestedHeight"/> property of the main child control.
+        /// Gets or sets <see cref="AbstractControl.SuggestedHeight"/> property of
+        /// the main child control.
         /// </summary>
+        [DefaultValue(Coord.NaN)]
         public virtual Coord InnerSuggestedHeight
         {
             get => MainControl.SuggestedHeight;
@@ -83,8 +120,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets <see cref="Control.SuggestedSize"/> property of the main child control.
+        /// Gets or sets <see cref="AbstractControl.SuggestedSize"/> property
+        /// of the main child control.
         /// </summary>
+        [Browsable(false)]
         public virtual SizeD InnerSuggestedSize
         {
             get => MainControl.SuggestedSize;
@@ -95,7 +134,7 @@ namespace Alternet.UI
         /// Gets attached <see cref="Label"/> control.
         /// </summary>
         [Browsable(false)]
-        public Control Label => label;
+        public AbstractControl Label => label;
 
         /// <summary>
         /// Gets or sets visibility of the attached <see cref="Label"/> control.
@@ -103,40 +142,30 @@ namespace Alternet.UI
         public virtual bool LabelVisible
         {
             get => Label.Visible;
-            set => Label.Visible = value;
-        }
 
-        /// <summary>
-        /// Gets or sets visibility of the attached <see cref="PictureBox"/> control which
-        /// displays validation error information.
-        /// </summary>
-        public virtual bool ErrorPictureVisible
-        {
-            get => ErrorPicture.Visible;
-            set => ErrorPicture.Visible = value;
+            set
+            {
+                if (LabelVisible == value)
+                    return;
+                Label.Visible = value;
+                UpdateErrorPictureLayout();
+            }
         }
 
         /// <summary>
         /// Gets or sets text of the attached <see cref="Label"/> control.
         /// </summary>
-        public override string Title
+        public override object? TitleAsObject
         {
             get => Label.Text;
-            set => Label.Text = value;
+            set => Label.Text = value?.ToString() ?? string.Empty;
         }
-
-        /// <summary>
-        /// Gets attached <see cref="PictureBox"/> control which
-        /// displays validation error information.
-        /// </summary>
-        [Browsable(false)]
-        public PictureBox ErrorPicture => errorPicture;
 
         /// <summary>
         /// Gets main child control.
         /// </summary>
         [Browsable(false)]
-        public Control MainControl => mainControl;
+        public TControl MainControl => mainControl;
 
         /// <inheritdoc/>
         public override bool HasErrors
@@ -144,23 +173,73 @@ namespace Alternet.UI
             get => (MainControl as INotifyDataErrorInfo)?.HasErrors ?? false;
         }
 
-        Control IControlAndLabel.Label => Label;
+        AbstractControl IControlAndLabel.Label => Label;
 
-        Control IControlAndLabel.MainControl => MainControl;
+        AbstractControl IControlAndLabel.MainControl => MainControl;
+
+        /// <summary>
+        /// Gets or sets a value which specifies label and control alignment.
+        /// </summary>
+        public virtual StackPanelOrientation LabelToControl
+        {
+            get
+            {
+                if (Layout == LayoutStyle.Horizontal)
+                    return StackPanelOrientation.Horizontal;
+                else
+                    return StackPanelOrientation.Vertical;
+            }
+
+            set
+            {
+                if (value == LabelToControl)
+                    return;
+                PerformLayoutAndInvalidate(() =>
+                {
+                    if (value == StackPanelOrientation.Horizontal)
+                    {
+                        label.Margin = (0, 0, KnownMetrics.ControlLabelDistance, 0);
+                        Layout = LayoutStyle.Horizontal;
+                    }
+                    else
+                    {
+                        label.Margin = (0, 0, 0, KnownMetrics.ControlLabelDistance);
+                        Layout = LayoutStyle.Vertical;
+                    }
+
+                    UpdateErrorPictureLayout();
+                });
+            }
+        }
+
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
 
         /// <inheritdoc/>
         public override IEnumerable GetErrors(string? propertyName)
         {
-            return (MainControl as INotifyDataErrorInfo)?.GetErrors(propertyName) ?? Array.Empty<string>();
+            return (MainControl as INotifyDataErrorInfo)?.GetErrors(propertyName)
+                ?? Array.Empty<string>();
+        }
+
+        /// <inheritdoc/>
+        public override bool SetFocus()
+        {
+            return MainControl.SetFocus();
         }
 
         /// <summary>
         /// Creates main child control.
         /// </summary>
         /// <remarks>
-        /// For example, main control for the <see cref="TextBoxAndLabel"/> is <see cref="TextBox"/>.
+        /// For example, main control for the <see cref="TextBoxAndLabel"/>
+        /// is <see cref="TextBox"/>.
         /// </remarks>
-        protected abstract Control CreateControl();
+        protected virtual TControl CreateControl() => new();
 
         /// <summary>
         /// Creates label control.
@@ -168,6 +247,16 @@ namespace Alternet.UI
         /// <remarks>
         /// By default <see cref="Label"/> is created.
         /// </remarks>
-        protected virtual Control CreateLabel() => CreateDefaultLabel();
+        protected virtual AbstractControl CreateLabel() => CreateDefaultLabel();
+
+        /// <inheritdoc/>
+        protected override void UpdateErrorPictureLayout()
+        {
+            if (!IsErrorPictureCreated)
+                return;
+
+            ErrorPicture.IsImageCentered = !LabelVisible
+                || LabelToControl == StackPanelOrientation.Horizontal;
+        }
     }
 }

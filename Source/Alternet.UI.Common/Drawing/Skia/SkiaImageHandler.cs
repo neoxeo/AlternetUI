@@ -12,46 +12,99 @@ using SkiaSharp;
 
 namespace Alternet.UI
 {
+    /// <summary>
+    /// Implements <see cref="IImageHandler"/> interface provider for the <see cref="SKBitmap"/>.
+    /// </summary>
     public class SkiaImageHandler : PlessImageHandler, IImageHandler
     {
+        /// <summary>
+        /// Gets or sets default <see cref="SKSamplingOptions"/> used hen images are resized.
+        /// If this is Null, <see cref="SKSamplingOptions.Default"/> is used when images are resized.
+        /// </summary>
+        public static SKSamplingOptions? DefaultSamplingOptions;
+
         private SKBitmap bitmap;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="bitmap"></param>
         public SkiaImageHandler(SKBitmap bitmap)
         {
             this.bitmap = bitmap;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class.
+        /// </summary>
         public SkiaImageHandler()
         {
             bitmap = new();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="imageSet"></param>
+        /// <param name="size"></param>
         public SkiaImageHandler(ImageSet imageSet, SizeI size)
             : this(imageSet.AsImage(size))
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="genericImage"></param>
+        /// <param name="depth"></param>
         public SkiaImageHandler(GenericImage genericImage, int depth = 32)
         {
             CoerceDepth(depth);
             bitmap = (SKBitmap)genericImage;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <param name="dc"></param>
         public SkiaImageHandler(int width, int height, Graphics dc)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="imageSet"></param>
+        /// <param name="control"></param>
         public SkiaImageHandler(ImageSet imageSet, IControl control)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="genericImage"></param>
+        /// <param name="dc"></param>
         public SkiaImageHandler(GenericImage genericImage, Graphics dc)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="image"></param>
         public SkiaImageHandler(Image image)
         {
             if (image?.Handler is SkiaImageHandler skiaHandler)
@@ -65,6 +118,12 @@ namespace Alternet.UI
                 bitmap = (SKBitmap)image;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="image"></param>
+        /// <param name="newSize"></param>
         public SkiaImageHandler(Image image, SizeI newSize)
         {
             bitmap = new(newSize.Width, newSize.Height);
@@ -77,26 +136,39 @@ namespace Alternet.UI
 
             void Fn(SKBitmap source)
             {
-                if (!source.ScalePixels(bitmap, GraphicsFactory.DefaultScaleQuality))
+                if (!source.ScalePixels(bitmap, GetDefaultSamplingOptions()))
                     App.LogError("Error scaling pixels in SkiaImageHandler.Create(Image, SizeI)");
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class using the
+        /// specified parameters.
+        /// </summary>
+        /// <param name="size"></param>
+        /// <param name="depth"></param>
         public SkiaImageHandler(SizeI size, int depth = 32)
         {
             depth = CoerceDepth(depth);
             bitmap = new(size.Width, size.Height, depth != 32);
         }
 
-        public SKAlphaType AlphaType => bitmap.AlphaType;
+        /// <inheritdoc/>
+        public virtual SKAlphaType AlphaType => bitmap.AlphaType;
 
-        public int Width => bitmap.Width;
+        /// <inheritdoc/>
+        public virtual int Width => bitmap.Width;
 
-        public int Height => bitmap.Height;
+        /// <inheritdoc/>
+        public virtual int Height => bitmap.Height;
 
-        public SKBitmap Bitmap => bitmap;
+        /// <summary>
+        /// Gets internal <see cref="SKBitmap"/>.
+        /// </summary>
+        public virtual SKBitmap Bitmap => bitmap;
 
-        public Coord ScaleFactor
+        /// <inheritdoc/>
+        public virtual Coord ScaleFactor
         {
             get => 1;
 
@@ -106,27 +178,32 @@ namespace Alternet.UI
             }
         }
 
-        public SizeI DipSize
+        /// <inheritdoc/>
+        public virtual SizeI DipSize
         {
             get => PixelSize;
         }
 
-        public Coord ScaledHeight
+        /// <inheritdoc/>
+        public virtual Coord ScaledHeight
         {
             get => PixelSize.Height;
         }
 
-        public SizeI ScaledSize
+        /// <inheritdoc/>
+        public virtual SizeI ScaledSize
         {
             get => new((int)ScaledHeight, (int)ScaledWidth);
         }
 
-        public Coord ScaledWidth
+        /// <inheritdoc/>
+        public virtual Coord ScaledWidth
         {
             get => PixelSize.Width;
         }
 
-        public SizeI PixelSize
+        /// <inheritdoc/>
+        public virtual SizeI PixelSize
         {
             get
             {
@@ -134,12 +211,14 @@ namespace Alternet.UI
             }
         }
 
-        public bool IsOk
+        /// <inheritdoc/>
+        public virtual bool IsOk
         {
             get => SkiaUtils.BitmapIsOk(bitmap);
         }
 
-        public bool HasAlpha
+        /// <inheritdoc/>
+        public virtual bool HasAlpha
         {
             get => !bitmap.Info.IsOpaque;
 
@@ -162,7 +241,8 @@ namespace Alternet.UI
             }
         }
 
-        public bool HasMask
+        /// <inheritdoc/>
+        public virtual bool HasMask
         {
             get
             {
@@ -170,7 +250,8 @@ namespace Alternet.UI
             }
         }
 
-        public int Depth
+        /// <inheritdoc/>
+        public virtual int Depth
         {
             get
             {
@@ -178,15 +259,119 @@ namespace Alternet.UI
             }
         }
 
-        public ImageBitsFormatKind BitsFormat
+        /// <inheritdoc/>
+        public virtual ImageBitsFormatKind BitsFormat
         {
             get => ImageBitsFormatKind.Unknown;
         }
 
-        public bool Rescale(SizeI sizeNeeded)
+        /// <summary>
+        /// Gets default <see cref="SKSamplingOptions"/> used when image is scaled.
+        /// Uses <see cref="DefaultSamplingOptions"/>.
+        /// </summary>
+        /// <returns></returns>
+        public static SKSamplingOptions GetDefaultSamplingOptions()
+        {
+            return DefaultSamplingOptions ?? SKSamplingOptions.Default;
+        }
+
+        /// <summary>
+        /// Creates <see cref="SkiaImageHandler"/> from <see cref="SKPicture"/>
+        /// using the specified width and height.
+        /// </summary>
+        /// <param name="picture">Picture to use as a source of pixel data.</param>
+        /// <param name="width">Image width.</param>
+        /// <param name="height">Image height.</param>
+        /// <returns>Image instance with dimensions specified in <paramref name="width"/>
+        /// and <paramref name="height"/>.</returns>
+        /// <param name="color">Overrides default fill color.</param>
+        /// <returns></returns>
+        public static SkiaImageHandler CreateFromPicture(
+            SKPicture? picture,
+            int width,
+            int height,
+            Color? color)
+        {
+            var result = new SkiaImageHandler((width, height));
+            if (picture is null)
+                return result;
+            var cullRect = picture.CullRect;
+            var scaleX = width / cullRect.Width;
+            var scaleY = height / cullRect.Height;
+            var matrix = SKMatrix.CreateScale((float)scaleX, (float)scaleY);
+            var skiaBitmap = result.bitmap;
+
+            using var canvas = new SKCanvas(skiaBitmap);
+
+            if(color is not null)
+            {
+                using SKPaint paint = new();
+                paint.ColorFilter = SKColorFilter.CreateBlendMode(color, SKBlendMode.SrcIn);
+                canvas.DrawPicture(picture, in matrix, paint);
+            }
+            else
+            {
+                canvas.DrawPicture(picture, in matrix);
+            }
+
+            canvas.Flush();
+
+            return result;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkiaImageHandler"/> class
+        /// from the specified <see cref="Stream"/> which contains svg data.
+        /// </summary>
+        /// <param name="stream">Stream with svg data.</param>
+        /// <param name="width">Image width.</param>
+        /// <param name="height">Image height.</param>
+        /// <returns>Image instance with dimensions specified in <paramref name="width"/>
+        /// and <paramref name="height"/> and data loaded from <paramref name="stream"/>. </returns>
+        /// <param name="color">Svg fill color. Optional.
+        /// If provided, svg fill color is changed to the specified value.</param>
+        public static SkiaImageHandler CreateFromSvg(
+            Stream stream,
+            int width,
+            int height,
+            Color? color)
+        {
+            var svg = new Svg.Skia.SKSvg();
+            svg.Load(stream);
+            var picture = svg.Picture;
+
+            var result = CreateFromPicture(picture, width, height, color);
+            return result;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// from the specified string which contains svg data.
+        /// </summary>
+        /// <param name="s">String with svg data.</param>
+        /// <param name="width">Image width.</param>
+        /// <param name="height">Image height.</param>
+        /// <returns>Image instance with dimensions specified in <paramref name="width"/>
+        /// and <paramref name="height"/> and data loaded from <paramref name="s"/>. </returns>
+        /// <param name="color">Svg fill color. Optional.
+        /// If provided, svg fill color is changed to the specified value.</param>
+        public static SkiaImageHandler CreateFromSvg(
+            string s,
+            int width,
+            int height,
+            Color? color)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(s);
+            MemoryStream stream = new(bytes);
+            var result = CreateFromSvg(stream, width, height, color);
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public virtual bool Rescale(SizeI sizeNeeded)
         {
             SKBitmap? newBitmap = new(sizeNeeded.Width, sizeNeeded.Height);
-            var result = bitmap.ScalePixels(newBitmap, GraphicsFactory.DefaultScaleQuality);
+            var result = bitmap.ScalePixels(newBitmap, GetDefaultSamplingOptions());
             if (result)
             {
                 DisposeBitmap();
@@ -197,12 +382,14 @@ namespace Alternet.UI
             return result;
         }
 
-        public GenericImage ToGenericImage()
+        /// <inheritdoc/>
+        public virtual GenericImage ToGenericImage()
         {
             return (GenericImage)bitmap;
         }
 
-        public IImageHandler GetSubBitmap(RectI rect)
+        /// <inheritdoc/>
+        public virtual IImageHandler GetSubBitmap(RectI rect)
         {
             var resultBitmap = new SKBitmap(rect.Width, rect.Height);
             if (!bitmap.ExtractSubset(resultBitmap, rect))
@@ -210,12 +397,20 @@ namespace Alternet.UI
             return new SkiaImageHandler(resultBitmap);
         }
 
-        public bool ResetAlpha()
+        /// <inheritdoc/>
+        public void SetImmutable()
+        {
+            bitmap.SetImmutable();
+        }
+
+        /// <inheritdoc/>
+        public virtual bool ResetAlpha()
         {
             HasAlpha = false;
             return HasAlpha == false;
         }
 
+        /// <inheritdoc/>
         public override bool LoadFromStream(Stream stream)
         {
             return InsideTryCatch(() =>
@@ -232,6 +427,7 @@ namespace Alternet.UI
             });
         }
 
+        /// <inheritdoc/>
         public override bool SaveToStream(Stream stream, BitmapType type, int quality)
         {
             return InsideTryCatch(() =>
@@ -243,6 +439,37 @@ namespace Alternet.UI
             });
         }
 
+        /// <inheritdoc/>
+        public virtual nint LockBits()
+        {
+            return default;
+        }
+
+        /// <inheritdoc/>
+        public virtual void UnlockBits()
+        {
+        }
+
+        /// <inheritdoc/>
+        public virtual int GetStride()
+        {
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public virtual void Assign(GenericImage image)
+        {
+            bitmap.Pixels = image.Pixels;
+        }
+
+        /// <inheritdoc/>
+        public virtual void Assign(SKBitmap image)
+        {
+            if (!image.CopyTo(bitmap))
+                bitmap = image.Copy();
+        }
+
+        /// <inheritdoc/>
         protected override void DisposeManaged()
         {
             base.DisposeManaged();
@@ -266,31 +493,6 @@ namespace Alternet.UI
         private void DisposeBitmap()
         {
             SafeDispose(ref bitmap!);
-        }
-
-        public nint LockBits()
-        {
-            return default;
-        }
-
-        public void UnlockBits()
-        {
-        }
-
-        public int GetStride()
-        {
-            return 0;
-        }
-
-        public void Assign(GenericImage image)
-        {
-            bitmap.Pixels = image.Pixels;
-        }
-
-        public void Assign(SKBitmap image)
-        {
-            if (!image.CopyTo(bitmap))
-                bitmap = image.Copy();
         }
     }
 }

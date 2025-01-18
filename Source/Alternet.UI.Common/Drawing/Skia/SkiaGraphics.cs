@@ -15,10 +15,11 @@ namespace Alternet.Drawing
     /// <summary>
     /// Implements <see cref="Graphics"/> over <see cref="SKCanvas"/> or <see cref="SKBitmap"/>.
     /// </summary>
-    public class SkiaGraphics : Graphics
+    public partial class SkiaGraphics : Graphics
     {
         private SKCanvas canvas;
         private SKBitmap? bitmap;
+        private InterpolationMode interpolationMode = InterpolationMode.HighQuality;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SkiaGraphics"/> class.
@@ -38,6 +39,17 @@ namespace Alternet.Drawing
         {
             this.canvas = canvas;
         }
+
+        /// <summary>
+        /// Gets or sets whether 'DrawImage' methods draw unscaled image.
+        /// </summary>
+        public bool UseUnscaledDrawImage { get; set; }
+
+        /// <summary>
+        /// Gets or sets original scale factor applied to the canvas before the first
+        /// drawing is performed.
+        /// </summary>
+        public float OriginalScaleFactor { get; set; } = 1f;
 
         /// <summary>
         /// Gets or sets <see cref="SKBitmap"/> where drawing will be performed.
@@ -78,40 +90,9 @@ namespace Alternet.Drawing
         }
 
         /// <inheritdoc/>
-        public override TransformMatrix Transform
-        {
-            get
-            {
-                var m = canvas.TotalMatrix;
-                var result = (TransformMatrix)m;
-                return result;
-            }
-
-            set
-            {
-                SKMatrix matrix = (SKMatrix)value;
-                canvas.SetMatrix(matrix);
-            }
-        }
-
-        /// <inheritdoc/>
         public override bool IsOk
         {
             get => true;
-        }
-
-        /// <inheritdoc/>
-        public override Region? Clip
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
         }
 
         /// <inheritdoc/>
@@ -119,12 +100,12 @@ namespace Alternet.Drawing
         {
             get
             {
-                throw new NotImplementedException();
+                return interpolationMode;
             }
 
             set
             {
-                throw new NotImplementedException();
+                interpolationMode = value;
             }
         }
 
@@ -134,14 +115,7 @@ namespace Alternet.Drawing
             get => canvas;
         }
 
-        /// <inheritdoc/>
-        public override SizeD GetTextExtent(
-            string text,
-            Font font,
-            IControl? control)
-        {
-            return GetTextExtent(text, font);
-        }
+        internal SKPaint? InterpolationModePaint => SkiaUtils.InterpolationModePaints[InterpolationMode];
 
         /// <inheritdoc/>
         public override SizeD GetTextExtent(string text, Font font)
@@ -232,13 +206,6 @@ namespace Alternet.Drawing
         }
 
         /// <inheritdoc/>
-        public override void DrawImage(Image image, PointD origin)
-        {
-            DebugImageAssert(image);
-            canvas.DrawBitmap((SKBitmap)image, origin);
-        }
-
-        /// <inheritdoc/>
         public override void DrawBezier(
             Pen pen,
             PointD startPoint,
@@ -252,97 +219,50 @@ namespace Alternet.Drawing
         /// <inheritdoc/>
         public override void DrawBeziers(Pen pen, PointD[] points)
         {
+            DebugPenAssert(pen);
             canvas.DrawBeziers(pen, points);
         }
 
-        /// <inheritdoc/>
-        public override void DrawRotatedText(
-            string text,
-            PointD location,
-            Font font,
-            Color foreColor,
-            Color backColor,
-            Coord angle,
-            GraphicsUnit unit = GraphicsUnit.Dip)
+        /// <summary>
+        /// Gets <see cref="SKPaint"/> for the specifed brush and pen.
+        /// </summary>
+        /// <param name="pen">Pen to use.</param>
+        /// <param name="brush">Brush to use.</param>
+        /// <returns></returns>
+        public virtual SKPaint GetFillAndStrokePaint(Pen pen, Brush brush)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override bool Blit(
-            PointD destPt,
-            SizeD sz,
-            Graphics source,
-            PointD srcPt,
-            RasterOperationMode rop = RasterOperationMode.Copy,
-            bool useMask = false,
-            PointD? srcPtMask = null,
-            GraphicsUnit unit = GraphicsUnit.Dip)
-        {
-            return false;
-        }
-
-        /// <inheritdoc/>
-        public override bool StretchBlit(
-            PointD dstPt,
-            SizeD dstSize,
-            Graphics source,
-            PointD srcPt,
-            SizeD srcSize,
-            RasterOperationMode rop = RasterOperationMode.Copy,
-            bool useMask = false,
-            PointD? srcPtMask = null,
-            GraphicsUnit unit = GraphicsUnit.Dip)
-        {
-            return false;
+            DebugAssert(pen, brush);
+            BrushAndPen brushAndPen = new(brush, pen);
+            return GraphicsFactory.CreateStrokeAndFillPaint(brushAndPen);
         }
 
         /// <inheritdoc/>
         public override void RoundedRectangle(Pen pen, Brush brush, RectD rectangle, Coord cornerRadius)
         {
-            throw new NotImplementedException();
+            var paint = GetFillAndStrokePaint(pen, brush);
+            SKRoundRect roundRect = new(rectangle, (float)cornerRadius);
+            canvas.DrawRoundRect(roundRect, paint);
         }
 
         /// <inheritdoc/>
         public override void Rectangle(Pen pen, Brush brush, RectD rectangle)
         {
-            throw new NotImplementedException();
+            var paint = GetFillAndStrokePaint(pen, brush);
+            canvas.DrawRect(rectangle, paint);
         }
 
         /// <inheritdoc/>
         public override void Ellipse(Pen pen, Brush brush, RectD rectangle)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void Path(Pen pen, Brush brush, GraphicsPath path)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void Pie(
-            Pen pen,
-            Brush brush,
-            PointD center,
-            Coord radius,
-            Coord startAngle,
-            Coord sweepAngle)
-        {
-            throw new NotImplementedException();
+            var paint = GetFillAndStrokePaint(pen, brush);
+            canvas.DrawOval(rectangle, paint);
         }
 
         /// <inheritdoc/>
         public override void Circle(Pen pen, Brush brush, PointD center, Coord radius)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void Polygon(Pen pen, Brush brush, PointD[] points, FillMode fillMode)
-        {
-            throw new NotImplementedException();
+            var paint = GetFillAndStrokePaint(pen, brush);
+            canvas.DrawCircle(center, (float)radius, paint);
         }
 
         /// <inheritdoc/>
@@ -353,134 +273,98 @@ namespace Alternet.Drawing
             Coord startAngle,
             Coord sweepAngle)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            var rect = RectD.GetCircleBoundingBox(center, radius);
+            canvas.DrawArc(rect, (float)startAngle, (float)sweepAngle, true, pen);
         }
 
         /// <inheritdoc/>
         public override void DrawPoint(Pen pen, Coord x, Coord y)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void FillPie(
-            Brush brush,
-            PointD center,
-            Coord radius,
-            Coord startAngle,
-            Coord sweepAngle)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void DrawPie(
-            Pen pen,
-            PointD center,
-            Coord radius,
-            Coord startAngle,
-            Coord sweepAngle)
-        {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            canvas.DrawPoint((float)x, (float)y, pen.Color.AsFillPaint);
         }
 
         /// <inheritdoc/>
         public override void DrawCircle(Pen pen, PointD center, Coord radius)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            canvas.DrawCircle(center, (float)radius, pen);
         }
 
         /// <inheritdoc/>
         public override void FillCircle(Brush brush, PointD center, Coord radius)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void FillPolygon(
-            Brush brush,
-            PointD[] points,
-            FillMode fillMode = FillMode.Alternate)
-        {
-            throw new NotImplementedException();
+            DebugBrushAssert(brush);
+            canvas.DrawCircle(center, (float)radius, brush);
         }
 
         /// <inheritdoc/>
         public override void DrawRectangles(Pen pen, RectD[] rects)
         {
-            throw new NotImplementedException();
+            foreach (var rect in rects)
+                DrawRectangle(pen, rect);
         }
 
         /// <inheritdoc/>
         public override void FillRectangles(Brush brush, RectD[] rects)
         {
-            throw new NotImplementedException();
+            foreach (var rect in rects)
+                FillRectangle(brush, rect);
         }
 
         /// <inheritdoc/>
         public override void FillEllipse(Brush brush, RectD bounds)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void FloodFill(Brush brush, PointD point)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void DrawPath(Pen pen, GraphicsPath path)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void FillPath(Brush brush, GraphicsPath path)
-        {
-            throw new NotImplementedException();
+            DebugBrushAssert(brush);
+            canvas.DrawOval(bounds, brush);
         }
 
         /// <inheritdoc/>
         public override void DrawLines(Pen pen, PointD[] points)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            var skiaPoints = points.ToSkia();
+            canvas.DrawPoints(SkiaSharp.SKPointMode.Lines, skiaPoints, pen);
         }
 
         /// <inheritdoc/>
         public override void DrawEllipse(Pen pen, RectD bounds)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            canvas.DrawOval(bounds, pen);
+        }
+
+        /// <inheritdoc/>
+        public override void DrawImage(Image image, PointD origin)
+        {
+            BeforeDrawImage(ref image, ref origin);
+            canvas.DrawBitmap((SKBitmap)image, origin, InterpolationModePaint);
+            AfterDrawImage();
         }
 
         /// <inheritdoc/>
         public override void DrawImage(Image image, RectD destinationRect)
         {
-            throw new NotImplementedException();
+            var origin = destinationRect.Location;
+            if (BeforeDrawImage(ref image, ref origin))
+                destinationRect.Location = origin;
+            canvas.DrawBitmap((SKBitmap)image, destinationRect, InterpolationModePaint);
+            AfterDrawImage();
         }
 
         /// <inheritdoc/>
         public override void DrawImage(Image image, RectD destinationRect, RectD sourceRect)
         {
-            throw new NotImplementedException();
-        }
+            var origin = destinationRect.Location;
+            if (BeforeDrawImage(ref image, ref origin))
+            {
+                destinationRect.Location = origin;
+                sourceRect.ScaleLocation(OriginalScaleFactor);
+            }
 
-        /// <inheritdoc/>
-        public override void SetPixel(PointD point, Pen pen)
-        {
-            canvas.DrawPoint((float)point.X, (float)point.Y, pen.Color.AsFillPaint);
-        }
-
-        /// <inheritdoc/>
-        public override void SetPixel(Coord x, Coord y, Pen pen)
-        {
-            canvas.DrawPoint((float)x, (float)y, pen.Color.AsFillPaint);
-        }
-
-        /// <inheritdoc/>
-        public override Color GetPixel(PointD point)
-        {
-            throw new NotImplementedException();
+            canvas.DrawBitmap((SKBitmap)image, sourceRect, destinationRect, InterpolationModePaint);
+            AfterDrawImage();
         }
 
         /// <inheritdoc/>
@@ -490,27 +374,23 @@ namespace Alternet.Drawing
             RectD sourceRect,
             GraphicsUnit unit)
         {
-            throw new NotImplementedException();
+            ToDip(ref destinationRect, unit);
+            ToDip(ref sourceRect, unit);
+            DrawImage(image, destinationRect, sourceRect);
         }
 
         /// <inheritdoc/>
-        public override void DrawText(string text, Font font, Brush brush, RectD bounds)
+        public override void SetPixel(PointD point, Pen pen)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            canvas.DrawPoint((float)point.X, (float)point.Y, pen.Color.AsFillPaint);
         }
 
         /// <inheritdoc/>
-        public override RectD DrawLabel(
-            string text,
-            Font font,
-            Color foreColor,
-            Color backColor,
-            Image? image,
-            RectD rect,
-            GenericAlignment alignment = GenericAlignment.Left,
-            int indexAccel = -1)
+        public override void SetPixel(Coord x, Coord y, Pen pen)
         {
-            throw new NotImplementedException();
+            DebugPenAssert(pen);
+            canvas.DrawPoint((float)x, (float)y, pen.Color.AsFillPaint);
         }
 
         /// <inheritdoc/>
@@ -525,27 +405,67 @@ namespace Alternet.Drawing
         }
 
         /// <inheritdoc/>
-        public override void DestroyClippingRegion()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public override void SetClippingRegion(RectD rect)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
         public override RectD GetClippingBox()
         {
-            throw new NotImplementedException();
+            return canvas.LocalClipBounds;
         }
 
         /// <inheritdoc/>
         public override void FillRectangle(Brush brush, RectD rectangle, GraphicsUnit unit)
         {
-            throw new NotImplementedException();
+            ToDip(ref rectangle, unit);
+            FillRectangle(brush, rectangle);
+        }
+
+        /// <summary>
+        /// Called before any draw image operation.
+        /// </summary>
+        /// <param name="image"><see cref="Image"/> to draw.</param>
+        /// <param name="location"><see cref="PointD"/> structure that represents the
+        /// upper-left corner of the drawn image on the destination drawing context.</param>
+        protected virtual bool BeforeDrawImage(ref Image image, ref PointD location)
+        {
+            DebugImageAssert(image);
+
+            if (UseUnscaledDrawImage && OriginalScaleFactor != 1f)
+            {
+                location.X *= OriginalScaleFactor;
+                location.Y *= OriginalScaleFactor;
+                canvas.Save();
+                canvas.Scale(1 / OriginalScaleFactor);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Called after any draw image operation.
+        /// </summary>
+        protected virtual void AfterDrawImage()
+        {
+            if (UseUnscaledDrawImage && OriginalScaleFactor != 1f)
+            {
+                canvas.Restore();
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void SetHandlerTransform(TransformMatrix matrix)
+        {
+            var scaleFactor = OriginalScaleFactor;
+            SKMatrix native = (SKMatrix)matrix;
+
+            if (OriginalScaleFactor == 1f)
+            {
+                canvas.SetMatrix(native);
+            }
+            else
+            {
+                var scaleMatrix = SKMatrix.CreateScale(scaleFactor, scaleFactor);
+                var result = scaleMatrix.PreConcat(native);
+                canvas.SetMatrix(result);
+            }
         }
     }
 }

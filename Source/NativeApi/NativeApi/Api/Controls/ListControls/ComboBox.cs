@@ -6,11 +6,19 @@ namespace NativeApi.Api
 {
     public class ComboBox : Control
     {
+        public void SetPopupControl(VListBox? value) { }
+
         public event EventHandler? SelectedItemChanged;
         public event EventHandler? MeasureItem;
         public event EventHandler? MeasureItemWidth;
         public event EventHandler? DrawItem;
         public event EventHandler? DrawItemBackground;
+        public event EventHandler? AfterShowPopup;
+        public event EventHandler? AfterDismissPopup;
+
+        public void DismissPopup() { }
+
+        public void ShowPopup() { }
 
         public string EmptyTextHint { get; set; }
         public bool HasBorder { get; set; }

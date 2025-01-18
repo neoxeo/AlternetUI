@@ -35,6 +35,16 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="PreviewFile"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public PreviewFile(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PreviewFile"/> class.
+        /// </summary>
         public PreviewFile()
         {
             cardPanel.Parent = this;
@@ -43,13 +53,13 @@ namespace Alternet.UI
             ShowNoFile();
         }
 
-        Control IFilePreview.Control { get => this; }
+        AbstractControl IFilePreview.Control { get => this; }
 
         /// <summary>
         /// Gets list of registered preview controls. One of these
         /// controls will be used to preview the file.
         /// </summary>
-        public virtual IList<PreviewFileRegisterItem> Register => register;
+        public virtual IList<PreviewFileRegisterItem> RegisteredItems => register;
 
         /// <summary>
         /// Gets or sets path to the file which will be previewed in the control.
@@ -192,7 +202,7 @@ namespace Alternet.UI
         /// </summary>
         public class PreviewFileRegisterItem
         {
-            private Control? control;
+            private AbstractControl? control;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="PreviewFileRegisterItem"/> class.
@@ -220,7 +230,7 @@ namespace Alternet.UI
             /// <summary>
             /// Gets preview control.
             /// </summary>
-            public virtual Control Control
+            public virtual AbstractControl Control
             {
                 get
                 {

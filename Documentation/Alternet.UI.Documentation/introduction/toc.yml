@@ -1,6 +1,8 @@
+pdf: false
+items:
 - name: Getting Started
   href: getting-started.md
-- name: Programming With AlterNET UI
+- name: Building Blocks
   href: programming-with-alternet-ui.md
 - name: Controls
   href: controls.md
@@ -10,8 +12,6 @@
   href: input/input.md
 - name: Menu
   href: menu/menu.md
-- name: Toolbars
-  href: toolbars/toolbars.md
 - name: Status Bar
   href: statusbar/statusbar.md
 - name: Drag and Drop

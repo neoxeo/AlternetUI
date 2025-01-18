@@ -13,11 +13,25 @@ namespace Alternet.UI
     /// </summary>
     public class PlessCaretHandler : DisposableObject, ICaretHandler
     {
+        /// <summary>
+        /// Gets or sets svg image which is used as overlay image over the caret.
+        /// This is used for example when editor is in the
+        /// selection state on the mobile platform. If <c>null</c>,
+        /// <see cref="KnownSvgImages.ImgCircleFilled"/> is used.
+        /// </summary>
+        public static SvgImage? DefaultOverlayImage;
+
+        /// <summary>
+        /// Gets or sets color which is used to paint caret overlay image. If <c>null</c>,
+        /// caret color us used.
+        /// </summary>
+        public static Color? DefaultOverlayColor;
+
         private static int blinkTime = 530;
         private static LightDarkColor? color;
 
         private readonly CaretInfo info = new();
-        private Control? control;
+        private AbstractControl? control;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlessCaretHandler"/> class.
@@ -29,7 +43,7 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="PlessCaretHandler"/> class.
         /// </summary>
-        public PlessCaretHandler(Control control, int width, int height)
+        public PlessCaretHandler(AbstractControl control, int width, int height)
         {
             info.Size = (width, height);
             if(control is not null)
@@ -46,7 +60,7 @@ namespace Alternet.UI
         {
             get
             {
-                return color ??= new(Color.Black, Color.White);
+                return color ??= Color.LightDark(Color.Black, Color.White);
             }
 
             set
@@ -78,7 +92,7 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public virtual Control? Control
+        public virtual AbstractControl? Control
         {
             get => control;
         }
@@ -145,7 +159,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Called to update the caret on screen when it's position, size or visibility were changed.
+        /// Called to update the caret on screen when its position, size or visibility were changed.
         /// </summary>
         protected virtual void Changed()
         {

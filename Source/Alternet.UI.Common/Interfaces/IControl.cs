@@ -16,6 +16,13 @@ namespace Alternet.UI
     public interface IControl : IDisposable, IWin32Window
     {
         /// <summary>
+        /// Occurs before the <see cref="AbstractControl.KeyDown" /> event when a key is pressed
+        /// while focus is on this control.
+        /// </summary>
+        [Category("Key")]
+        public event PreviewKeyDownEventHandler? PreviewKeyDown;
+
+        /// <summary>
         /// Occurs when the user scrolls through the control contents using scrollbars.
         /// </summary>
         event ScrollEventHandler? Scroll;
@@ -137,7 +144,7 @@ namespace Alternet.UI
         event EventHandler? LostFocus;
 
         /// <summary>
-        /// Occurs when the <see cref="Control.Text" /> property value changes.
+        /// Occurs when the <see cref="AbstractControl.Text" /> property value changes.
         /// </summary>
         event EventHandler? TextChanged;
 
@@ -290,10 +297,6 @@ namespace Alternet.UI
         /// about to enter the idle state. This is the same as <see cref="App.Idle"/>
         /// but on the control level.
         /// </summary>
-        /// <remarks>
-        /// Use <see cref="ProcessIdle"/> property to specify whether <see cref="Idle"/>
-        /// event is fired.
-        /// </remarks>
         event EventHandler? Idle;
 
         /// <summary>
@@ -471,7 +474,7 @@ namespace Alternet.UI
         /// Gets custom flags provider associated with the control.
         /// You can store any custom data here.
         /// </summary>
-        ICustomFlags CustomFlags { get; }
+        ICustomFlags<string> CustomFlags { get; }
 
         /// <summary>
         /// Gets or sets cached data for the layout engine.
@@ -487,10 +490,10 @@ namespace Alternet.UI
         /// Gets custom attributes provider associated with the control.
         /// You can store any custom data here.
         /// </summary>
-        ICustomAttributes CustomAttr { get; }
+        ICustomAttributes<string, object> CustomAttr { get; }
 
         /// <summary>
-        /// Gets or sets size of the <see cref="Control"/>'s client area, in
+        /// Gets or sets size of the <see cref="AbstractControl"/>'s client area, in
         /// device-independent units.
         /// </summary>
         SizeD ClientSize { get; set; }
@@ -499,6 +502,12 @@ namespace Alternet.UI
         /// Gets control flags.
         /// </summary>
         ControlFlags StateFlags { get; }
+
+        /// <inheritdoc cref="AbstractControl.VertScrollBarInfo"/>
+        ScrollBarInfo VertScrollBarInfo { get; set; }
+
+        /// <inheritdoc cref="AbstractControl.HorzScrollBarInfo"/>
+        ScrollBarInfo HorzScrollBarInfo { get; set; }
 
         /// <summary>
         /// Gets whether layout is suspended.
@@ -512,7 +521,7 @@ namespace Alternet.UI
 
         /// <summary>
         /// Gets a value indicating whether the mouse pointer is over the
-        /// <see cref="Control"/>.
+        /// <see cref="AbstractControl"/>.
         /// </summary>
         bool IsMouseOver { get; }
 
@@ -589,7 +598,7 @@ namespace Alternet.UI
         string? ToolTip { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="Control"/> bounds relative to the parent,
+        /// Gets or sets the <see cref="AbstractControl"/> bounds relative to the parent,
         /// in device-independent units.
         /// </summary>
         RectD Bounds { get; set; }
@@ -791,7 +800,7 @@ namespace Alternet.UI
         /// property.
         /// </summary>
         /// <remarks>
-        /// When <see cref="VisualStateOverride"/> is specified, it's value
+        /// When <see cref="VisualStateOverride"/> is specified, its value
         /// used instead of dynamic state calculation when <see cref="VisualState"/>
         /// returns its value.
         /// </remarks>
@@ -834,7 +843,7 @@ namespace Alternet.UI
         /// a <see cref="Thickness"/> with all properties equal to 0 (zero).</value>
         /// <remarks>
         /// The padding is the amount of space between the content of a
-        /// <see cref="Control"/> and its border.
+        /// <see cref="AbstractControl"/> and its border.
         /// Padding is set as a <see cref="Thickness"/> structure rather than as
         /// a number so that the padding can be set asymmetrically.
         /// The <see cref="Thickness"/> structure itself supports string
@@ -1033,14 +1042,6 @@ namespace Alternet.UI
         Font? Font { get; set; }
 
         /// <summary>
-        /// Gets real font value.
-        /// </summary>
-        /// <remarks>
-        /// Returns font even if <see cref="Font"/> property is <c>null</c>.
-        /// </remarks>
-        Font? RealFont { get; }
-
-        /// <summary>
         /// Gets or sets whether control's font is bold.
         /// </summary>
         bool IsBold { get; set; }
@@ -1087,40 +1088,17 @@ namespace Alternet.UI
         bool AllowDrop { get; set; }
 
         /// <summary>
-        /// Gets or sets the background style of the control.
-        /// </summary>
-        /// <remarks><see cref="ControlBackgroundStyle.Transparent"/> style is not possible
-        /// to set as it is not supported on all platforms.</remarks>
-        ControlBackgroundStyle BackgroundStyle { get; set; }
-
-        /// <summary>
         /// Gets a rectangle which describes the client area inside of the
-        /// <see cref="Control"/>,
+        /// <see cref="AbstractControl"/>,
         /// in device-independent units.
         /// </summary>
         RectD ClientRectangle { get; }
 
         /// <summary>
-        /// Gets a rectangle which describes an area inside of the
-        /// <see cref="Control"/> available
-        /// for positioning (layout) of its child controls, in device-independent units.
-        /// </summary>
-        RectD ChildrenLayoutBounds { get; }
-
-        /// <summary>
-        /// Gets or sets the language direction for this control.
-        /// </summary>
-        /// <remarks>
-        /// Note that <see cref="LangDirection.Default"/> is returned if layout direction
-        /// is not supported.
-        /// </remarks>
-        LangDirection LangDirection { get; set; }
-
-        /// <summary>
         /// Gets or sets the site of the control.
         /// </summary>
         /// <returns>The <see cref="System.ComponentModel.ISite" /> associated
-        /// with the <see cref="Control" />, if any.</returns>
+        /// with the <see cref="AbstractControl" />, if any.</returns>
         ISite? Site { get; set; }
 
         /// <summary>
@@ -1132,11 +1110,6 @@ namespace Alternet.UI
         /// Returns control identifier.
         /// </summary>
         ControlTypeId ControlKind { get; }
-
-        /// <summary>
-        /// Gets or sets whether <see cref="Idle"/> event is fired.
-        /// </summary>
-        bool ProcessIdle { get; set; }
 
         /// <summary>
         /// Converts device-independent units to pixels.
@@ -1217,32 +1190,10 @@ namespace Alternet.UI
         SizeD GetDPI();
 
         /// <summary>
-        /// Raises the window to the top of the window hierarchy (Z-order).
-        /// This function only works for top level windows.
-        /// </summary>
-        /// <remarks>
-        /// Notice that this function only requests the window manager to raise this window
-        /// to the top of Z-order. Depending on its configuration, the window manager may
-        /// raise the window, not do it at all or indicate that a window requested to be
-        /// raised in some other way, e.g.by flashing its icon if it is minimized.
-        /// </remarks>
-        void Raise();
-
-        /// <summary>
         /// Sets <see cref="Title"/> property.
         /// </summary>
         /// <param name="title">New title</param>
         void SetTitle(string? title);
-
-        /// <summary>
-        /// Centers the window.
-        /// </summary>
-        /// <param name="direction">Specifies the direction for the centering.</param>
-        /// <remarks>
-        /// If the window is a top level one (i.e. doesn't have a parent), it will be
-        /// centered relative to the screen anyhow.
-        /// </remarks>
-        void CenterOnParent(GenericOrientation direction);
 
         /// <summary>
         /// Brings the control to the front of the z-order.
@@ -1253,12 +1204,6 @@ namespace Alternet.UI
         /// Sends the control to the back of the z-order.
         /// </summary>
         void SendToBack();
-
-        /// <summary>
-        /// Lowers the window to the bottom of the window hierarchy (Z-order).
-        /// This function only works for top level windows.
-        /// </summary>
-        void Lower();
 
         /// <summary>
         /// Gets the background brush for specified state of the control.
@@ -1319,18 +1264,6 @@ namespace Alternet.UI
         void ResetForeColor();
 
         /// <summary>
-        /// Executes a delegate asynchronously on the thread that the control
-        /// was created on.
-        /// </summary>
-        /// <param name="method">A delegate to a method that takes parameters
-        /// of the same number and type that are contained in the args parameter.</param>
-        /// <param name="args">An array of objects to pass as arguments to the
-        /// given method. This can be <c>null</c> if no arguments are needed.</param>
-        /// <returns>An <see cref="IAsyncResult"/> that represents the result
-        /// of the operation.</returns>
-        IAsyncResult BeginInvoke(Delegate method, object?[] args);
-
-        /// <summary>
         /// Invalidates the specified region of the control (adds it to the control's
         /// update region, which is the area that will be repainted at the next
         /// paint operation), and causes a paint message to be sent to the
@@ -1354,98 +1287,20 @@ namespace Alternet.UI
         /// <summary>
         /// Calls <see cref="PerformLayout"/> and <see cref="Invalidate()"/>.
         /// </summary>
-        void PerformLayoutAndInvalidate(Action? action = null);
+        void PerformLayoutAndInvalidate(Action? action = null, bool layoutParent = true);
 
         /// <summary>
         /// Sets value of the <see cref="Text"/> property.
         /// </summary>
         /// <param name="value">New value of the <see cref="Text"/> property.</param>
-        void SetText(string? value);
-
-        /// <summary>
-        /// Executes a delegate asynchronously on the thread that the control
-        /// was created on.
-        /// </summary>
-        /// <param name="method">A delegate to a method that takes no
-        /// parameters.</param>
-        /// <returns>An <see cref="IAsyncResult"/> that represents the result of
-        /// the operation.</returns>
-        IAsyncResult BeginInvoke(Delegate method);
+        void SetText(object? value);
 
         /// <summary>
         /// Executes <see cref="Action"/> and calls <see cref="ProcessException"/>
         /// event if exception was raised during execution.
         /// </summary>
         /// <param name="action"></param>
-        void AvoidException(Action action);
-
-        /// <summary>
-        /// Executes an action asynchronously on the thread that the control
-        /// was created on.
-        /// </summary>
-        /// <param name="action">An action to execute.</param>
-        /// <returns>An <see cref="IAsyncResult"/> that represents the result
-        /// of the operation.</returns>
-        /// <remarks>
-        /// You can call this method from another non-ui thread with action
-        /// which can perform operation on ui controls.
-        /// </remarks>
-        /// <example>
-        /// private void StartCounterThread1()
-        /// {
-        ///    var thread1 = new Thread(() =>
-        ///    {
-        ///      for (int i = 0; ; i++)
-        ///      {
-        ///          BeginInvoke(() => beginInvokeCounterLabel.Text = i.ToString());
-        ///          Thread.Sleep(1000);
-        ///       }
-        ///    })
-        ///    { IsBackground = true };
-        ///
-        ///    thread1.Start();
-        /// }
-        /// </example>
-        IAsyncResult BeginInvoke(Action action);
-
-        /// <summary>
-        /// Gets result of the <see cref="BeginInvoke(Action)"/> call.
-        /// </summary>
-        /// <param name="result"></param>
-        /// <returns></returns>
-        object? EndInvoke(IAsyncResult result);
-
-        /// <summary>
-        /// Executes the specified delegate, on the thread that owns the control,
-        /// with the specified list of arguments.
-        /// </summary>
-        /// <param name="method">A delegate to a method that takes parameters of
-        /// the same number and type that are contained in the
-        /// <c>args</c> parameter.</param>
-        /// <param name="args">An array of objects to pass as arguments to
-        /// the specified method. This parameter can be <c>null</c> if the
-        /// method takes no arguments.</param>
-        /// <returns>An <see cref="object"/> that contains the return value
-        /// from the delegate being invoked, or <c>null</c> if the delegate has
-        /// no return value.</returns>
-        object? Invoke(Delegate? method, object?[] args);
-
-        /// <summary>
-        /// Executes the specified delegate on the thread that owns the control.
-        /// </summary>
-        /// <param name="method">A delegate that contains a method to be called
-        /// in the control's thread context.</param>
-        /// <returns>An <see cref="object"/> that contains the return value from
-        /// the delegate being invoked, or <c>null</c> if the delegate has no
-        /// return value.</returns>
-        object? Invoke(Delegate? method);
-
-        /// <summary>
-        /// Executes the specified action on the thread that owns the control.
-        /// </summary>
-        /// <param name="action">An action to be called in the control's
-        /// thread context.</param>
-        void Invoke(Action? action);
+        bool AvoidException(Action action);
 
         /// <summary>
         /// Captures the mouse to the control.
@@ -1461,13 +1316,13 @@ namespace Alternet.UI
         /// Raises the <see cref="Click"/> event.
         /// See <see cref="Click"/> event description for more details.
         /// </summary>
-        void RaiseClick();
+        void RaiseClick(EventArgs e);
 
         /// <summary>
         /// Raises the <see cref="Idle"/> event.
         /// See <see cref="Idle"/> event description for more details.
         /// </summary>
-        void RaiseIdle();
+        void RaiseIdle(EventArgs e);
 
         /// <summary>
         /// Displays the control to the user.
@@ -1497,7 +1352,9 @@ namespace Alternet.UI
         /// and <see cref="ResumeLayout"/>.
         /// </summary>
         /// <param name="action">Action that will be executed.</param>
-        void DoInsideLayout(Action action);
+        /// <param name="layoutParent">Specifies whether to call parent's
+        /// <see cref="PerformLayout"/>. Optional. By default is <c>true</c>.</param>
+        void DoInsideLayout(Action action, bool layoutParent = true);
 
         /// <summary>
         /// Conceals the control from the user.
@@ -1589,12 +1446,10 @@ namespace Alternet.UI
         /// </remarks>
         void SuspendLayout();
 
-        /// <summary>
-        /// Changes size of the control to fit the size of its content.
-        /// </summary>
-        /// <param name="mode">Specifies how a control will size itself to fit the size of
-        /// its content.</param>
-        void SetSizeToContent(WindowSizeToContentMode mode = WindowSizeToContentMode.WidthAndHeight);
+        /// <inheritdoc cref="AbstractControl.SetSizeToContent"/>
+        void SetSizeToContent(
+            WindowSizeToContentMode mode = WindowSizeToContentMode.WidthAndHeight,
+            SizeD? additionalSpace = null);
 
         /// <summary>
         /// Converts the screen coordinates of a specified point on the screen
@@ -1641,7 +1496,9 @@ namespace Alternet.UI
         /// method to enable the changes to take effect.
         /// </para>
         /// </remarks>
-        void ResumeLayout(bool performLayout = true);
+        /// <param name="layoutParent">Specifies whether to call parent's
+        /// <see cref="PerformLayout"/>. Optional. By default is <c>true</c>.</param>
+        void ResumeLayout(bool performLayout = true, bool layoutParent = true);
 
         /// <summary>
         /// Executes <paramref name="action"/> between calls to <see cref="BeginUpdate"/>
@@ -1751,14 +1608,6 @@ namespace Alternet.UI
         bool SetFocusIfPossible();
 
         /// <summary>
-        /// Saves screenshot of this control.
-        /// </summary>
-        /// <param name="fileName">Name of the file to which screenshot
-        /// will be saved.</param>
-        /// <remarks>This function works only on Windows.</remarks>
-        void SaveScreenshot(string fileName);
-
-        /// <summary>
         /// Resets <see cref="SuggestedHeight"/> property.
         /// </summary>
         void ResetSuggestedHeight();
@@ -1856,8 +1705,8 @@ namespace Alternet.UI
         /// </summary>
         /// <returns><c>true</c> if background transparency is supported.</returns>
         /// <remarks>
-        /// If this function returns <c>false</c>, setting <see cref="BackgroundStyle"/> with
-        /// <see cref="ControlBackgroundStyle.Transparent"/> is not going to work. If it
+        /// If this function returns <c>false</c>, setting transparent background
+        /// is not going to work. If it
         /// returns <c>true</c>, setting transparent style should normally succeed.
         /// </remarks>
         /// <remarks>
@@ -1890,44 +1739,19 @@ namespace Alternet.UI
         SizeD GetPreferredSize();
 
         /// <summary>
-        /// Call this function to force one or both scrollbars to be always shown, even if
-        /// the control is big enough to show its entire contents without scrolling.
-        /// </summary>
-        /// <param name="hflag">Whether the horizontal scroll bar should always be visible.</param>
-        /// <param name="vflag">Whether the vertical scroll bar should always be visible.</param>
-        /// <remarks>
-        /// This function is currently only implemented under Mac/Carbon.
-        /// </remarks>
-        void AlwaysShowScrollbars(bool hflag = true, bool vflag = true);
-
-        /// <summary>
         /// Performs some action for the each child of the control.
         /// </summary>
         /// <typeparam name="T">Specifies type of the child control.</typeparam>
         /// <param name="action">Specifies action which will be called for the
         /// each child.</param>
         void ForEachChild<T>(Action<T> action)
-            where T : Control;
+            where T : AbstractControl;
 
         /// <summary>
         /// Same as <see cref="App.Log"/>.
         /// </summary>
         /// <param name="s"></param>
         void Log(object? s);
-
-        /// <summary>
-        /// Gets the update rectangle region bounding box in client coords. This method
-        /// can be used in paint events. Returns rectangle in pixels.
-        /// </summary>
-        /// <returns></returns>
-        RectI GetUpdateClientRectI();
-
-        /// <summary>
-        /// Gets the update rectangle region bounding box in client coords. This method
-        /// can be used in paint events. Returns rectangle in dips (1/96 inch).
-        /// </summary>
-        /// <returns></returns>
-        RectD GetUpdateClientRect();
 
         /// <summary>
         /// Sets image for the specified control state.
@@ -1989,44 +1813,6 @@ namespace Alternet.UI
         /// <see langword="true" /> to invalidate the control's child controls;
         /// otherwise, <see langword="false"/>.</param>
         void Invalidate(Region? region, bool invalidateChildren = false);
-
-        /// <summary>
-        /// Sets system scrollbar properties.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <param name="visible">Is scrollbar visible or not.</param>
-        /// <param name="value">Thumb position.</param>
-        /// <param name="largeChange">Large change value (when scrolls page up or down).</param>
-        /// <param name="maximum">Scrollbar Range.</param>
-        void SetScrollBar(bool isVertical, bool visible, int value, int largeChange, int maximum);
-
-        /// <summary>
-        /// Gets whether system scrollbar is visible.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        bool IsScrollBarVisible(bool isVertical);
-
-        /// <summary>
-        /// Gets system scrollbar thumb position.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        int GetScrollBarValue(bool isVertical);
-
-        /// <summary>
-        /// Gets system scrollbar large change value.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        int GetScrollBarLargeChange(bool isVertical);
-
-        /// <summary>
-        /// Gets system scrollbar max range.
-        /// </summary>
-        /// <param name="isVertical">Vertical or horizontal scroll bar.</param>
-        /// <returns></returns>
-        int GetScrollBarMaximum(bool isVertical);
 
         /// <summary>
         /// Gets background color from the default attributes.

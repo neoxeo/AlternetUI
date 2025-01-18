@@ -5,11 +5,11 @@ AlterNET UI provides a set of standard controls which use native API and look an
 Examples of how a <xref:Alternet.UI.ListBox> can look on different platforms:
 
 # [Windows](#tab/screenshot-windows)
-![ListBox on Windows](../apidoc/ListBox/images/listbox-windows.png)
+![ListBox on Windows](../apidoc/images/listbox-windows.png)
 # [macOS](#tab/screenshot-macos)
-![ListBox on macOS](../apidoc/ListBox/images/listbox-macos.png)
+![ListBox on macOS](../apidoc/images/listbox-macos.png)
 # [Linux](#tab/screenshot-linux)
-![ListBox on Linux](../apidoc/ListBox/images/listbox-linux.png)
+![ListBox on Linux](../apidoc/images/listbox-linux.png)
 ***
 
 AlterNET UI provides the following core controls:
@@ -30,7 +30,7 @@ A <xref:Alternet.UI.ScrollViewer> is a special kind of container which makes its
 These controls most often detect and respond to user input. The control classes expose API to handle text and mouse input, focus management, and more.
 
 **Data display**: <xref:Alternet.UI.ListBox>, <xref:Alternet.UI.ListView>, <xref:Alternet.UI.TreeView>, 
-<xref:Alternet.UI.CheckListBox>, <xref:Alternet.UI.VListBox>, <xref:Alternet.UI.PropertyGrid>.
+<xref:Alternet.UI.CheckListBox>, <xref:Alternet.UI.VirtualListBox>, <xref:Alternet.UI.PropertyGrid>.
 
 These controls provide a visual representation of data elements in different layouts or views.
 

@@ -13,10 +13,9 @@ namespace Alternet.UI
     /// </summary>
     public partial class GenericLabel : GraphicControl
     {
-        private Color? textBackColor;
         private bool imageVisible = true;
         private int? mnemonicCharIndex = null;
-        private GenericAlignment alignment = GenericAlignment.TopLeft;
+        private HVAlignment alignment;
         private string? textPrefix;
         private string? textSuffix;
         private string? textFormat;
@@ -24,7 +23,17 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="GenericLabel"/> class.
         /// </summary>
-        /// <param name="text">Value of the <see cref="Text"/> property.</param>
+        /// <param name="parent">Parent of the control.</param>
+        public GenericLabel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GenericLabel"/> class.
+        /// </summary>
+        /// <param name="text">Value of the text property.</param>
         public GenericLabel(string? text)
             : this()
         {
@@ -36,6 +45,9 @@ namespace Alternet.UI
         /// </summary>
         public GenericLabel()
         {
+            HorizontalAlignment = HorizontalAlignment.Left;
+            ParentBackColor = true;
+            ParentForeColor = true;
             RefreshOptions = ControlRefreshOptions.RefreshOnBorder
                 | ControlRefreshOptions.RefreshOnColor
                 | ControlRefreshOptions.RefreshOnBackground
@@ -51,7 +63,7 @@ namespace Alternet.UI
         /// Gets or sets text prefix.
         /// </summary>
         /// <remarks>
-        /// Value of this property is shown at the beginning of <see cref="Text"/>
+        /// Value of this property is shown at the beginning of the text
         /// when control is painted.
         /// </remarks>
         public virtual string? TextPrefix
@@ -98,7 +110,7 @@ namespace Alternet.UI
         /// Gets or sets text suffix.
         /// </summary>
         /// <remarks>
-        /// Value of this property is shown at the end of <see cref="Text"/>
+        /// Value of this property is shown at the end of the text
         /// when control is painted.
         /// </remarks>
         public virtual string? TextSuffix
@@ -118,33 +130,10 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets background color of the text.
-        /// </summary>
-        /// <remarks>
-        /// By default is <c>null</c>. It means now additional background is painted
-        /// under the text.
-        /// </remarks>
-        [DefaultValue(null)]
-        public virtual Color? TextBackColor
-        {
-            get
-            {
-                return textBackColor;
-            }
-
-            set
-            {
-                if (textBackColor == value)
-                    return;
-                textBackColor = value;
-                Invalidate();
-            }
-        }
-
-        /// <summary>
         /// Gets or sets alignment of the text.
         /// </summary>
-        public GenericAlignment TextAlignment
+        [Browsable(false)]
+        public HVAlignment TextAlignment
         {
             get
             {
@@ -156,6 +145,44 @@ namespace Alternet.UI
                 if (alignment == value)
                     return;
                 alignment = value;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets vertical alignment of the text.
+        /// </summary>
+        public VerticalAlignment TextAlignmentVertical
+        {
+            get
+            {
+                return alignment.Vertical;
+            }
+
+            set
+            {
+                if (alignment.Vertical == value)
+                    return;
+                alignment = new(alignment.Horizontal, value);
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets vertical alignment of the text.
+        /// </summary>
+        public HorizontalAlignment TextAlignmentHorizontal
+        {
+            get
+            {
+                return alignment.Horizontal;
+            }
+
+            set
+            {
+                if (alignment.Horizontal == value)
+                    return;
+                alignment = new(value, alignment.Vertical);
                 Invalidate();
             }
         }
@@ -241,24 +268,6 @@ namespace Alternet.UI
             }
         }
 
-        /// <inheritdoc/>
-        [DefaultValue("")]
-        public override string Text
-        {
-            get
-            {
-                return base.Text;
-            }
-
-            set
-            {
-                if (Text == value)
-                    return;
-                base.Text = value;
-                PerformLayoutAndInvalidate();
-            }
-        }
-
         /// <summary>
         /// Gets or sets a value indicating whether to draw image.
         /// </summary>
@@ -312,7 +321,7 @@ namespace Alternet.UI
             Font? font = null)
         {
             var state = VisualState;
-            var paddedRect = (
+            RectD paddedRect = (
                 rect.Location + Padding.LeftTop,
                 rect.Size - Padding.Size);
 
@@ -322,15 +331,30 @@ namespace Alternet.UI
             if (labelImage is null && labelText == string.Empty)
                 return;
 
-            dc.DrawLabel(
+            var labelFont = font ?? GetLabelFont(state);
+            var labelForeColor = foreColor ?? GetLabelForeColor(state);
+            var labelBackColor = backColor ?? GetLabelBackColor(state);
+            var mnemonicCharIndex = GetMnemonicCharIndex();
+
+            var result = dc.DrawLabel(
                 labelText,
-                font ?? GetLabelFont(state),
-                foreColor ?? GetLabelForeColor(state),
-                backColor ?? GetLabelBackColor(state),
+                labelFont,
+                labelForeColor,
+                labelBackColor,
                 labelImage,
                 paddedRect,
-                TextAlignment,
-                GetMnemonicCharIndex());
+                alignment,
+                mnemonicCharIndex);
+
+            if(result == RectD.MinusOne)
+            {
+                dc.DrawText(
+                    labelText,
+                    paddedRect.Location,
+                    labelFont,
+                    labelForeColor,
+                    labelBackColor);
+            }
         }
 
         /// <summary>
@@ -347,9 +371,19 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public override void DefaultPaint(Graphics dc, RectD rect)
+        public override void DefaultPaint(PaintEventArgs e)
         {
-            DrawDefaultBackground(dc, rect);
+            DrawDefaultBackground(e);
+
+            var state = VisualState;
+            var border = GetBorderSettings(state);
+
+            var rect = e.ClipRectangle;
+            var dc = e.Graphics;
+
+            if(border is not null)
+                rect = rect.DeflatedWithPadding(border.Width);
+
             DrawDefaultText(dc, rect);
         }
 
@@ -366,8 +400,7 @@ namespace Alternet.UI
             {
                 result = MeasureCanvas.GetTextExtent(
                     text,
-                    GetLabelFont(VisualControlState.Normal),
-                    this);
+                    GetLabelFont(VisualControlState.Normal));
             }
 
             var image = GetImage();
@@ -377,10 +410,10 @@ namespace Alternet.UI
                 result.Width += PixelToDip(image.Width);
             }
 
-            if (!double.IsNaN(specifiedWidth))
+            if (!Coord.IsNaN(specifiedWidth))
                 result.Width = Math.Max(result.Width, specifiedWidth);
 
-            if (!double.IsNaN(specifiedHeight))
+            if (!Coord.IsNaN(specifiedHeight))
                 result.Height = Math.Max(result.Height, specifiedHeight);
 
             return result + Padding.Size;
@@ -396,52 +429,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets <see cref="Font"/> which is used to draw labels text.
-        /// </summary>
-        /// <returns></returns>
-        protected virtual Font GetLabelFont(VisualControlState state)
-        {
-            var font = StateObjects?.Colors?.GetObjectOrNull(state)?.Font;
-
-            var result = font ?? Font ?? UI.Control.DefaultFont;
-            if (IsBold)
-                result = result.AsBold;
-            return result;
-        }
-
-        /// <summary>
-        /// Gets <see cref="Color"/> which is used to draw background of the label text.
-        /// </summary>
-        /// <returns>By default returns <see cref="Color.Empty"/> which means do not
-        /// draw background under the label text. In this case control's background
-        /// is used.</returns>
-        protected virtual Color GetLabelBackColor(VisualControlState state)
-        {
-            var color = StateObjects?.Colors?.GetObjectOrNull(state)?.BackgroundColor;
-
-            return color ?? TextBackColor ?? Color.Empty;
-        }
-
-        /// <summary>
-        /// Gets <see cref="Color"/> which is used to draw label text.
-        /// </summary>
-        /// <returns></returns>
-        protected virtual Color GetLabelForeColor(VisualControlState state)
-        {
-            var color = StateObjects?.Colors?.GetObjectOrNull(state)?.ForegroundColor;
-
-            if(color is null)
-            {
-                if (Enabled)
-                    color = ForeColor;
-                else
-                    color = SystemColors.GrayText;
-            }
-
-            return color;
-        }
-
-        /// <summary>
         /// Gets formatted text with <see cref="TextSuffix"/> and <see cref="TextPrefix"/>.
         /// </summary>
         /// <returns></returns>
@@ -451,13 +438,17 @@ namespace Alternet.UI
             var prefix = TextPrefix;
             var labelText = Text;
 
-            if (image is not null && prefix is null && !string.IsNullOrEmpty(labelText))
-                prefix = StringUtils.OneSpace;
-
             var result = $"{prefix}{labelText}{TextSuffix}" ?? string.Empty;
             if (textFormat is not null)
                 result = string.Format(textFormat, result);
             return result;
+        }
+
+        /// <inheritdoc/>
+        protected override void OnTextChanged(EventArgs e)
+        {
+            base.OnTextChanged(e);
+            PerformLayoutAndInvalidate();
         }
 
         /// <summary>

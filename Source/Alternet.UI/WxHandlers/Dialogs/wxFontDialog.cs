@@ -8,7 +8,7 @@ namespace Alternet.UI.Native
 {
     internal partial class FontDialog : Alternet.UI.IFontDialogHandler
     {
-        private Alternet.Drawing.FontInfo fontInfo = Alternet.UI.Control.DefaultFont;
+        private Alternet.Drawing.FontInfo fontInfo = Alternet.UI.AbstractControl.DefaultFont;
 
         FontDialogRestrictSelection Alternet.UI.IFontDialogHandler.RestrictSelection
         {
@@ -33,11 +33,16 @@ namespace Alternet.UI.Native
             set => fontInfo = value;
         }
 
+        public void ShowAsync(Alternet.UI.Window? owner, Action<bool>? onClose)
+        {
+            ColorDialog.DefaultShowAsync(owner, onClose, ShowModal);
+        }
+
         public Alternet.UI.ModalResult ShowModal(Alternet.UI.Window? owner)
         {
             CheckDisposed();
-            var nativeOwner = owner == null ?
-                null : ((WindowHandler)owner.Handler).NativeControl;
+            
+            var nativeOwner = GetNativeWindow(owner);
 
             var fontName = fontInfo.Name;
             var style = fontInfo.Style;

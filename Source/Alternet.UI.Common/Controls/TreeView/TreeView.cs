@@ -81,6 +81,16 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="TreeView"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public TreeView(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TreeView"/> class.
+        /// </summary>
         public TreeView()
         {
             Items.ItemInserted += Items_ItemInserted;
@@ -267,18 +277,21 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the control has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
             get
             {
-                CheckDisposed();
-                return Handler.HasBorder;
+                if (DisposingOrDisposed)
+                    return default;
+                return base.Handler.HasBorder;
             }
 
             set
             {
-                CheckDisposed();
-                Handler.HasBorder = value;
+                if (DisposingOrDisposed)
+                    return;
+                base.Handler.HasBorder = value;
             }
         }
 
@@ -296,11 +309,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.HideRoot;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.HideRoot = value;
             }
         }
@@ -321,11 +338,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.VariableRowHeight;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.VariableRowHeight = value;
             }
         }
@@ -350,11 +371,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.TwistButtons;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.TwistButtons = value;
             }
         }
@@ -368,11 +393,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.StateImageSpacing;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.StateImageSpacing = value;
             }
         }
@@ -385,11 +414,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.Indentation;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.Indentation = value;
             }
         }
@@ -407,11 +440,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.RowLines;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.RowLines = value;
             }
         }
@@ -425,8 +462,19 @@ namespace Alternet.UI
         /// <see langword="false"/>. The default is <see langword="true"/>.</value>
         public virtual bool ShowLines
         {
-            get => Handler.ShowLines;
-            set => Handler.ShowLines = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.ShowLines;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.ShowLines = value;
+            }
         }
 
         /// <summary>
@@ -439,8 +487,19 @@ namespace Alternet.UI
         /// <see langword="true"/>.</value>
         public virtual bool ShowRootLines
         {
-            get => Handler.ShowRootLines;
-            set => Handler.ShowRootLines = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.ShowRootLines;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.ShowRootLines = value;
+            }
         }
 
         /// <summary>
@@ -456,8 +515,19 @@ namespace Alternet.UI
         /// </value>
         public virtual bool ShowExpandButtons
         {
-            get => Handler.ShowExpandButtons;
-            set => Handler.ShowExpandButtons = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.ShowExpandButtons;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.ShowExpandButtons = value;
+            }
         }
 
         /// <summary>
@@ -466,7 +536,15 @@ namespace Alternet.UI
         /// <value>A <see cref="TreeViewItem"/> that represents the first
         /// fully-visible tree item in the tree view control.</value>
         [Browsable(false)]
-        public virtual TreeViewItem? TopItem => Handler.TopItem;
+        public virtual TreeViewItem? TopItem
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.TopItem;
+            }
+        }
 
         /// <summary>
         /// Gets a collection containing the currently selected items in the
@@ -497,7 +575,12 @@ namespace Alternet.UI
 
                 selectedItems.Clear();
                 foreach (var item in value)
+                {
+                    if (item is null)
+                        continue;
                     selectedItems.Add(item);
+                }
+
                 RaiseSelectionChanged(EventArgs.Empty);
             }
         }
@@ -623,8 +706,19 @@ namespace Alternet.UI
         /// </value>
         public virtual bool FullRowSelect
         {
-            get => Handler.FullRowSelect;
-            set => Handler.FullRowSelect = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.FullRowSelect;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.FullRowSelect = value;
+            }
         }
 
         /// <summary>
@@ -638,8 +732,19 @@ namespace Alternet.UI
         /// </value>
         public virtual bool AllowLabelEdit
         {
-            get => Handler.AllowLabelEdit;
-            set => Handler.AllowLabelEdit = value;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.AllowLabelEdit;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                Handler.AllowLabelEdit = value;
+            }
         }
 
         [Browsable(false)]
@@ -673,6 +778,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void ExpandAll()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.ExpandAll();
         }
 
@@ -693,6 +800,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void CollapseAll()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.CollapseAll();
         }
 
@@ -710,7 +819,64 @@ namespace Alternet.UI
         /// </remarks>
         public virtual TreeViewHitTestInfo HitTest(PointD point)
         {
-            return Handler.HitTest(point);
+            if (!DisposingOrDisposed)
+            {
+                var htResult = Handler.HitTest(point, out var item, out var locations);
+                if (htResult)
+                {
+                    return new TreeViewHitTestInfo(locations, item);
+                }
+            }
+
+            return TreeViewHitTestInfo.Empty;
+        }
+
+        /// <summary>
+        /// Gets <see cref="TreeViewHitTestLocations"/> at a given
+        /// client point, in device-independent units.
+        /// </summary>
+        /// <param name="point">The <see cref="PointD"/> at which to retrieve
+        /// item information.</param>
+        /// <returns>The hit test result.</returns>
+        /// <remarks>
+        /// Use this method to determine whether a point is located in a
+        /// <see cref="TreeViewItem"/> and where within the
+        /// item the point is located, such as on the label or image area.
+        /// </remarks>
+        public virtual TreeViewHitTestLocations HitTestLocation(PointD point)
+        {
+            if (DisposingOrDisposed)
+                return default;
+            Handler.HitTest(point, out _, out var locations, false);
+            return locations;
+        }
+
+        /// <summary>
+        /// Gets tree view item at the current cursor position.
+        /// </summary>
+        /// <returns>Tree view item if success; <c>null</c> otherwise.</returns>
+        public virtual TreeViewItem? GetNodeAtMouseCursor()
+        {
+            return GetNodeAt(Mouse.GetPosition(this));
+        }
+
+        /// <summary>
+        /// Retrieves the tree view item that is at the specified point.
+        /// </summary>
+        /// <param name="pt">
+        /// The <see cref="PointD" /> to evaluate and retrieve the node from.
+        /// </param>
+        /// <returns>
+        /// The <see cref="TreeViewItem" /> at the specified point, in tree view
+        /// (client) coordinates,
+        /// or <see langword="null" /> if there is no item at that location.
+        /// </returns>
+        public virtual TreeViewItem? GetNodeAt(PointD pt)
+        {
+            if (DisposingOrDisposed)
+                return null;
+            Handler.HitTest(pt, out var item, out _);
+            return item;
         }
 
         /// <summary>
@@ -790,6 +956,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseSelectionChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnSelectionChanged(e);
             SelectionChanged?.Invoke(this, e);
         }
@@ -809,6 +977,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SelectAndShowItem(TreeViewItem? item)
         {
+            if (DisposingOrDisposed)
+                return;
             if (item != null)
             {
                 DoInsideUpdate(() =>
@@ -841,6 +1011,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseAfterCollapse(TreeViewEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             e.Item.IsExpanded = false;
             OnAfterCollapse(e);
             AfterCollapse?.Invoke(this, e);
@@ -854,6 +1026,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseAfterExpand(TreeViewEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             e.Item.IsExpanded = true;
             OnAfterExpand(e);
             AfterExpand?.Invoke(this, e);
@@ -867,6 +1041,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseBeforeCollapse(TreeViewCancelEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnBeforeCollapse(e);
             BeforeCollapse?.Invoke(this, e);
         }
@@ -879,6 +1055,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseBeforeLabelEdit(TreeViewEditEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnBeforeLabelEdit(e);
             BeforeLabelEdit?.Invoke(this, e);
         }
@@ -891,6 +1069,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseAfterLabelEdit(TreeViewEditEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnAfterLabelEdit(e);
             AfterLabelEdit?.Invoke(this, e);
         }
@@ -939,6 +1119,8 @@ namespace Alternet.UI
         /// <param name="item"></param>
         public virtual void RemoveItemAndSelectSibling(TreeViewItem? item)
         {
+            if (DisposingOrDisposed)
+                return;
             if (item == null)
                 return;
             var newItem = item?.NextOrPrevSibling;
@@ -968,6 +1150,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void MakeAsListBox()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.MakeAsListBox();
         }
 
@@ -979,6 +1163,8 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseBeforeExpand(TreeViewCancelEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnBeforeExpand(e);
             BeforeExpand?.Invoke(this, e);
         }
@@ -991,14 +1177,18 @@ namespace Alternet.UI
         /// that contains the event data.</param>
         public void RaiseExpandedChanged(TreeViewEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnExpandedChanged(e);
             ExpandedChanged?.Invoke(this, e);
         }
 
         internal void RaiseItemAdded(TreeViewEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             if (e == null)
-                throw new ArgumentNullException(nameof(e));
+                return;
 
             OnItemAdded(e);
             ItemAdded?.Invoke(this, e);
@@ -1006,8 +1196,10 @@ namespace Alternet.UI
 
         internal void RaiseItemRemoved(TreeViewEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             if (e == null)
-                throw new ArgumentNullException(nameof(e));
+                return;
 
             OnItemRemoved(e);
             ItemRemoved?.Invoke(this, e);
@@ -1060,8 +1252,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="TreeViewCancelEventArgs"/>
         /// that contains the event data.</param>
-        protected virtual void OnBeforeCollapse(
-            TreeViewCancelEventArgs e)
+        protected virtual void OnBeforeCollapse(TreeViewCancelEventArgs e)
         {
         }
 

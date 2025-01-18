@@ -47,6 +47,12 @@ namespace Alternet.UI
         public event EventHandler? Closing;
 
         /// <summary>
+        /// Occurs when the control is closing.
+        /// </summary>
+        [Category("Action")]
+        public event EventHandler<ToolStripDropDownClosedEventArgs>? Closed;
+
+        /// <summary>
         /// This property has no meaning.
         /// </summary>
         [Browsable(false)]
@@ -67,7 +73,11 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.ContextMenu;
 
-        internal new IContextMenuHandler Handler => (IContextMenuHandler)base.Handler;
+        /// <summary>
+        /// Gets handler.
+        /// </summary>
+        [Browsable(false)]
+        public new IContextMenuHandler Handler => (IContextMenuHandler)base.Handler;
 
         /// <summary>
         /// Raises the <see cref="Closing" /> event and <see cref="OnClosing"/> method.</summary>
@@ -76,6 +86,7 @@ namespace Alternet.UI
         public void RaiseClosing(EventArgs e)
         {
             Closing?.Invoke(this, e);
+            Closed?.Invoke(this, new(ToolStripDropDownCloseReason.Other));
             OnClosing(e);
         }
 
@@ -102,7 +113,7 @@ namespace Alternet.UI
         /// <summary>
         /// Displays the menu at the specified position.
         /// </summary>
-        /// <param name="control">A <see cref="Control"/> that specifies the control with which
+        /// <param name="control">A <see cref="AbstractControl"/> that specifies the control with which
         /// this shortcut menu is associated.</param>
         /// <param name="position">
         /// A <see cref="PointD"/> that specifies the coordinates at which to display the menu.
@@ -120,7 +131,7 @@ namespace Alternet.UI
         /// If <paramref name="position"/> is <c>null</c> (default value), popup menu is shown
         /// under the control specified in the <paramref name="control"/> parameter.
         /// </remarks>
-        public void Show(IControl control, PointD? position = null)
+        public void Show(AbstractControl control, PointD? position = null)
         {
             if (Items.Count == 0)
                 return;
@@ -138,7 +149,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
-            return ControlFactory.Handler.CreateContextMenuHandler(this);
+            return (IControlHandler)ControlFactory.Handler.CreateContextMenuHandler(this);
         }
 
         /// <summary>

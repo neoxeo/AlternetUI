@@ -6,6 +6,66 @@
 
 namespace Alternet::UI
 {
+    Control::~Control()
+    {
+        _destroyed = true;
+        DestroyDropTarget(false);
+        DestroyWxWindow();
+
+        for (auto child : _children)
+        {
+            child->_parent = nullptr;
+        }
+    }
+
+    class wxWindow2 : public wxWindow, public wxWidgetExtender
+    {
+    public:
+        Control* _owner = nullptr;
+
+        virtual bool AcceptsFocus() const override;
+        virtual bool AcceptsFocusFromKeyboard() const override;
+        virtual bool AcceptsFocusRecursively() const override;
+
+        wxWindow2() {}
+        wxWindow2(
+            Control* owner,
+            wxWindow* parent,
+            wxWindowID winid = wxID_ANY,
+            const wxPoint& pos = wxDefaultPosition,
+            const wxSize& size = wxDefaultSize,
+            long style = wxNO_BORDER)
+        {
+            _owner = owner;
+            Create(parent, winid, pos, size, style);
+        }
+    protected:
+    };
+
+    bool wxWindow2::AcceptsFocus() const
+    {
+        if (_owner == nullptr)
+            return wxWindow::AcceptsFocus();
+        else
+            return _owner->_acceptsFocus;
+    }
+
+    bool wxWindow2::AcceptsFocusFromKeyboard() const
+    {
+        if (_owner == nullptr)
+            return wxWindow::AcceptsFocusFromKeyboard();
+        else
+            return _owner->_acceptsFocusFromKeyboard;
+    }
+
+    bool wxWindow2::AcceptsFocusRecursively() const
+    {
+        if (_owner == nullptr)
+            return wxWindow::AcceptsFocusRecursively();
+        else
+            return _owner->_acceptsFocusRecursively;
+    }
+
     /*static*/ Control::ControlsByWxWindowsMap Control::s_controlsByWxWindowsMap;
 
     wxString Control::GetMouseEventDesc(const wxMouseEvent& ev)
@@ -119,7 +179,6 @@ namespace Alternet::UI
     double Control::DrawingDPIScaleFactor(void* window)
     {
         return ((wxWindow*)window)->GetDPIScaleFactor();
-        //return GetDPIScaleFactor((wxWindow*)window);
     }
 
     double Control::DrawingToDip(int value, void* window)
@@ -223,8 +282,6 @@ namespace Alternet::UI
     void Control::LogSizeMethod(std::string methodName, const Size& value)
     {
         auto window = GetWxWindow();
-        /*if (window->GetName() != wxDatePickerCtrlNameStr)
-            return;*/
         auto minSize = Size(window->GetMinSize());
         auto maxSize = Size(window->GetMaxSize());
         auto s = methodName + ": " + value.ToString() + ", minSize: " + minSize.ToString() + 
@@ -234,20 +291,16 @@ namespace Alternet::UI
 
     void Control::ApplyMinimumSize(const Size& value)
     {
-        //LogMethod("Before ApplyMinimumSize", value);
-        //return; // !!
         auto window = GetWxWindow();
         if (value.Width <= 0 && value.Height <= 0)
         {
             if (window->GetMinSize() != wxDefaultSize)
                 window->SetMinSize(wxDefaultSize);
-            //LogMethod("After ApplyMinimumSize", value);
             return;
         }
 
         auto size = fromDip(value, window);
         window->SetMinSize(size);
-        //LogMethod("After2 ApplyMinimumSize", value);
     }
 
     Size Control::GetMinimumSize()
@@ -257,8 +310,6 @@ namespace Alternet::UI
 
     void Control::SetMinimumSize(const Size& value)
     {
-        //LogMethod("SetMinimumSize", value);
-        //return; // !!
         _minimumSize.Set(value);
         _appliedMinimumSize = value;
         auto limited = CoerceSize(GetSize());
@@ -311,8 +362,6 @@ namespace Alternet::UI
 
     void Control::SetMaximumSize(const Size& value)
     {
-        //LogMethod("SetMaximumSize", value);
-        //return; // !!
         _maximumSize.Set(value);
         _appliedMaximumSize = value;
         auto limited = CoerceSize(GetSize());
@@ -327,19 +376,15 @@ namespace Alternet::UI
 
     void Control::ApplyMaximumSize(const Size& value)
     {
-        //LogMethod("ApplyMaximumSize", value);
-        //return; // !!
         auto window = GetWxWindow();
         if (value.Width <= 0 && value.Height <= 0)
         {
             if(window->GetMaxSize() != wxDefaultSize)
                 window->SetMaxSize(wxDefaultSize);
-            //LogMethod("After ApplyMaximumSize", value);
             return;
         }
         auto size = fromDip(value, window);
         window->SetMaxSize(size);
-        //LogMethod("After2 ApplyMaximumSize", value);
     }
 
     int Control::GetId()
@@ -373,12 +418,6 @@ namespace Alternet::UI
             return;
         _borderStyle = value;
         RecreateWxWindowIfNeeded();
-    }
-
-    Control::~Control()
-    {
-        DestroyDropTarget();
-        DestroyWxWindow();
     }
 
     bool Control::CanSetScrollbar()
@@ -445,9 +484,9 @@ namespace Alternet::UI
 
         wxWindow->Unbind(wxEVT_DPI_CHANGED, &Control::OnDpiChanged, this);
         wxWindow->Unbind(wxEVT_TEXT, &Control::OnTextChanged, this);
+        wxWindow->Unbind(wxEVT_SET_CURSOR, &Control::OnSetCursor, this);
         wxWindow->Unbind(wxEVT_IDLE, &Control::OnIdle, this);
         wxWindow->Unbind(wxEVT_PAINT, &Control::OnPaint, this);
-        //wxWindow->Unbind(wxEVT_ERASE_BACKGROUND, &Control::OnEraseBackground, this);
         wxWindow->Unbind(wxEVT_DESTROY, &Control::OnDestroy, this);
         wxWindow->Unbind(wxEVT_SHOW, &Control::OnVisibleChanged, this);
         wxWindow->Unbind(wxEVT_MOUSE_CAPTURE_LOST, &Control::OnMouseCaptureLost, this);
@@ -476,16 +515,18 @@ namespace Alternet::UI
         RemoveWxWindowControlAssociation(wxWindow);
 
         OnWxWindowDestroyed(wxWindow);
+        RaiseEvent(ControlEvent::HandleDestroyed);
         RaiseEvent(ControlEvent::Destroyed);
 
         if (IsRecreatingWxWindow())
             SetRecreatingWxWindow(false);
-        RaiseEvent(ControlEvent::HandleDestroyed);
     }
 
     void Control::OnSysColorChanged(wxSysColourChangedEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::SystemColorsChanged);
     }
 
@@ -497,6 +538,8 @@ namespace Alternet::UI
     void Control::OnActivate(wxActivateEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         bool active = event.GetActive();
         _flags.Set(ControlFlags::Active, active);
 
@@ -532,12 +575,16 @@ namespace Alternet::UI
 
     void Control::OnScrollTop(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         ApplyScroll(ScrollEventType_First, event, 0);
         event.Skip();
     }
 
     void Control::OnScrollBottom(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         auto scrollInfo = GetScrollInfoDelayedValue(event).Get();
         ApplyScroll(ScrollEventType_Last, event, scrollInfo.maximum);
         event.Skip();
@@ -545,6 +592,8 @@ namespace Alternet::UI
 
     void Control::OnScrollLineUp(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         auto scrollInfo = GetScrollInfoDelayedValue(event).Get();
         ApplyScroll(ScrollEventType_SmallDecrement, event, scrollInfo.value - 1);
         event.Skip();
@@ -552,6 +601,8 @@ namespace Alternet::UI
 
     void Control::OnScrollLineDown(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         auto scrollInfo = GetScrollInfoDelayedValue(event).Get();
         ApplyScroll(ScrollEventType_SmallIncrement, event, scrollInfo.value + 1);
         event.Skip();
@@ -559,6 +610,8 @@ namespace Alternet::UI
 
     void Control::OnScrollPageUp(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         auto scrollInfo = GetScrollInfoDelayedValue(event).Get();
         ApplyScroll(ScrollEventType_LargeDecrement, event, scrollInfo.value - scrollInfo.largeChange);
         event.Skip();
@@ -566,18 +619,24 @@ namespace Alternet::UI
 
     void Control::OnScrollPageDown(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         auto scrollInfo = GetScrollInfoDelayedValue(event).Get();
         ApplyScroll(ScrollEventType_LargeIncrement, event, scrollInfo.value + scrollInfo.largeChange);
     }
 
     void Control::OnScrollThumbTrack(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         ApplyScroll(ScrollEventType_ThumbTrack, event, event.GetPosition());
         event.Skip();
     }
 
     void Control::OnScrollThumbRelease(wxScrollWinEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         ApplyScroll(ScrollEventType_ThumbPosition, event, event.GetPosition());
         event.Skip();
     }
@@ -625,12 +684,19 @@ namespace Alternet::UI
     void Control::OnGotFocus(wxFocusEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
+        _eventFocusWindow = event.GetWindow();
         RaiseEvent(ControlEvent::GotFocus);
+        _eventFocusWindow = nullptr;
     }
 
     void Control::OnLostFocus(wxFocusEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
+        _eventFocusWindow = event.GetWindow();
         RaiseEvent(ControlEvent::LostFocus);
     }
 
@@ -646,15 +712,14 @@ namespace Alternet::UI
 
     DrawingContext* Control::OpenPaintDrawingContext()
     {
-        //auto dc = new wxAutoBufferedPaintDC(GetWxWindow());
-        auto dc = new wxPaintDC(GetWxWindow());
-        
-        // // todo: work out a proper background brush solution (including transparency, patterns, etc)
-        // auto oldBackground = dc->GetBackground();
-        // dc->SetBackground(wxSystemSettings::GetColour(wxSystemColour::wxSYS_COLOUR_BTNFACE));
-        // dc->Clear();
-        // dc->SetBackground(oldBackground);
+        auto window = GetWxWindow();
 
+        if (!window)
+        {
+        }
+
+        auto dc = new wxPaintDC(window);
+        
         return new DrawingContext(dc);
     }
 
@@ -771,7 +836,7 @@ namespace Alternet::UI
         if (value)
             CreateDropTarget();
         else
-            DestroyDropTarget();
+            DestroyDropTarget(true);
     }
 
     void Control::CreateDropTarget()
@@ -793,12 +858,14 @@ namespace Alternet::UI
         GetWxWindow()->Lower();
     }
 
-    void Control::DestroyDropTarget()
+    void Control::DestroyDropTarget(bool setDropTarget)
     {
         if (_dropTarget != nullptr)
         {
-            GetWxWindow()->SetDropTarget(nullptr);
-            delete _dropTarget;
+            _dropTarget->_control = nullptr;
+            if(setDropTarget)
+                GetWxWindow()->SetDropTarget(nullptr);
+            //delete _dropTarget; No need to delete, it is done by _wxWindow
             _dropTarget = nullptr;
         }
     }
@@ -902,8 +969,13 @@ namespace Alternet::UI
 
     void Control::SetTabStop(bool value)
     {
+        if (GetTabStop() == value)
+            return;
         _flags.Set(ControlFlags::TabStop, value);
-        RecreateWxWindowIfNeeded();
+        if(!value)
+            GetWxWindow()->DisableFocusFromKeyboard();
+        else
+            RecreateWxWindowIfNeeded();
     }
 
     void Control::SetFocusFlags(bool canSelect, bool tabStop, bool canSelectChildren)
@@ -977,13 +1049,16 @@ namespace Alternet::UI
         if (_parent == nullptr)
         {
             parentingWxWindow = ParkingWindow::GetWindow();
-            _wxWindow = CreateWxWindowCore(parentingWxWindow);
         }
         else
         {
             parentingWxWindow = _parent->GetParentingWxWindow(this);
-            _wxWindow = CreateWxWindowCore(parentingWxWindow);
+
+            if(parentingWxWindow == nullptr)
+                parentingWxWindow = ParkingWindow::GetWindow();
         }
+
+        _wxWindow = CreateWxWindowCore(parentingWxWindow);
 
         _wxWindow->SetAutoLayout(false);
 
@@ -992,7 +1067,6 @@ namespace Alternet::UI
         if (GetUserPaint())
         {
             _wxWindow->SetDoubleBuffered(true);
-            //_wxWindow->SetBackgroundStyle(wxBG_STYLE_PAINT);
         }
 
         if (!GetTabStop())
@@ -1002,7 +1076,6 @@ namespace Alternet::UI
         _wxWindow->Bind(wxEVT_TEXT, &Control::OnTextChanged, this);
         _wxWindow->Bind(wxEVT_ACTIVATE, &Control::OnActivate, this);
         _wxWindow->Bind(wxEVT_PAINT, &Control::OnPaint, this);
-        //_wxWindow->Bind(wxEVT_ERASE_BACKGROUND, &Control::OnEraseBackground, this);
         _wxWindow->Bind(wxEVT_DESTROY, &Control::OnDestroy, this);
         _wxWindow->Bind(wxEVT_SHOW, &Control::OnVisibleChanged, this);
         _wxWindow->Bind(wxEVT_MOUSE_CAPTURE_LOST, &Control::OnMouseCaptureLost, this);
@@ -1015,6 +1088,7 @@ namespace Alternet::UI
         _wxWindow->Bind(wxEVT_LEFT_UP, &Control::OnMouseLeftUp, this);
         _wxWindow->Bind(wxEVT_IDLE, &Control::OnIdle, this);
         _wxWindow->Bind(wxEVT_SYS_COLOUR_CHANGED, &Control::OnSysColorChanged, this);
+        _wxWindow->Bind(wxEVT_SET_CURSOR, &Control::OnSetCursor, this);
 
         if (bindScrollEvents)
         {
@@ -1038,6 +1112,14 @@ namespace Alternet::UI
         for (auto child : _children)
             child->UpdateWxWindowParent();
         RaiseEvent(ControlEvent::HandleCreated);
+
+#ifdef  __WXMSW__
+        HWND hWnd = _wxWindow->GetHWND();
+        if (hWnd)
+        {
+            EnableTouchEvents(0);
+        }
+#endif
     }
 
     bool Control::GetBindScrollEvents()
@@ -1228,9 +1310,6 @@ namespace Alternet::UI
 
     void Control::ShowCore()
     {
-        //if (Application::GetCurrent()->GetInUixmlPreviewerMode())
-        //    return;
-
         GetWxWindow()->Show();
     }
 
@@ -1308,6 +1387,22 @@ namespace Alternet::UI
         _flags.Set(ControlFlags::DoNotDestroyWxWindow, value);
     }
 
+    Font* Control::GetFont()
+    {
+        return new Font(GetWxWindow()->GetFont());
+    }
+
+    void Control::SetFont(Font* value)
+    {
+        auto w = GetWxWindow();
+        if (value == nullptr)
+        {
+            w->SetFont(wxNullFont);
+            return;
+        }
+        w->SetFont(value->GetWxFont());
+    }
+
     bool Control::GetIsBold()
     {
         auto w = GetWxWindow();
@@ -1336,22 +1431,6 @@ namespace Alternet::UI
     void Control::UnsetToolTip()
     {
         GetWxWindow()->UnsetToolTip();
-    }
-
-    Font* Control::GetFont()
-    {
-        return new Font(GetWxWindow()->GetFont());
-    }
-
-    void Control::SetFont(Font* value)
-    {
-        auto w = GetWxWindow();
-        if (value == nullptr)
-        {
-            w->SetFont(wxNullFont);
-            return;
-        }
-        w->SetFont(value->GetWxFont());
     }
 
     void Control::BeginUpdate()
@@ -1419,7 +1498,8 @@ namespace Alternet::UI
         auto window = GetWxWindow();
         if (window->GetHandle() == nullptr)
         {
-            // On macOS, in case where the peer is not created, calling WindowToClientSize causes a crash.
+            // On macOS, in case where the peer is not created, calling
+            // WindowToClientSize causes a crash.
             return size;
         }
         
@@ -1441,31 +1521,70 @@ namespace Alternet::UI
         return _flags.IsSet(ControlFlags::CreatingWxWindow);
     }
 
+    void Control::SetCursor(void* handle)
+    {
+        if (handle == nullptr)
+        {
+            _cursor = wxNullCursor;
+        }
+        else
+        {
+            auto cursor = (wxCursor*)handle;
+            _cursor = wxCursor(*cursor);
+        }
+    }
+
+    bool Control::IsNullOrDeleting()
+    {
+        if (_wxWindow == nullptr || _destroyed)
+            return true;
+
+        if (_wxWindow->IsBeingDeleted())
+            return true;
+
+        return false;
+    }
+
+    void Control::OnSetCursor(wxSetCursorEvent& event)
+    {
+        if (IsNullOrDeleting())
+            return;
+
+        auto wxWindow = GetWxWindow();
+
+        auto mouseX = event.GetX();
+        auto mouseY = event.GetY();
+        auto mousePoint = wxPoint(mouseX, mouseY);
+
+        const wxWindowList& list = wxWindow->GetChildren();
+        for (wxWindowList::compatibility_iterator node = list.GetFirst(); node; node = node->GetNext())
+        {
+            auto current = node->GetData();
+            auto rect = current->GetRect();
+            auto contains = rect.Contains(mousePoint);
+            if (contains)
+            {
+                event.Skip();
+                return;
+            }
+        }
+
+        event.SetCursor(_cursor);
+    }
+
     void Control::OnIdle(wxIdleEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::Idle);
     }
 
     void Control::OnPaint(wxPaintEvent& event)
     {
         event.Skip();
-
-        /*if (GetUserPaint())
-        {
-            wxPaintDC dc(GetWxWindow());
-            
-            auto background = GetBackgroundColor();
-            wxColor color;
-            if (background.IsEmpty())
-                color = wxSystemSettings::GetColour(wxSystemColour::wxSYS_COLOUR_BTNFACE);
-            else
-                color = background;
-            
-            dc.SetBackground(wxBrush(color));
-            dc.Clear();
-        }*/
-
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::Paint);
     }
 
@@ -1476,12 +1595,16 @@ namespace Alternet::UI
 
     void Control::OnMouseCaptureLost(wxEvent& event)
     {
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::MouseCaptureLost);
     }
 
     void Control::OnMouseEnter(wxMouseEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::MouseEnter);
 
         auto window = GetParent();
@@ -1502,6 +1625,8 @@ namespace Alternet::UI
     void Control::OnMouseLeave(wxMouseEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::MouseLeave);
 
         auto window = GetParent();
@@ -1517,8 +1642,11 @@ namespace Alternet::UI
     void Control::OnVisibleChanged(wxShowEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
 
-        // For some reason this event is being called while destroying the window, despite the Unbind call prior to destruction.
+        // For some reason this event is being called while destroying the window,
+        // despite the Unbind call prior to destruction.
         auto window = dynamic_cast<wxWindow*>(event.GetEventObject());
         if (window->IsBeingDeleted())
             return;
@@ -1534,6 +1662,8 @@ namespace Alternet::UI
     void Control::OnLocationChanged(wxMoveEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
 
         auto wxWindow = GetWxWindow();
 
@@ -1548,6 +1678,8 @@ namespace Alternet::UI
     void Control::OnSizeChanged(wxSizeEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
 
         _flags.Set(ControlFlags::ClientSizeCacheValid, false);
 
@@ -1669,6 +1801,18 @@ namespace Alternet::UI
         _bounds.Set(value);
     }
 
+    RectI Control::GetBoundsI()
+    {
+        auto wxWindow = GetWxWindow();
+        return wxWindow->GetRect();
+    }
+
+    void Control::SetBoundsI(const RectI& value)
+    {
+        auto wxWindow = GetWxWindow();
+        wxWindow->SetSize(value);
+    }
+
     void Control::SetBoundsEx(const Rect& value, int flags)
     {
         auto wxWindow = GetWxWindow();
@@ -1721,6 +1865,24 @@ namespace Alternet::UI
     {
         auto wxWindow = GetWxWindow();
         return toDip(wxWindow->GetBestSize(), wxWindow);
+    }
+
+    void Control::InvalidateBestSize()
+    {
+        auto wxWindow = GetWxWindow();
+        wxWindow->InvalidateBestSize();
+    }
+
+    Control* Control::GetEventFocusedControl()
+    {
+        if (_eventFocusWindow == nullptr)
+            return nullptr;
+
+        auto control = TryFindControlByWxWindow(_eventFocusWindow);
+        if (control != nullptr)
+            control->AddRef();
+
+        return control;
     }
 
     /*static*/ Control* Control::TryFindControlByWxWindow(wxWindow* wxWindow)
@@ -1808,23 +1970,39 @@ namespace Alternet::UI
     }
 
 
-    wxDragResult Control::RaiseDragOver(const wxPoint& location, wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
+    wxDragResult Control::RaiseDragOver(const wxPoint& location,
+        wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
     {
-        return RaiseDragAndDropEvent(location, defaultDragResult, dataObjectComposite, ControlEvent::DragOver);
+        if (IsNullOrDeleting())
+            return wxDragResult::wxDragCancel;
+
+        return RaiseDragAndDropEvent(location, defaultDragResult,
+            dataObjectComposite, ControlEvent::DragOver);
     }
 
-    wxDragResult Control::RaiseDragEnter(const wxPoint& location, wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
+    wxDragResult Control::RaiseDragEnter(const wxPoint& location,
+        wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
     {
-        return RaiseDragAndDropEvent(location, defaultDragResult, dataObjectComposite, ControlEvent::DragEnter);
+        if (IsNullOrDeleting())
+            return wxDragResult::wxDragCancel;
+
+        return RaiseDragAndDropEvent(location, defaultDragResult,
+            dataObjectComposite, ControlEvent::DragEnter);
     }
 
-    wxDragResult Control::RaiseDragDrop(const wxPoint& location, wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
+    wxDragResult Control::RaiseDragDrop(const wxPoint& location,
+        wxDragResult defaultDragResult, wxDataObjectComposite* dataObjectComposite)
     {
-        return RaiseDragAndDropEvent(location, defaultDragResult, dataObjectComposite, ControlEvent::DragDrop);
+        if (IsNullOrDeleting())
+            return wxDragResult::wxDragCancel;
+        return RaiseDragAndDropEvent(location, defaultDragResult,
+            dataObjectComposite, ControlEvent::DragDrop);
     }
 
     void Control::RaiseDragLeave()
     {
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::DragLeave);
     }
 
@@ -1893,7 +2071,8 @@ namespace Alternet::UI
         }
     }
 
-    DelayedValue<Control, Control::ScrollInfo>& Control::GetScrollInfoDelayedValue(ScrollBarOrientation orientation)
+    DelayedValue<Control, Control::ScrollInfo>& Control::GetScrollInfoDelayedValue(
+        ScrollBarOrientation orientation)
     {
         switch (orientation)
         {
@@ -1918,6 +2097,12 @@ namespace Alternet::UI
         info.visible = info.maximum > 0;
 
         return info;
+    }
+
+    bool Control::EnableTouchEvents(int flag)
+    {
+        auto window = GetWxWindow();
+        return window->EnableTouchEvents(flag);
     }
 
     void Control::SetScrollInfo(ScrollBarOrientation orientation, const ScrollInfo& value)
@@ -1954,7 +2139,8 @@ namespace Alternet::UI
         SetScrollInfo(ScrollBarOrientation::Horizontal, value);
     }
 
-    void Control::SetScrollBar(ScrollBarOrientation orientation, bool visible, int value, int largeChange, int maximum)
+    void Control::SetScrollBar(ScrollBarOrientation orientation,
+        bool visible, int value, int largeChange, int maximum)
     {
         auto& delayedValue = GetScrollInfoDelayedValue(orientation);
         
@@ -1997,7 +2183,7 @@ namespace Alternet::UI
         if (GetUserPaint() == value)
             return;
         _flags.Set(ControlFlags::UserPaint, value);
-        RecreateWxWindowIfNeeded();
+        GetWxWindow()->SetDoubleBuffered(value);
     }
 
     wxWindow* wxFindWindowAtPoint(wxWindow* win, const wxPoint& pt)
@@ -2085,6 +2271,16 @@ namespace Alternet::UI
         return toDip(wxPoint(point.X, point.Y), GetWxWindow());
     }
 
+    bool Control::CanScroll(int orient)
+    {
+        return GetWxWindow()->CanScroll(orient);
+    }
+
+    bool Control::HasScrollbar(int orient)
+    {
+        return GetWxWindow()->HasScrollbar(orient);
+    }
+
     void* Control::GetContainingSizer() 
     {
         return GetWxWindow()->GetContainingSizer();
@@ -2135,17 +2331,6 @@ namespace Alternet::UI
 
         window->SetFocus();
         return window->HasFocus();
-    }
-
-    void Control::SetCursor(void* handle)
-    {
-        if(handle == nullptr)
-            GetWxWindow()->SetCursor(wxNullCursor);
-        else
-        {
-            auto cursor = (wxCursor*)handle;
-            GetWxWindow()->SetCursor(wxCursor(*cursor));
-        }
     }
 
     /*static*/ Control* Control::GetFocusedControl()
@@ -2277,6 +2462,8 @@ namespace Alternet::UI
     void Control::OnDpiChanged(wxDPIChangedEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         _eventOldDpi = event.GetOldDPI();
         _eventNewDpi = event.GetNewDPI();
         RaiseEvent(ControlEvent::DpiChanged);
@@ -2285,6 +2472,8 @@ namespace Alternet::UI
     void Control::OnTextChanged(wxCommandEvent& event)
     {
         event.Skip();
+        if (IsNullOrDeleting())
+            return;
         RaiseEvent(ControlEvent::TextChanged);
     }
 
@@ -2311,5 +2500,103 @@ namespace Alternet::UI
     Font* Control::GetClassDefaultAttributesFont(int controlType, int windowVariant)
     {
         return new Font(GetClassDefaultAttributes(controlType, windowVariant).font);
+    }
+
+    bool Control::GetWantChars()
+    {
+        return _wantChars;
+    }
+
+    void Control::SetWantChars(bool value)
+    {
+        if (_wantChars == value)
+            return;
+        _wantChars = value;
+    }
+
+    bool Control::GetShowVertScrollBar()
+    {
+        return _showVertScrollBar;
+    }
+
+    void Control::SetShowVertScrollBar(bool value)
+    {
+        if (_showVertScrollBar == value)
+            return;
+        _showVertScrollBar = value;
+        RecreateWxWindowIfNeeded();
+    }
+
+    bool Control::GetShowHorzScrollBar()
+    {
+        return _showHorzScrollBar;
+    }
+
+    void Control::SetShowHorzScrollBar(bool value)
+    {
+        if (_showHorzScrollBar == value)
+            return;
+        _showHorzScrollBar = value;
+        RecreateWxWindowIfNeeded();
+    }
+
+    bool Control::GetScrollBarAlwaysVisible()
+    {
+        return _scrollBarAlwaysVisible;
+    }
+
+    void Control::SetScrollBarAlwaysVisible(bool value)
+    {
+        if (_scrollBarAlwaysVisible == value)
+            return;
+        _scrollBarAlwaysVisible = value;
+        RecreateWxWindowIfNeeded();
+    }
+
+    class ControlNonAbstract : public Control
+    {
+    public:
+        wxWindow* CreateWxWindowCore(wxWindow* parent) override;
+        wxWindow* CreateWxWindowUnparented() override;
+
+    protected:
+    private:
+    };
+
+    void* Control::CreateControl()
+    {
+        return new ControlNonAbstract();
+    }
+
+    wxWindow* ControlNonAbstract::CreateWxWindowUnparented()
+    {
+        return new wxWindow2();
+    }
+
+    long Control::GetDefaultStyle()
+    {
+        long style = wxNO_BORDER;
+
+        if (_wantChars)
+            style |= wxWANTS_CHARS;
+
+        if (GetIsScrollable())
+            style |= wxHSCROLL | wxVSCROLL;
+        if (_scrollBarAlwaysVisible)
+            style |= wxALWAYS_SHOW_SB;
+        if (_showVertScrollBar)
+            style |= wxVSCROLL;
+        if (_showHorzScrollBar)
+            style |= wxHSCROLL;
+
+        return style;
+    }
+
+    wxWindow* ControlNonAbstract::CreateWxWindowCore(wxWindow* parent)
+    {
+        auto style = GetDefaultStyle();
+
+        auto p = new wxWindow2(this, parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, style);
+        return p;
     }
 }

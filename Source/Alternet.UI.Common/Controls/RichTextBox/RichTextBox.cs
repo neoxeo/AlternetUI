@@ -22,8 +22,19 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="RichTextBox"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public RichTextBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RichTextBox"/> class.
+        /// </summary>
         public RichTextBox()
         {
+            WantTab = true;
         }
 
         /// <summary>
@@ -92,6 +103,13 @@ namespace Alternet.UI
             }
         }
 
+        /// <inheritdoc/>
+        public override bool WantTab
+        {
+            get => base.WantTab && !ReadOnly;
+            set => base.WantTab = value;
+        }
+
         /// <summary>
         /// Gets or sets whether to call <see cref="HandleAdditionalKeys"/> method
         /// when key is pressed. Default is <c>true</c>.
@@ -108,11 +126,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.GetFileName();
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.SetFileName(value ?? string.Empty);
             }
         }
@@ -147,6 +169,7 @@ namespace Alternet.UI
         /// Gets or sets <see cref="ModifierKeys"/> used when clicked url is autoimatically opened
         /// in the browser when <see cref="AutoUrlOpen"/> is <c>true</c>.
         /// </summary>
+        [Browsable(false)]
         public virtual ModifierKeys? AutoUrlModifiers { get; set; }
 
         /// <summary>
@@ -164,12 +187,17 @@ namespace Alternet.UI
         {
             get
             {
-                return Handler.GetValue();
+                return base.Text;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 value ??= string.Empty;
+                if (value == Text)
+                    return;
+                base.Text = value;
                 Handler.SetValue(value);
             }
         }
@@ -236,7 +264,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the control has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
             get
             {
@@ -245,6 +274,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (hasBorder == value)
                     return;
                 hasBorder = value;
@@ -256,12 +287,12 @@ namespace Alternet.UI
         public override ControlTypeId ControlKind => ControlTypeId.RichTextBox;
 
         [Browsable(false)]
-        internal new IRichTextBoxHandler Handler
+        internal new IRichTextBox Handler
         {
             get
             {
                 CheckDisposed();
-                return (IRichTextBoxHandler)base.Handler;
+                return (IRichTextBox)base.Handler;
             }
         }
 
@@ -286,6 +317,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual ITextBoxRichAttr CreateRichAttr()
         {
+            if (DisposingOrDisposed)
+                return new PlessTextBoxRichAttr();
             return Handler.CreateRichAttr();
         }
 
@@ -294,6 +327,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual string GetRange(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetRange(from, to);
         }
 
@@ -302,6 +337,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual int GetLineLength(long lineNo)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLineLength(lineNo);
         }
 
@@ -310,6 +347,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual string GetLineText(long lineNo)
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetLineText(lineNo);
         }
 
@@ -318,6 +357,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual int GetNumberOfLines()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetNumberOfLines();
         }
 
@@ -326,6 +367,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsModified()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsModified();
         }
 
@@ -334,6 +377,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsEditable()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsEditable();
         }
 
@@ -343,6 +388,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsSingleLine()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsSingleLine();
         }
 
@@ -351,6 +398,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsMultiLine()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsMultiLine();
         }
 
@@ -359,6 +408,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual string GetStringSelection()
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetStringSelection();
         }
 
@@ -369,6 +420,8 @@ namespace Alternet.UI
         /// <param name="threshold"></param>
         public virtual void SetDelayedLayoutThreshold(long threshold)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetDelayedLayoutThreshold(threshold);
         }
 
@@ -378,6 +431,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetDelayedLayoutThreshold()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetDelayedLayoutThreshold();
         }
 
@@ -386,6 +441,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetFullLayoutRequired()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFullLayoutRequired();
         }
 
@@ -395,6 +452,8 @@ namespace Alternet.UI
         /// <param name="b"></param>
         public virtual void SetFullLayoutRequired(bool b)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetFullLayoutRequired(b);
         }
 
@@ -403,6 +462,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetFullLayoutTime()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFullLayoutTime();
         }
 
@@ -412,6 +473,8 @@ namespace Alternet.UI
         /// <param name="t"></param>
         public virtual void SetFullLayoutTime(long t)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetFullLayoutTime(t);
         }
 
@@ -421,6 +484,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual long GetFullLayoutSavedPosition()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFullLayoutSavedPosition();
         }
 
@@ -432,6 +497,8 @@ namespace Alternet.UI
         /// </param>
         public virtual void OnTextUrl(UrlEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             TextUrl?.Invoke(this, e);
             if (e.Cancel)
                 return;
@@ -445,10 +512,12 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        ///     Raises the <see cref="EnterPressed"/> event.
+        /// Raises the <see cref="EnterPressed"/> event.
         /// </summary>
         public virtual void OnEnterPressed()
         {
+            if (DisposingOrDisposed)
+                return;
             EnterPressed?.Invoke(this, EventArgs.Empty);
         }
 
@@ -478,12 +547,16 @@ namespace Alternet.UI
         /// </returns>
         public virtual bool SetDefaultStyle(ITextBoxTextAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetDefaultStyle(style);
         }
 
         /// <inheritdoc cref="SetDefaultStyle"/>
         public virtual bool SetDefaultRichStyle(ITextBoxRichAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetDefaultRichStyle(style);
         }
 
@@ -541,6 +614,8 @@ namespace Alternet.UI
         /// <param name="p"></param>
         public virtual void SetFullLayoutSavedPosition(long p)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetFullLayoutSavedPosition(p);
         }
 
@@ -549,6 +624,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void ForceDelayedLayout()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.ForceDelayedLayout();
         }
 
@@ -559,6 +636,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual bool GetCaretAtLineStart()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetCaretAtLineStart();
         }
 
@@ -569,6 +648,8 @@ namespace Alternet.UI
         /// <param name="atStart"></param>
         public virtual void SetCaretAtLineStart(bool atStart)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetCaretAtLineStart(atStart);
         }
 
@@ -578,6 +659,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual bool GetDragging()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetDragging();
         }
 
@@ -595,6 +678,8 @@ namespace Alternet.UI
         /// <param name="dragging"></param>
         public virtual void SetDragging(bool dragging)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetDragging(dragging);
         }
 
@@ -604,6 +689,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetSelectionAnchor()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetSelectionAnchor();
         }
 
@@ -613,6 +700,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetSelectionAnchor(long anchor)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetSelectionAnchor(anchor);
         }
 
@@ -621,14 +710,18 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Clear()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Clear();
         }
 
         /// <summary>
-        /// Replaces the content in the specified range with the string specified by @a value.
+        /// Replaces the content in the specified range with the string specified by a value.
         /// </summary>
         public virtual void Replace(long from, long to, string value)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Replace(from, to, value);
         }
 
@@ -637,6 +730,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Remove(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Remove(from, to);
         }
 
@@ -654,6 +749,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool LoadFromFile(string file, RichTextFileType type = RichTextFileType.Any)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.LoadFromFile(file, type);
         }
 
@@ -671,6 +768,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool SaveToFile(string file, RichTextFileType type = RichTextFileType.Any)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SaveToFile(file, type);
         }
 
@@ -687,6 +786,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual bool SaveToStream(Stream stream, RichTextFileType type)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SaveToStream(stream, type);
         }
 
@@ -703,6 +804,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual bool LoadFromStream(Stream stream, RichTextFileType type)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.LoadFromStream(stream, type);
         }
 
@@ -713,6 +816,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetFileHandlerFlags(RichTextHandlerFlags knownFlags, int customFlags = 0)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetFileHandlerFlags(knownFlags, customFlags);
         }
 
@@ -723,6 +828,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual int GetFileHandlerFlags()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFileHandlerFlags();
         }
 
@@ -731,6 +838,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void MarkDirty()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.MarkDirty();
         }
 
@@ -739,6 +848,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void DiscardEdits()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.DiscardEdits();
         }
 
@@ -748,6 +859,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetMaxLength(ulong len)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetMaxLength(len);
         }
 
@@ -756,6 +869,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void WriteText(string text)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.WriteText(text);
         }
 
@@ -764,6 +879,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void AppendText(string text)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.AppendText(text);
         }
 
@@ -772,6 +889,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long XYToPosition(long x, long y)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.XYToPosition(x, y);
         }
 
@@ -780,6 +899,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void ShowPosition(long pos)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.ShowPosition(pos);
         }
 
@@ -788,6 +909,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Copy()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Copy();
         }
 
@@ -797,6 +920,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Cut()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Cut();
         }
 
@@ -805,6 +930,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Paste()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Paste();
         }
 
@@ -813,6 +940,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void DeleteSelection()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.DeleteSelection();
         }
 
@@ -821,6 +950,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanCopy()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanCopy();
         }
 
@@ -829,6 +960,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanCut()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanCut();
         }
 
@@ -837,6 +970,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanPaste()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanPaste();
         }
 
@@ -845,6 +980,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanDeleteSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanDeleteSelection();
         }
 
@@ -853,6 +990,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Undo()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Undo();
         }
 
@@ -861,6 +1000,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Redo()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Redo();
         }
 
@@ -869,6 +1010,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanUndo();
         }
 
@@ -877,6 +1020,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool CanRedo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanRedo();
         }
 
@@ -886,6 +1031,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetInsertionPoint(long pos)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetInsertionPoint(pos);
         }
 
@@ -894,6 +1041,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetInsertionPointEnd()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetInsertionPointEnd();
         }
 
@@ -902,6 +1051,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetInsertionPoint()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetInsertionPoint();
         }
 
@@ -914,6 +1065,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetSelection(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetSelection(from, to);
         }
 
@@ -922,6 +1075,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetEditable(bool editable)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetEditable(editable);
         }
 
@@ -931,6 +1086,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool HasSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.HasSelection();
         }
 
@@ -940,6 +1097,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool HasUnfocusedSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.HasUnfocusedSelection();
         }
 
@@ -953,6 +1112,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool NewLine(int count)
         {
+            if (DisposingOrDisposed)
+                return default;
             for (int i = 0; i < count; i++)
             {
                 var result = Handler.NewLine();
@@ -970,6 +1131,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool LineBreak()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.LineBreak();
         }
 
@@ -978,6 +1141,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndStyle();
         }
 
@@ -986,6 +1151,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndAllStyles()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndAllStyles();
         }
 
@@ -994,6 +1161,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginBold()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginBold();
         }
 
@@ -1002,6 +1171,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndBold()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndBold();
         }
 
@@ -1010,6 +1181,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginItalic()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginItalic();
         }
 
@@ -1018,6 +1191,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndItalic()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndItalic();
         }
 
@@ -1026,6 +1201,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginUnderline()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginUnderline();
         }
 
@@ -1034,6 +1211,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndUnderline()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndUnderline();
         }
 
@@ -1042,14 +1221,18 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginFontSize(int pointSize)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginFontSize(pointSize);
         }
 
         /// <summary>
         /// Begins using the given point size.
         /// </summary>
-        public virtual bool BeginFontSize(double pointSize)
+        public virtual bool BeginFontSize(Coord pointSize)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginFontSize((int)pointSize);
         }
 
@@ -1058,6 +1241,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndFontSize()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndFontSize();
         }
 
@@ -1066,6 +1251,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndFont()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndFont();
         }
 
@@ -1074,6 +1261,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginTextColor(Color color)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginTextColor(color);
         }
 
@@ -1082,6 +1271,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndTextColor()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndTextColor();
         }
 
@@ -1090,6 +1281,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginAlignment(TextBoxTextAttrAlignment alignment)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginAlignment(alignment);
         }
 
@@ -1098,6 +1291,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndAlignment()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndAlignment();
         }
 
@@ -1124,6 +1319,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool BeginLeftIndent(int leftIndent, int leftSubIndent = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginLeftIndent(leftIndent, leftSubIndent);
         }
 
@@ -1132,6 +1329,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndLeftIndent()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndLeftIndent();
         }
 
@@ -1140,6 +1339,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginRightIndent(int rightIndent)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginRightIndent(rightIndent);
         }
 
@@ -1148,6 +1349,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndRightIndent()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndRightIndent();
         }
 
@@ -1157,6 +1360,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginParagraphSpacing(int before, int after)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginParagraphSpacing(before, after);
         }
 
@@ -1165,6 +1370,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndParagraphSpacing()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndParagraphSpacing();
         }
 
@@ -1179,6 +1386,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual bool BeginLineSpacing(int lineSpacing)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginLineSpacing(lineSpacing);
         }
 
@@ -1187,6 +1396,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndLineSpacing()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndLineSpacing();
         }
 
@@ -1214,8 +1425,11 @@ namespace Alternet.UI
             int bulletNumber,
             int leftIndent,
             int leftSubIndent,
-            TextBoxTextAttrBulletStyle bulletStyle = TextBoxTextAttrBulletStyle.Arabic | TextBoxTextAttrBulletStyle.Period)
+            TextBoxTextAttrBulletStyle bulletStyle
+            = TextBoxTextAttrBulletStyle.Arabic | TextBoxTextAttrBulletStyle.Period)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginNumberedBullet(
                 bulletNumber,
                 leftIndent,
@@ -1228,6 +1442,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndNumberedBullet()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndNumberedBullet();
         }
 
@@ -1242,6 +1458,8 @@ namespace Alternet.UI
             int leftSubIndent,
             TextBoxTextAttrBulletStyle bulletStyle = TextBoxTextAttrBulletStyle.Symbol)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginSymbolBullet(
                 symbol,
                 leftIndent,
@@ -1254,6 +1472,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndSymbolBullet()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndSymbolBullet();
         }
 
@@ -1266,6 +1486,8 @@ namespace Alternet.UI
             int leftSubIndent,
             TextBoxTextAttrBulletStyle bulletStyle = TextBoxTextAttrBulletStyle.Standard)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginStandardBullet(
                 bulletName,
                 leftIndent,
@@ -1278,6 +1500,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndStandardBullet()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndStandardBullet();
         }
 
@@ -1286,6 +1510,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginCharacterStyle(string characterStyle)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginCharacterStyle(characterStyle);
         }
 
@@ -1294,6 +1520,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndCharacterStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndCharacterStyle();
         }
 
@@ -1302,6 +1530,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginParagraphStyle(string paragraphStyle)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginParagraphStyle(paragraphStyle);
         }
 
@@ -1310,6 +1540,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndParagraphStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndParagraphStyle();
         }
 
@@ -1319,6 +1551,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginListStyle(string listStyle, int level = 1, int number = 1)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginListStyle(listStyle, level, number);
         }
 
@@ -1327,6 +1561,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndListStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndListStyle();
         }
 
@@ -1337,6 +1573,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginURL(string url, string? characterStyle = default)
         {
+            if (DisposingOrDisposed)
+                return default;
             characterStyle ??= string.Empty;
             return Handler.BeginURL(url, characterStyle);
         }
@@ -1346,6 +1584,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndURL()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndURL();
         }
 
@@ -1355,6 +1595,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsSelectionBold()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsSelectionBold();
         }
 
@@ -1364,6 +1606,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsSelectionItalics()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsSelectionItalics();
         }
 
@@ -1373,6 +1617,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsSelectionUnderlined()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsSelectionUnderlined();
         }
 
@@ -1382,6 +1628,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool DoesSelectionHaveTextEffectFlag(TextBoxTextAttrEffects flag)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.DoesSelectionHaveTextEffectFlag(flag);
         }
 
@@ -1391,6 +1639,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsSelectionAligned(TextBoxTextAttrAlignment alignment)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsSelectionAligned(alignment);
         }
 
@@ -1399,6 +1649,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ApplyBoldToSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ApplyBoldToSelection();
         }
 
@@ -1407,6 +1659,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ApplyItalicToSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ApplyItalicToSelection();
         }
 
@@ -1415,6 +1669,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ApplyUnderlineToSelection()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ApplyUnderlineToSelection();
         }
 
@@ -1424,6 +1680,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ApplyTextEffectToSelection(TextBoxTextAttrEffects flags)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ApplyTextEffectToSelection(flags);
         }
 
@@ -1432,6 +1690,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ApplyAlignmentToSelection(TextBoxTextAttrAlignment alignment)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ApplyAlignmentToSelection(alignment);
         }
 
@@ -1440,6 +1700,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool SetDefaultStyleToCursorStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetDefaultStyleToCursorStyle();
         }
 
@@ -1448,6 +1710,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SelectNone()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SelectNone();
         }
 
@@ -1456,6 +1720,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool SelectWord(long position)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SelectWord(position);
         }
 
@@ -1466,118 +1732,148 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool LayoutContent(bool onlyVisibleRect = false)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.LayoutContent(onlyVisibleRect);
         }
 
         /// <summary>
         /// Moves right.
         /// </summary>
-        public virtual bool MoveRight(int noPositions = 1, int flags = 0)
+        public virtual bool MoveRight(int noPositions = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveRight(noPositions, flags);
         }
 
         /// <summary>
         /// Moves left.
         /// </summary>
-        public virtual bool MoveLeft(int noPositions = 1, int flags = 0)
+        public virtual bool MoveLeft(int noPositions = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveLeft(noPositions, flags);
         }
 
         /// <summary>
         /// Moves to the start of the paragraph.
         /// </summary>
-        public virtual bool MoveUp(int noLines = 1, int flags = 0)
+        public virtual bool MoveUp(int noLines = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveUp(noLines, flags);
         }
 
         /// <summary>
         /// Moves the caret down.
         /// </summary>
-        public virtual bool MoveDown(int noLines = 1, int flags = 0)
+        public virtual bool MoveDown(int noLines = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveDown(noLines, flags);
         }
 
         /// <summary>
         /// Moves to the end of the line.
         /// </summary>
-        public virtual bool MoveToLineEnd(int flags = 0)
+        public virtual bool MoveToLineEnd(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveToLineEnd(flags);
         }
 
         /// <summary>
         /// Moves to the start of the line.
         /// </summary>
-        public virtual bool MoveToLineStart(int flags = 0)
+        public virtual bool MoveToLineStart(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveToLineStart(flags);
         }
 
         /// <summary>
         /// Moves to the end of the paragraph.
         /// </summary>
-        public virtual bool MoveToParagraphEnd(int flags = 0)
+        public virtual bool MoveToParagraphEnd(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveToParagraphEnd(flags);
         }
 
         /// <summary>
         /// Moves to the start of the paragraph.
         /// </summary>
-        public virtual bool MoveToParagraphStart(int flags = 0)
+        public virtual bool MoveToParagraphStart(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveToParagraphStart(flags);
         }
 
         /// <summary>
         /// Moves to the start of the buffer.
         /// </summary>
-        public virtual bool MoveHome(int flags = 0)
+        public virtual bool MoveHome(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveHome(flags);
         }
 
         /// <summary>
         /// Moves to the end of the buffer.
         /// </summary>
-        public virtual bool MoveEnd(int flags = 0)
+        public virtual bool MoveEnd(RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.MoveEnd(flags);
         }
 
         /// <summary>
         /// Moves one or more pages up.
         /// </summary>
-        public virtual bool PageUp(int noPages = 1, int flags = 0)
+        public virtual bool PageUp(int noPages = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PageUp(noPages, flags);
         }
 
         /// <summary>
         /// Moves one or more pages down.
         /// </summary>
-        public virtual bool PageDown(int noPages = 1, int flags = 0)
+        public virtual bool PageDown(int noPages = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PageDown(noPages, flags);
         }
 
         /// <summary>
         /// Moves a number of words to the left.
         /// </summary>
-        public virtual bool WordLeft(int noPages = 1, int flags = 0)
+        public virtual bool WordLeft(int noPages = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.WordLeft(noPages, flags);
         }
 
         /// <summary>
         /// Move a number of words to the right.
         /// </summary>
-        public virtual bool WordRight(int noPages = 1, int flags = 0)
+        public virtual bool WordRight(int noPages = 1, RichTextMoveCaretFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.WordRight(noPages, flags);
         }
 
@@ -1586,6 +1882,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginBatchUndo(string cmdName)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginBatchUndo(cmdName);
         }
 
@@ -1594,6 +1892,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndBatchUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndBatchUndo();
         }
 
@@ -1602,6 +1902,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BatchingUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BatchingUndo();
         }
 
@@ -1610,6 +1912,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginSuppressUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginSuppressUndo();
         }
 
@@ -1618,6 +1922,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool EndSuppressUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.EndSuppressUndo();
         }
 
@@ -1627,6 +1933,8 @@ namespace Alternet.UI
         /// </summary>
         public ITextBoxRichAttr GetDefaultStyleEx()
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetDefaultStyleEx();
         }
 
@@ -1635,6 +1943,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool SuppressingUndo()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SuppressingUndo();
         }
 
@@ -1643,6 +1953,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void EnableVerticalScrollbar(bool enable)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.EnableVerticalScrollbar(enable);
         }
 
@@ -1651,22 +1963,28 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetVerticalScrollbarEnabled()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetVerticalScrollbarEnabled();
         }
 
         /// <summary>
         /// Sets the scale factor for displaying fonts, for example for more comfortableediting.
         /// </summary>
-        public virtual void SetFontScale(double fontScale, bool refresh = false)
+        public virtual void SetFontScale(Coord fontScale, bool refresh = false)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetFontScale(fontScale, refresh);
         }
 
         /// <summary>
         /// Returns the scale factor for displaying fonts, for example for more comfortable editing.
         /// </summary>
-        public virtual double GetFontScale()
+        public virtual Coord GetFontScale()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFontScale();
         }
 
@@ -1675,6 +1993,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetVirtualAttributesEnabled()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetVirtualAttributesEnabled();
         }
 
@@ -1683,14 +2003,18 @@ namespace Alternet.UI
         /// </summary>
         public virtual void EnableVirtualAttributes(bool b)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.EnableVirtualAttributes(b);
         }
 
         /// <summary>
         /// Writes text.
         /// </summary>
-        public virtual void DoWriteText(string value, int flags = 0)
+        public virtual void DoWriteText(string value, TextBoxSetValueFlags flags = 0)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.DoWriteText(value, flags);
         }
 
@@ -1698,8 +2022,13 @@ namespace Alternet.UI
         /// Helper function for extending the selection, returning <c>true</c> if the selection
         /// was changed. Selections are in caret positions.
         /// </summary>
-        public virtual bool ExtendSelection(long oldPosition, long newPosition, int flags)
+        public virtual bool ExtendSelection(
+            long oldPosition,
+            long newPosition,
+            RichTextMoveCaretFlags flags)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ExtendSelection(oldPosition, newPosition, flags);
         }
 
@@ -1715,6 +2044,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void SetCaretPosition(long position, bool showAtLineStart = false)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetCaretPosition(position, showAtLineStart);
         }
 
@@ -1723,6 +2054,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetCaretPosition()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetCaretPosition();
         }
 
@@ -1736,6 +2069,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual long GetAdjustedCaretPosition(long caretPos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetAdjustedCaretPosition(caretPos);
         }
 
@@ -1746,6 +2081,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void MoveCaretForward(long oldPosition)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.MoveCaretForward(oldPosition);
         }
 
@@ -1754,6 +2091,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual PointI GetPhysicalPoint(PointI ptLogical)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetPhysicalPoint(ptLogical);
         }
 
@@ -1762,6 +2101,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual PointI GetLogicalPoint(PointI ptPhysical)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLogicalPoint(ptPhysical);
         }
 
@@ -1771,6 +2112,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long FindNextWordPosition(int direction = 1)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.FindNextWordPosition(direction);
         }
 
@@ -1779,6 +2122,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsPositionVisible(long pos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsPositionVisible(pos);
         }
 
@@ -1787,6 +2132,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetFirstVisiblePosition()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFirstVisiblePosition();
         }
 
@@ -1798,6 +2145,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetCaretPositionForDefaultStyle()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetCaretPositionForDefaultStyle();
         }
 
@@ -1806,6 +2155,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetCaretPositionForDefaultStyle(long pos)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetCaretPositionForDefaultStyle(pos);
         }
 
@@ -1816,6 +2167,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void MoveCaretBack(long oldPosition)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.MoveCaretBack(oldPosition);
         }
 
@@ -1824,6 +2177,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginFont(Font? font)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginFont(font);
         }
 
@@ -1834,6 +2189,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool IsDefaultStyleShowing()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsDefaultStyleShowing();
         }
 
@@ -1842,6 +2199,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual PointI GetFirstVisiblePoint()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetFirstVisiblePoint();
         }
 
@@ -1850,6 +2209,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void EnableImages(bool b)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.EnableImages(b);
         }
 
@@ -1858,6 +2219,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetImagesEnabled()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetImagesEnabled();
         }
 
@@ -1866,6 +2229,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void EnableDelayedImageLoading(bool b)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.EnableDelayedImageLoading(b);
         }
 
@@ -1874,6 +2239,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetDelayedImageLoading()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetDelayedImageLoading();
         }
 
@@ -1882,6 +2249,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool GetDelayedImageProcessingRequired()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetDelayedImageProcessingRequired();
         }
 
@@ -1890,6 +2259,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetDelayedImageProcessingRequired(bool b)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetDelayedImageProcessingRequired(b);
         }
 
@@ -1898,6 +2269,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetDelayedImageProcessingTime()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetDelayedImageProcessingTime();
         }
 
@@ -1906,6 +2279,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetDelayedImageProcessingTime(long t)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetDelayedImageProcessingTime(t);
         }
 
@@ -1914,6 +2289,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual string GetValue()
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetValue();
         }
 
@@ -1922,6 +2299,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetValue(string value)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetValue(value);
         }
 
@@ -1930,6 +2309,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetLineHeight(int height)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetLineHeight(height);
         }
 
@@ -1938,6 +2319,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual int GetLineHeight()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLineHeight();
         }
 
@@ -1946,6 +2329,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool ProcessDelayedImageLoading(bool refresh)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ProcessDelayedImageLoading(refresh);
         }
 
@@ -1954,6 +2339,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void RequestDelayedImageProcessing()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.RequestDelayedImageProcessing();
         }
 
@@ -1962,6 +2349,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long GetLastPosition()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLastPosition();
         }
 
@@ -1987,6 +2376,8 @@ namespace Alternet.UI
             int startFrom = 1,
             int specifiedLevel = -1)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetListStyle(
                 startRange,
                 endRange,
@@ -2006,25 +2397,31 @@ namespace Alternet.UI
         /// <returns></returns>
         /// <remarks>
         /// <paramref name="flags"/> is a bit list of the following:
-        /// <see cref="RichTextSetStyleFlags.WithUndo"/>: specifies that this command will be undoable.
+        /// <see cref="RichTextSetStyleFlags.WithUndo"/>: specifies that
+        /// this command will be undoable.
         /// </remarks>
         public virtual bool ClearListStyle(
             long startRange,
             long endRange,
             RichTextSetStyleFlags flags = RichTextSetStyleFlags.WithUndo)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.ClearListStyle(startRange, endRange, flags);
         }
 
         /// <summary>
-        /// Write a table at the current insertion point, returning the table.
+        /// Writes a table at the current insertion point, returning the table.
+        /// If Null is returned, table was not created.
         /// </summary>
-        public virtual object WriteTable(
+        public virtual object? WriteTable(
             int rows,
             int cols,
             ITextBoxRichAttr? tableAttr = default,
             ITextBoxRichAttr? cellAttr = default)
         {
+            if (DisposingOrDisposed)
+                return null;
             return Handler.WriteTable(
                 rows,
                 cols,
@@ -2053,6 +2450,8 @@ namespace Alternet.UI
             int startFrom = 1,
             int specifiedLevel = -1)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.NumberList(
                 startRange,
                 endRange,
@@ -2086,6 +2485,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual ITextBoxTextAttr GetStyle(long position)
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetStyle(position);
         }
 
@@ -2100,6 +2501,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual ITextBoxRichAttr GetRichStyle(long position)
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetRichStyle(position);
         }
 
@@ -2126,6 +2529,8 @@ namespace Alternet.UI
             ITextBoxRichAttr style,
             RichTextSetStyleFlags flags = RichTextSetStyleFlags.WithUndo)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetStyleEx(startRange, endRange, style, flags);
         }
 
@@ -2154,6 +2559,8 @@ namespace Alternet.UI
             RichTextSetStyleFlags flags = RichTextSetStyleFlags.WithUndo,
             int specifiedLevel = -1)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PromoteList(
                 promoteBy,
                 startRange,
@@ -2168,6 +2575,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetTextCursor(Cursor? cursor)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetTextCursor(cursor);
         }
 
@@ -2176,6 +2585,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual Cursor GetTextCursor()
         {
+            if (DisposingOrDisposed)
+                return Cursors.Default;
             return Handler.GetTextCursor();
         }
 
@@ -2184,6 +2595,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetURLCursor(Cursor? cursor)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetURLCursor(cursor);
         }
 
@@ -2192,6 +2605,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual Cursor GetURLCursor()
         {
+            if (DisposingOrDisposed)
+                return Cursors.Default;
             return Handler.GetURLCursor();
         }
 
@@ -2201,6 +2616,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void IdleAction()
         {
+            if (DisposingOrDisposed)
+                return;
             if (CurrentPositionChanged is not null)
             {
                 var currentPos = CurrentPosition;
@@ -2218,6 +2635,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetAndShowDefaultStyle(ITextBoxRichAttr attr)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetAndShowDefaultStyle(attr);
         }
 
@@ -2232,6 +2651,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void SetBasicStyle(ITextBoxRichAttr style)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetBasicStyle(style);
         }
 
@@ -2248,6 +2669,8 @@ namespace Alternet.UI
             long endRange,
             ITextBoxRichAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.HasParagraphAttributes(startRange, endRange, style);
         }
 
@@ -2262,6 +2685,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual ITextBoxRichAttr GetBasicStyle()
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetBasicStyle();
         }
 
@@ -2270,6 +2695,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool Delete(long startRange, long endRange)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.Delete(startRange, endRange);
         }
 
@@ -2278,6 +2705,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual bool BeginStyle(ITextBoxRichAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.BeginStyle(style);
         }
 
@@ -2291,6 +2720,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool SetStyle(long start, long end, ITextBoxTextAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetStyle(start, end, style);
         }
 
@@ -2304,6 +2735,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool SetRichStyle(long start, long end, ITextBoxRichAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetRichStyle(start, end, style);
         }
 
@@ -2316,6 +2749,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetSelectionRange(long startRange, long endRange)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetSelectionRange(startRange, endRange);
         }
 
@@ -2324,6 +2759,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual PointI PositionToXY(long pos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PositionToXY(pos);
         }
 
@@ -2334,6 +2771,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual ITextBoxTextAttr GetStyleForRange(long startRange, long endRange)
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetStyleForRange(startRange, endRange);
         }
 
@@ -2344,6 +2783,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual ITextBoxRichAttr GetRichStyleForRange(long startRange, long endRange)
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.GetRichStyleForRange(startRange, endRange);
         }
 
@@ -2353,6 +2794,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual ITextBoxTextAttr CreateTextAttr()
         {
+            if (DisposingOrDisposed)
+                return PlessTextBoxRichAttr.Empty;
             return Handler.CreateTextAttr();
         }
 
@@ -2363,6 +2806,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual long DeleteSelectedContent()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.DeleteSelectedContent();
         }
 
@@ -2373,8 +2818,13 @@ namespace Alternet.UI
         /// <param name="size">Image size.</param>
         /// <param name="textAttr">Optional text attribute.</param>
         /// <returns></returns>
-        public virtual bool WriteImageAsNormal(SvgImage? image, int size, ITextBoxRichAttr? textAttr = null)
+        public virtual bool WriteImageAsNormal(
+            SvgImage? image,
+            int size,
+            ITextBoxRichAttr? textAttr = null)
         {
+            if (DisposingOrDisposed)
+                return default;
             if (image is null)
                 return false;
             return WriteImage(image.AsNormalImage(size, IsDarkBackground));
@@ -2389,6 +2839,8 @@ namespace Alternet.UI
             BitmapType bitmapType = BitmapType.Png,
             ITextBoxRichAttr? textAttr = null)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.WriteImage(bitmap, bitmapType, textAttr);
         }
 
@@ -2400,12 +2852,32 @@ namespace Alternet.UI
             BitmapType bitmapType = BitmapType.Png,
             ITextBoxRichAttr? textAttr = null)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.WriteImage(filename, bitmapType, textAttr);
         }
 
-        public virtual string GetFileName() => Handler.GetFileName();
+        /// <summary>
+        /// Gets name of the file loaded into the control.
+        /// </summary>
+        /// <returns></returns>
+        public virtual string GetFileName()
+        {
+            if (DisposingOrDisposed)
+                return string.Empty;
+            return Handler.GetFileName();
+        }
 
-        public virtual void SetFileName(string value) => Handler.SetFileName(value ?? string.Empty);
+        /// <summary>
+        /// Sets name of the file loaded into the control.
+        /// </summary>
+        /// <returns></returns>
+        public virtual void SetFileName(string value)
+        {
+            if (DisposingOrDisposed)
+                return;
+            Handler.SetFileName(value ?? string.Empty);
+        }
 
         /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
@@ -2416,6 +2888,8 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnKeyDown(e);
             if (AllowAdditionalKeys)
                 HandleAdditionalKeys(e);

@@ -13,6 +13,10 @@ namespace Alternet.UI
     /// </summary>
     public static class KnownSvgImages
     {
+        private static SvgImage? imgDebugRun;
+        private static SvgImage? imgTrashCan;
+        private static SvgImage? imgCopy;
+        private static SvgImage? imgPaste;
         private static SvgImage? imgOk;
         private static SvgImage? imgBrowserBack;
         private static SvgImage? imgBrowserForward;
@@ -39,6 +43,8 @@ namespace Alternet.UI
         private static SvgImage? imgRedo;
         private static SvgImage? imgSquarePlus;
         private static SvgImage? imgSquareMinus;
+        private static SvgImage? imgPlus;
+        private static SvgImage? imgMinus;
         private static SvgImage? imgYes;
         private static SvgImage? imgNo;
         private static SvgImage? imgAbort;
@@ -57,6 +63,142 @@ namespace Alternet.UI
         private static SvgImage? imgEmpty;
         private static SvgImage? imgReplace;
         private static SvgImage? imgReplaceAll;
+        private static SvgImage? imgTriangleArrowDown;
+        private static SvgImage? imgTriangleArrowUp;
+        private static SvgImage? imgTriangleArrowLeft;
+        private static SvgImage? imgTriangleArrowRight;
+        private static SvgImage? imgKeyboard;
+        private static SvgImage? imgCircleFilled;
+        private static SvgImage? imgDiamondFilled;
+        private static SvgImage? imgEyeOn;
+        private static SvgImage? imgEyeOff;
+        private static SvgImage? imgSearch;
+
+        /// <summary>
+        /// Gets or sets 'Eye On' image.
+        /// </summary>
+        public static SvgImage ImgEyeOn
+        {
+            get => imgEyeOn ??= new MonoSvgImage(KnownSvgUrls.UrlImageEyeOn);
+            set => imgEyeOn = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Search' image.
+        /// </summary>
+        public static SvgImage ImgSearch
+        {
+            get => imgSearch ??= new MonoSvgImage(KnownSvgUrls.UrlImageSearch);
+            set => imgSearch = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Eye Off' image.
+        /// </summary>
+        public static SvgImage ImgEyeOff
+        {
+            get => imgEyeOff ??= new MonoSvgImage(KnownSvgUrls.UrlImageEyeOff);
+            set => imgEyeOff = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Circle Filled' image.
+        /// </summary>
+        public static SvgImage ImgCircleFilled
+        {
+            get => imgCircleFilled ??= new MonoSvgImage(KnownSvgUrls.UrlImageCircleFilled);
+            set => imgCircleFilled = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Debug Run' image.
+        /// </summary>
+        public static SvgImage ImgDebugRun
+        {
+            get => imgDebugRun ??= new MonoSvgImage(KnownSvgUrls.UrlImageDebugRun);
+            set => imgDebugRun = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Copy' image.
+        /// </summary>
+        public static SvgImage ImgCopy
+        {
+            get => imgCopy ??= new MonoSvgImage(KnownSvgUrls.UrlImageCopy);
+            set => imgCopy = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Trash Can' image.
+        /// </summary>
+        public static SvgImage ImgTrashCan
+        {
+            get => imgTrashCan ??= new MonoSvgImage(KnownSvgUrls.UrlImageTrashCan);
+            set => imgTrashCan = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Paste' image.
+        /// </summary>
+        public static SvgImage ImgPaste
+        {
+            get => imgPaste ??= new MonoSvgImage(KnownSvgUrls.UrlImagePaste);
+            set => imgPaste = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Diamond Filled' image.
+        /// </summary>
+        public static SvgImage ImgDiamondFilled
+        {
+            get => imgDiamondFilled ??= new MonoSvgImage(KnownSvgUrls.UrlImageDiamondFilled);
+            set => imgDiamondFilled = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Keyboard' image.
+        /// </summary>
+        public static SvgImage ImgKeyboard
+        {
+            get => imgKeyboard ??= new MonoSvgImage(KnownSvgUrls.UrlImageKeyboard);
+            set => imgKeyboard = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Triangle Arrow Down' image.
+        /// </summary>
+        public static SvgImage ImgTriangleArrowDown
+        {
+            get => imgTriangleArrowDown ??= new MonoSvgImage(KnownSvgUrls.UrlImageTriangleArrowDown);
+            set => imgTriangleArrowDown = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Triangle Arrow Up' image.
+        /// </summary>
+        public static SvgImage ImgTriangleArrowUp
+        {
+            get => imgTriangleArrowUp ??= new MonoSvgImage(KnownSvgUrls.UrlImageTriangleArrowUp);
+            set => imgTriangleArrowUp = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Triangle Arrow Left' image.
+        /// </summary>
+        public static SvgImage ImgTriangleArrowLeft
+        {
+            get => imgTriangleArrowLeft ??= new MonoSvgImage(KnownSvgUrls.UrlImageTriangleArrowLeft);
+            set => imgTriangleArrowLeft = value;
+        }
+
+        /// <summary>
+        /// Gets or sets 'Triangle Arrow Right' image.
+        /// </summary>
+        public static SvgImage ImgTriangleArrowRight
+        {
+            get => imgTriangleArrowRight ??= new MonoSvgImage(KnownSvgUrls.UrlImageTriangleArrowRight);
+            set => imgTriangleArrowRight = value;
+        }
 
         /// <summary>
         /// Gets or sets image that can be used in "Ok" buttons.
@@ -229,6 +371,24 @@ namespace Alternet.UI
         {
             get => imgFileSave ??= new MonoSvgImage(KnownSvgUrls.UrlImageFileSave);
             set => imgFileSave = value;
+        }
+
+        /// <summary>
+        /// Gets or sets image that can be used as 'Plus' image.
+        /// </summary>
+        public static SvgImage ImgPlus
+        {
+            get => imgPlus ??= new MonoSvgImage(KnownSvgUrls.UrlImagePlus);
+            set => imgPlus = value;
+        }
+
+        /// <summary>
+        /// Gets or sets image that can be used as 'Minus' image.
+        /// </summary>
+        public static SvgImage ImgMinus
+        {
+            get => imgMinus ??= new MonoSvgImage(KnownSvgUrls.UrlImageMinus);
+            set => imgMinus = value;
         }
 
         /// <summary>
@@ -462,22 +622,7 @@ namespace Alternet.UI
         /// </summary>
         public static IEnumerable<SvgImage> GetAllImages()
         {
-            List<SvgImage> result = new();
-
-            var props = typeof(KnownSvgImages).GetProperties(
-                BindingFlags.Instance | BindingFlags.Public);
-
-            foreach (var p in props)
-            {
-                if (p.PropertyType != typeof(SvgImage))
-                    continue;
-
-                if (p.GetValue(null) is not SvgImage value)
-                    continue;
-                result.Add(value);
-            }
-
-            return result;
+            return AssemblyUtils.GetStaticProperties<SvgImage>(typeof(KnownSvgImages));
         }
 
         /// <summary>
@@ -486,5 +631,27 @@ namespace Alternet.UI
         /// <param name="up">Up or Down image.</param>
         /// <returns></returns>
         public static SvgImage GetImgAngleUpDown(bool up) => up ? ImgAngleUp : ImgAngleDown;
+
+        /// <summary>
+        /// Gets triangle arrow image with the specified direction.
+        /// </summary>
+        /// <param name="direction">Arrow direction.</param>
+        /// <returns></returns>
+        public static SvgImage GetImgTriangleArrow(ArrowDirection direction)
+        {
+            switch (direction)
+            {
+                case ArrowDirection.Up:
+                    return ImgTriangleArrowUp;
+                case ArrowDirection.Down:
+                    return ImgTriangleArrowDown;
+                case ArrowDirection.Left:
+                    return ImgTriangleArrowLeft;
+                case ArrowDirection.Right:
+                    return ImgTriangleArrowRight;
+                default:
+                    return ImgEmpty;
+            }
+        }
      }
 }

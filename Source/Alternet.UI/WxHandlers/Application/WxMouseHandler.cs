@@ -11,6 +11,9 @@ namespace Alternet.UI
     internal class WxMouseHandler : DisposableObject, IMouseHandler
     {
         /// <inheritdoc/>
+        public bool? MousePresent => null;
+
+        /// <inheritdoc/>
         public ICursorFactoryHandler CreateCursorFactoryHandler()
         {
             return new WxCursorFactoryHandler();
@@ -19,13 +22,13 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public MouseButtonState GetButtonState(MouseButton mouseButton)
         {
-            return WxApplicationHandler.NativeMouse.GetButtonState(mouseButton);
+            return Native.Mouse.GetButtonState(mouseButton);
         }
 
         /// <inheritdoc/>
         public PointD GetPosition(Coord? scaleFactor)
         {
-            var resultI = WxApplicationHandler.NativeMouse.GetPosition();
+            var resultI = Native.Mouse.GetPosition();
             var result = GraphicsFactory.PixelToDip(resultI, scaleFactor);
             return result;
         }

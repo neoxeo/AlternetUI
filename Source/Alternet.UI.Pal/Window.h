@@ -99,27 +99,18 @@ namespace Alternet::UI
         void OnBeforeDestroyWxWindow() override;
         void OnWxWindowDestroyed(wxWindow* window) override;
 
-        void ShowCore() override;
-        void HideCore() override;
-
         void UpdateWxWindowParent() override;
     private:
-
         Button* _acceptButton = nullptr;
         Button* _cancelButton = nullptr;
         int _frameKind = 0;
 
-        std::map<string, wxAcceleratorEntry> _acceleratorsByCommandIds;
-
         ModalResult _modalResult = ModalResult::None;
-
-        void UpdateAcceleratorTable(wxWindow* frame);
 
         void OnClose(wxCloseEvent& event);
         void OnSizeChanged(wxSizeEvent& event) override;
         void OnMaximize(wxMaximizeEvent& event);
         void OnIconize(wxIconizeEvent& event);
-        void OnCommand(wxCommandEvent& event);
         void OnCharHook(wxKeyEvent& event);
 
         string RetrieveTitle();
@@ -128,14 +119,9 @@ namespace Alternet::UI
         MainMenu* RetrieveMenu();
         void ApplyMenu(MainMenu* const& value);
 
-        /*Toolbar* RetrieveToolbar();
-        void ApplyToolbar(Toolbar* const& value);*/
-
         long GetWindowStyle();
 
         void ApplyIcon(wxTopLevelWindow* value);
-
-        std::vector<Window*> GetOwnedWindows();
 
         enum class DelayedWindowFlags
         {
@@ -162,27 +148,20 @@ namespace Alternet::UI
         };
 
         DelayedFlags<Window, DelayedWindowFlags> _delayedFlags;
-
         FlagsAccessor<WindowFlags> _flags;
-
         DelayedValue<Window, string> _title;
         WindowState _state = WindowState::Normal;
-
         DelayedValue<Window, MainMenu*> _menu;
-        /*DelayedValue<Window, Toolbar*> _toolbar;*/
-
         MainMenu* _storedMenu = nullptr;
-        /*Toolbar* _storedToolbar = nullptr;*/
         IconSet* _icon = nullptr;
         WindowState _lastState = WindowState::Normal;
 
         inline static RectD _defaultBounds = RectD(0, 0, 0, 0);
-
-        WindowStartLocation _startLocation = WindowStartLocation::Default;
-
-        std::set<Window*> _preservedHiddenOwnedWindows;
     };
 }
 
-template<> struct enable_bitmask_operators<Alternet::UI::Window::DelayedWindowFlags> { static const bool enable = true; };
-template<> struct enable_bitmask_operators<Alternet::UI::Window::WindowFlags> { static const bool enable = true; };
+template<> struct enable_bitmask_operators<Alternet::UI::Window::DelayedWindowFlags>
+{ static const bool enable = true; };
+
+template<> struct enable_bitmask_operators<Alternet::UI::Window::WindowFlags>
+{ static const bool enable = true; };

@@ -9,13 +9,14 @@ using Alternet.Drawing;
 using Alternet.UI;
 
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 
 namespace Alternet.UI.Extensions
 {
-    public static class MauiExtensionsPrivate
+    internal static class MauiExtensionsPrivate
     {
 #if WINDOWS
         public static bool Focus(this GraphicsView graphicsView, Alternet.UI.FocusState focusState)
@@ -36,6 +37,12 @@ namespace Alternet.UI.Extensions
             var result = graphicsView.Handler?.PlatformView
                 as Microsoft.Maui.Platform.PlatformTouchGraphicsView;
             return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static RectD ToRectD(this Rect value)
+        {
+            return new(value.X, value.Y, value.Width, value.Height);
         }
 
         public static PointD GetAbsolutePosition(this VisualElement visualElement)

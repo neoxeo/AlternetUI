@@ -9,12 +9,39 @@ namespace Alternet::UI
     Clipboard::~Clipboard()
     {
     }
+
+    bool Clipboard::IsIntFormatSupported(int format)
+    {
+        wxClipboardLocker clipboardLocker;
+        if (!clipboardLocker)
+            return false;
+        return wxTheClipboard->IsSupported(wxDataFormat((wxDataFormatId)format));
+    }
+
+    bool Clipboard::IsStrFormatSupported(const string& format)
+    {
+        wxClipboardLocker clipboardLocker;
+        if (!clipboardLocker)
+            return false;
+        auto fmt = wxStr(format);
+        auto dataFmt = wxDataFormat(fmt);
+        auto result = wxTheClipboard->IsSupported(dataFmt);
+        return result;
+    }
+
+    bool Clipboard::Flush()
+    {
+        wxClipboardLocker clipboardLocker;
+        if (!clipboardLocker)
+            return false;
+        return wxTheClipboard->Flush();
+    }
     
     UnmanagedDataObject* Clipboard::GetDataObject()
     {
         wxClipboardLocker clipboardLocker;
         if (!clipboardLocker)
-            throwEx(ClipboardOpenErrorMessage);
+            return nullptr;
 
         auto compositeDataObject = GetCompositeDataObjectFromClipboard();
         if (compositeDataObject->GetFormatCount() == 0)
@@ -30,27 +57,37 @@ namespace Alternet::UI
     {
         wxClipboardLocker clipboardLocker;
         if (!clipboardLocker)
-            throwEx(ClipboardOpenErrorMessage);
+            return;
 
-        wxDataObjectComposite* composite;
-        if (value == nullptr || (composite = value->GetDataObjectComposite())->GetFormatCount() == 0)
+        if (value == nullptr)
         {
             wxTheClipboard->Clear();
+            return;
+        }
+
+        wxDataObjectComposite* composite = value->GetDataObjectComposite();
+
+        if (composite->GetFormatCount() == 0)
+        {
+            wxTheClipboard->Clear();
+            return;
+        }
+        
+        wxTheClipboard->AddData(composite);
+
+        /*
+        auto bitmapDataObject = UnmanagedDataObject::TryGetBitmapDataObject(composite);
+
+        if (bitmapDataObject != nullptr)
+        {
+            // Workaround: wxWidgets does not support Composite Data Objects which
+            // contain bitmap objects.
+            wxTheClipboard->SetData(bitmapDataObject);
         }
         else
         {
-            auto bitmapDataObject = UnmanagedDataObject::TryGetBitmapDataObject(composite);
-            if (bitmapDataObject != nullptr)
-            {
-                // Workaround: wxWidgets does not support Composite Data Objects which
-                // contain bitmap objects.
-                wxTheClipboard->SetData(bitmapDataObject);
-            }
-            else
-            {
-                wxTheClipboard->SetData(composite);
-            }
-        }
+            wxTheClipboard->AddData(composite);
+        }*/
     }
 
     optional<string> Clipboard::TryGetText()

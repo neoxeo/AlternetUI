@@ -24,10 +24,22 @@ namespace Alternet.UI
     public struct Thickness : IEquatable<Thickness>
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref='Thickness'/> structure with
+        /// <see cref="Coord.NaN"/> in all bounds.
+        /// </summary>
+        public static readonly Thickness NaN = new(Coord.NaN, Coord.NaN, Coord.NaN, Coord.NaN);
+
+        /// <summary>
         /// Gets an empty <see cref="Thickness"/> object with
         /// Left, Top, Right, Bottom properties equal to zero.
         /// </summary>
         public static readonly Thickness Empty = new();
+
+        /// <summary>
+        /// Gets an empty <see cref="Thickness"/> object with
+        /// Left, Top, Right, Bottom properties equal to 1.
+        /// </summary>
+        public static readonly Thickness One = new(CoordD.One);
 
         private Coord left;
         private Coord top;
@@ -35,23 +47,26 @@ namespace Alternet.UI
         private Coord bottom;
 
         /// <summary>
-        /// This constructur builds a Thickness with a specified value on every side.
+        /// Initializes a new instance of the <see cref="Thickness"/> struct
+        /// with the same value on every side.
         /// </summary>
-        /// <param name="uniformLength">The specified uniform length.</param>
+        /// <param name="uniform">The specified uniform length.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Thickness(Coord uniformLength)
+        public Thickness(Coord uniform)
         {
-            left = top = right = bottom = uniformLength;
+            left = top = right = bottom = uniform;
         }
 
         /// <summary>
-        /// This constructor builds a Thickness with the specified number of
-        /// pixels on each side.
+        /// Initializes a new instance of the <see cref="Thickness"/> struct
+        /// with the specified values for the each side.
         /// </summary>
         /// <param name="left">The thickness for the left side.</param>
         /// <param name="top">The thickness for the top side.</param>
         /// <param name="right">The thickness for the right side.</param>
         /// <param name="bottom">The thickness for the bottom side.</param>
+        /// <summary>
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Thickness(Coord left, Coord top, Coord right, Coord bottom)
         {
@@ -62,10 +77,11 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Thickness"/> structure.
+        /// Initializes a new instance of the <see cref="Thickness"/> structure
+        /// with the specified values for the horizontal and vertical sides.
         /// </summary>
-        /// <param name="horizontal">The thickness on the left and right.</param>
-        /// <param name="vertical">The thickness on the top and bottom.</param>
+        /// <param name="horizontal">The thickness on the left and right sides.</param>
+        /// <param name="vertical">The thickness on the top and bottom sides.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Thickness(Coord horizontal, Coord vertical)
         {
@@ -74,19 +90,29 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        ///     Returns whether all values on every side are equal.
+        /// Returns whether all values on every side are equal.
         /// </summary>
         [Browsable(false)]
         public readonly bool IsUniform =>
             (left == right) && (top == bottom) && (left == top);
 
         /// <summary>
-        ///     Returns whether all values on every side are positive
-        ///     (greater than 0).
+        /// Returns whether all values on every side are positive
+        /// (greater than 0).
         /// </summary>
         [Browsable(false)]
         public readonly bool IsPositive =>
-            (left > 0) && (right > 0) && (top > 0) && (bottom > 0);
+            (left > CoordD.Empty) && (right > CoordD.Empty)
+            && (top > CoordD.Empty) && (bottom > CoordD.Empty);
+
+        /// <summary>
+        /// Returns whether any value on the side is positive
+        /// (greater than 0).
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool IsAnyPositive =>
+            (left > CoordD.Empty) || (right > CoordD.Empty)
+            || (top > CoordD.Empty) || (bottom > CoordD.Empty);
 
         /// <summary>
         /// Gets the combined padding information in the form of a
@@ -132,36 +158,63 @@ namespace Alternet.UI
         public readonly Coord Vertical => top + bottom;
 
         /// <summary>
-        /// This property is the Length on the thickness' left side
+        /// This property is the length on the thickness' left side.
         /// </summary>
         public Coord Left
         {
-            readonly get { return left; }
-            set { left = value; }
+            readonly get
+            {
+                return left;
+            }
+
+            set
+            {
+                left = value;
+            }
         }
 
-        /// <summary>This property is the Length on the thickness' top side</summary>
+        /// <summary>This property is the length on the thickness' top side.</summary>
         public Coord Top
         {
-            readonly get { return top; }
-            set { top = value; }
+            readonly get
+            {
+                return top;
+            }
+
+            set
+            {
+                top = value;
+            }
         }
 
         /// <summary>
-        /// This property is the Length on the thickness' right side
+        /// This property is the Length on the thickness' right side.
         /// </summary>
         public Coord Right
         {
-            readonly get { return right; }
-            set { right = value; }
+            readonly get
+            {
+                return right;
+            }
+
+            set
+            {
+                right = value;
+            }
         }
 
-        /// <summary>This property is the Length on the thickness' bottom
-        /// side</summary>
+        /// <summary>This property is the length on the thickness' bottom side.</summary>
         public Coord Bottom
         {
-            readonly get { return bottom; }
-            set { bottom = value; }
+            readonly get
+            {
+                return bottom;
+            }
+
+            set
+            {
+                bottom = value;
+            }
         }
 
         /// <summary>
@@ -229,6 +282,26 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Creates <see cref="Thickness"/> from array of 1, 2 or 4 values.
+        /// </summary>
+        /// <param name="coord">Array with values.</param>
+        /// <returns></returns>
+        public static Thickness? FromArray(float[]? coord)
+        {
+            switch (coord?.Length)
+            {
+                case 1:
+                    return new(coord[0]);
+                case 2:
+                    return new(coord[0], coord[1]);
+                case 4:
+                    return new(coord[0], coord[1], coord[2], coord[3]);
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Parses a <see cref="Thickness"/> string.
         /// </summary>
         /// <param name="s">The string.</param>
@@ -236,7 +309,8 @@ namespace Alternet.UI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Thickness Parse(string s)
         {
-            const string exceptionMessage = "Invalid Thickness.";
+            const string exceptionMessage
+                = "Invalid Thickness. Specify 1, 2 or 4 float numbers separated by comma.";
 
             if (!TryParse(s, out var result))
                 throw new FormatException(exceptionMessage);
@@ -249,34 +323,18 @@ namespace Alternet.UI
         /// </summary>
         public static bool TryParse(string s, out Thickness value)
         {
-            value = new Thickness();
+            var array = ConversionUtils.ParseOneOrTwoOrFourFloats(s);
 
-            using var tokenizer =
-                new StringTokenizer(s, CultureInfo.InvariantCulture);
-            if (tokenizer.TryReadSingle(out var a))
+            var result = FromArray(array);
+
+            if(result is null)
             {
-                if (tokenizer.TryReadSingle(out var b))
-                {
-                    if (tokenizer.TryReadSingle(out var c))
-                    {
-                        if (tokenizer.TryReadSingle(out var d))
-                        {
-                            value = new Thickness(a, b, c, d);
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    value = new Thickness(a, b);
-                    return true;
-                }
-
-                value = new Thickness(a);
-                return true;
+                value = Thickness.Empty;
+                return false;
             }
 
-            return false;
+            value = result.Value;
+            return true;
         }
 
         /// <summary>
@@ -346,7 +404,81 @@ namespace Alternet.UI
 
             Coord[] values = { left, top, right, bottom };
 
-            return StringUtils.ToString<Coord>(names, values);
+            return StringUtils.ToStringWithOrWithoutNames<Coord>(names, values);
+        }
+
+        /// <summary>
+        /// Gets a copy of this object with changed <see cref="Top"/> property.
+        /// </summary>
+        /// <param name="value">Property value.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Thickness WithTop(Coord value)
+        {
+            return new(left, value, right, bottom);
+        }
+
+        /// <summary>
+        /// Gets a copy of this object with changed <see cref="Bottom"/> property.
+        /// </summary>
+        /// <param name="value">Property value.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Thickness WithBottom(Coord value)
+        {
+            return new(left, top, right, value);
+        }
+
+        /// <summary>
+        /// Gets a copy of this object with changed <see cref="Right"/> property.
+        /// </summary>
+        /// <param name="value">Property value.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Thickness WithRight(Coord value)
+        {
+            return new(left, top, value, bottom);
+        }
+
+        /// <summary>
+        /// Gets a copy of this object with changed <see cref="Left"/> property.
+        /// </summary>
+        /// <param name="value">Property value.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Thickness WithLeft(Coord value)
+        {
+            return new(value, top, right, bottom);
+        }
+
+        /// <summary>
+        /// Gets <see cref="Vertical"/> or <see cref="Horizontal"/> depending on the
+        /// <paramref name="isVert"/> parameter value.
+        /// </summary>
+        /// <param name="isVert">The flag which detremines whether to return
+        /// <see cref="Vertical"/> or <see cref="Horizontal"/> property value.
+        /// </param>
+        /// <returns></returns>
+        public readonly Coord GetSize(bool isVert)
+        {
+            if (isVert)
+                return Vertical;
+            else
+                return Horizontal;
+        }
+
+        /// <summary>
+        /// Sets all fields to 0 if <paramref name="reset"/> is True.
+        /// </summary>
+        /// <param name="reset"></param>
+        public void Reset(bool reset = true)
+        {
+            if (!reset)
+                return;
+            left = CoordD.Empty;
+            top = CoordD.Empty;
+            right = CoordD.Empty;
+            bottom = CoordD.Empty;
         }
 
         /// <summary>
@@ -374,7 +506,7 @@ namespace Alternet.UI
         /// <param name="max">Maximal possible thikness.</param>
         public void ApplyMinMax(Coord min, Coord max)
         {
-            double SetMinMaxValue(double value)
+            Coord SetMinMaxValue(Coord value)
             {
                 if (value > max)
                     return max;

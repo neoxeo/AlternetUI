@@ -2,6 +2,51 @@
 
 namespace Alternet::UI
 {
+    void ComboBox::SetPopupControl(VListBox* value)
+    {
+        _popupControl = value;
+    }
+
+    void ComboBox::OnPopup()
+    {
+        RaiseEvent(ComboBoxEvent::AfterShowPopup);
+    }
+
+    void ComboBox::DismissPopup()
+    {
+        GetComboBox()->Dismiss();
+    }
+
+    void ComboBox::ShowPopup()
+    {
+        GetComboBox()->Popup();
+    }
+
+    void ComboBox::OnDismiss()
+    {
+        RaiseEvent(ComboBoxEvent::AfterDismissPopup);
+    }
+
+    // Called immediately after the popup is shown
+    void wxVListBoxComboPopup2::OnPopup()
+    {
+        wxVListBoxComboPopup::OnPopup();
+        if (_owner == nullptr)
+            return;
+        auto comboBox = (ComboBox*)_owner;
+        comboBox->OnPopup();
+    }
+
+    // Called when popup is dismissed
+    void wxVListBoxComboPopup2::OnDismiss()
+    {
+        wxVListBoxComboPopup::OnDismiss();
+        if (_owner == nullptr)
+            return;
+        auto comboBox = (ComboBox*)_owner;
+        comboBox->OnDismiss();
+    }
+
     void wxOwnerDrawnComboBox2::OnDrawBackground(wxDC& dc, const wxRect& rect, int item, int flags) const
     {
         ((ComboBox*)_palControl)->OnDrawBackground(dc, rect, item, flags);
@@ -33,12 +78,10 @@ namespace Alternet::UI
     }
 
     ComboBox::ComboBox() :
-        _selectedIndex(*this, -1, &Control::IsWxWindowCreated, 
-            &ComboBox::RetrieveSelectedIndex, &ComboBox::ApplySelectedIndex),
         _text(*this, u"", &ComboBox::IsUsingComboBoxControl, &ComboBox::RetrieveText, 
             &ComboBox::ApplyText)
     {
-        GetDelayedValues().Add({ &_selectedIndex, &_text });
+        GetDelayedValues().Add({ &_text });
     }
 
     bool ComboBox::GetHasBorder()
@@ -67,18 +110,12 @@ namespace Alternet::UI
 
     void ComboBox::SetItem(int index, const string& value)
     {
-        if (IsWxWindowCreated())
-            GetItemContainer()->SetString(index, wxStr(value));
-        else
-            _items.at(index) = value;
+        GetItemContainer()->SetString(index, wxStr(value));
     }
 
     void ComboBox::InsertItem(int index, const string& value)
     {
-        if (IsWxWindowCreated())
-            GetItemContainer()->Insert(wxStr(value), index);
-        else
-            _items.emplace(_items.begin() + index, value);
+        GetItemContainer()->Insert(wxStr(value), index);
     }
 
     void* ComboBox::CreateItemsInsertion()
@@ -96,34 +133,20 @@ namespace Alternet::UI
     {
         auto strings = (wxArrayString*)insertion;
 
-        if (IsWxWindowCreated())
-        {
-            if(strings->GetCount()>0)
-                GetItemContainer()->Insert(*strings, index);
-        }
-        else
-        {
-            for (size_t i = 0; i < strings->GetCount(); i++)
-                _items.emplace(_items.begin() + index + i, wxStr((*strings)[i]));
-        }
+        if(strings->GetCount()>0)
+            GetItemContainer()->Insert(*strings, index);
 
         delete strings;
     }
 
     void ComboBox::RemoveItemAt(int index)
     {
-        if (IsWxWindowCreated())
-            GetItemContainer()->Delete(index);
-        else
-            _items.erase(_items.begin() + index);
+        GetItemContainer()->Delete(index);
     }
 
     void ComboBox::ClearItems()
     {
-        if (IsWxWindowCreated())
-            GetItemContainer()->Clear();
-        else
-            _items.clear();
+        GetItemContainer()->Clear();
     }
 
     void* ComboBox::GetEventDc()
@@ -362,12 +385,19 @@ namespace Alternet::UI
 
     int ComboBox::GetSelectedIndex()
     {
-        return _selectedIndex.Get();
+        return GetComboBox()->GetSelection();
     }
 
     void ComboBox::SetSelectedIndex(int value)
     {
-        _selectedIndex.Set(value);
+        if (value >= GetItemsCount())
+            GetComboBox()->SetSelection(-1);
+        else
+            GetComboBox()->SetSelection(value);
+/*
+        // As events are not raised on programmatic selection change.
+        RaiseEvent(ComboBoxEvent::SelectedItemChanged);
+*/
     }
 
     string ComboBox::GetText()
@@ -383,64 +413,16 @@ namespace Alternet::UI
     void ComboBox::OnWxWindowCreated()
     {
         Control::OnWxWindowCreated();
-        ApplyItems();
     }
 
     void ComboBox::OnBeforeDestroyWxWindow()
     {
         Control::OnBeforeDestroyWxWindow();
-        ReceiveItems();
     }
 
     int ComboBox::GetItemsCount()
     {
-        if (IsWxWindowCreated())
-            return GetItemContainer()->GetCount();
-        else
-            return _items.size();
-    }
-
-    void ComboBox::ApplyItems()
-    {
-        BeginUpdate();
-
-        auto itemContainer = GetItemContainer();
-        itemContainer->Clear();
-
-        wxArrayString wxStrings;
-        for (auto& item : _items)
-            wxStrings.Add(wxStr(item));
-
-        itemContainer->Append(wxStrings);
-
-        _items.clear();
-        
-        EndUpdate();
-    }
-
-    void ComboBox::ReceiveItems()
-    {
-        auto itemContainer = GetItemContainer();
-        _items.clear();
-
-        if (itemContainer->GetCount() == 0)
-            return;
-
-        for (int i = 0; i < (int)itemContainer->GetCount(); i++)
-            _items.push_back(wxStr(itemContainer->GetString(i)));
-    }
-
-    int ComboBox::RetrieveSelectedIndex()
-    {
-        return GetComboBox()->GetSelection();
-    }
-
-    void ComboBox::ApplySelectedIndex(const int& value)
-    {
-        GetComboBox()->SetSelection(value);
-
-        // As events are not raised on programmatic selection change.
-        RaiseEvent(ComboBoxEvent::SelectedItemChanged);
+        return GetItemContainer()->GetCount();
     }
 
     string ComboBox::RetrieveText()
@@ -478,6 +460,14 @@ namespace Alternet::UI
     void ComboBox::SetOwnerDrawStyle(int value)
     {
         ownerDrawStyle = value;
+    }
+
+    wxVListBoxComboPopup2* ComboBox::GetPopup()
+    {
+        auto combo = GetComboBox();
+        auto popup = combo->GetPopupControl();
+        auto value = dynamic_cast<wxVListBoxComboPopup2*>(popup);
+        return value;
     }
 
     wxOwnerDrawnComboBox2* ComboBox::GetComboBox()

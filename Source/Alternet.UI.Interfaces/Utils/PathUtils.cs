@@ -17,6 +17,25 @@ namespace Alternet.UI
         private static ConcurrentStack<string>? pushedFolders;
 
         /// <summary>
+        /// Gets whether directory is empty (contains no files or sub-folders).
+        /// </summary>
+        /// <param name="path">Path to directory.</param>
+        /// <returns></returns>
+        public static bool DirectoryIsEmpty(string path) => !DirectoryHasEntries(path);
+
+        /// <summary>
+        /// Gets whether directory is not empty (contains files or sub-folders).
+        /// </summary>
+        /// <param name="path">Path to directory.</param>
+        /// <returns></returns>
+        public static bool DirectoryHasEntries(string path)
+        {
+            if (!Directory.Exists(path))
+                return false;
+            return Directory.EnumerateFileSystemEntries(path).Any();
+        }
+
+        /// <summary>
         /// Saves current directory path to memory and changes it to the specified path.
         /// Use <see cref="PopDirectory"/> to restore saved folder.
         /// This method does the same as console command "pushd".
@@ -185,6 +204,43 @@ namespace Alternet.UI
             var xFileName = Path.GetFileName(x);
             var yFileName = Path.GetFileName(y);
             return string.Compare(xFileName, yFileName);
+        }
+
+        /// <summary>
+        /// Creates file with the path and name of the executing assembly
+        /// and with the specified extension.
+        /// </summary>
+        /// <param name="ext">Extension of the created file.</param>
+        /// <param name="data">Created file data.</param>
+        public static void CreateExecutingAssemblyWithNewExt(string ext, string data = "")
+        {
+            var s = GetExecutingAssemblyWithNewExt(ext);
+            var streamWriter = File.CreateText(s);
+            streamWriter.WriteLine(data);
+            streamWriter.Close();
+        }
+
+        /// <summary>
+        /// Gets file path and name of the executing assembly with the specified extension.
+        /// </summary>
+        /// <param name="ext">Extension to use.</param>
+        /// <returns></returns>
+        public static string GetExecutingAssemblyWithNewExt(string ext)
+        {
+            string sPath1 = Assembly.GetExecutingAssembly().Location;
+            string sPath2 = Path.ChangeExtension(sPath1, ext);
+            return sPath2;
+        }
+
+        /// <summary>
+        /// Removes file with path and name of the executing assembly with the specified extension.
+        /// </summary>
+        /// <param name="ext">Extension to use.</param>
+        public static void RemoveExecutingAssemblyWithExt(string ext)
+        {
+            var s = GetExecutingAssemblyWithNewExt(ext);
+            if (File.Exists(s))
+                File.Delete(s);
         }
 
         /// <summary>

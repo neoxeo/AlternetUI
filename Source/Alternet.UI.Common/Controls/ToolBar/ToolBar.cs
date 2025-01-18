@@ -14,27 +14,44 @@ namespace Alternet.UI
     /// Implements generic toolbar control.
     /// </summary>
     [ControlCategory("MenusAndToolbars")]
-    public partial class ToolBar : Control
+    public partial class ToolBar : HiddenBorder
     {
-        private double itemSize;
+        private Coord itemSize;
         private bool textVisible = false;
         private bool imageVisible = true;
         private ImageToText imageToText = ImageToText.Horizontal;
+
+        static ToolBar()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ToolBar"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ToolBar(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToolBar"/> class.
         /// </summary>
         public ToolBar()
         {
+            ParentBackColor = true;
+            ParentForeColor = true;
             Layout = LayoutStyle.Horizontal;
-            itemSize = Math.Max(DefaultSize, 24);
+            itemSize = Math.Max(DefaultSize, DefaultMinItemSize);
             IsGraphicControl = true;
+            MinimumSize = itemSize;
         }
 
         /// <summary>
         /// Enumerates all toolbar item kinds.
         /// </summary>
-        protected enum ItemKind
+        public enum ItemKind
         {
             /// <summary>
             /// Item is button.
@@ -80,12 +97,19 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default item size in dips.
         /// </summary>
-        public static double DefaultSize { get; set; } = 24;
+        public static Coord DefaultSize { get; set; } = 24;
+
+        /// <summary>
+        /// Gets or sets default minimal item size in dips. You should not normally
+        /// set this value
+        /// to lower than 24.
+        /// </summary>
+        public static Coord DefaultMinItemSize { get; set; } = 24;
 
         /// <summary>
         /// Gets or sets default spacer item size.
         /// </summary>
-        public static double DefaultSpacerSize { get; set; } = 4;
+        public static Coord DefaultSpacerSize { get; set; } = 4;
 
         /// <summary>
         /// Gets or sets default margin of the sticky button item.
@@ -115,7 +139,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default width of the separator item.
         /// </summary>
-        public static double DefaultSeparatorWidth { get; set; } = 1;
+        public static Coord DefaultSeparatorWidth { get; set; } = 1;
 
         /// <summary>
         /// Gets or sets default margin of the separator item.
@@ -123,10 +147,23 @@ namespace Alternet.UI
         public static Thickness DefaultSeparatorMargin { get; set; } = (4, 4, 4, 4);
 
         /// <summary>
+        /// Gets or sets default toolbar distance to other content of the control.
+        /// </summary>
+        /// <remarks>
+        /// This property is not used in the <see cref="ToolBar"/> directly and added here
+        /// for the convenience.
+        /// You can assign one of the sides of <see cref="AbstractControl.Margin"/>
+        /// property with it. For example, for toolbars with top
+        /// <see cref="AbstractControl.VerticalAlignment"/>, you can set bottom margin.
+        /// </remarks>
+        public static Coord DefaultDistanceToContent { get; set; } = 4;
+
+        /// <summary>
         /// Gets or sets default image size.
         /// </summary>
         /// <remarks>
-        /// If this property is null, <see cref="ToolBarUtils.GetDefaultImageSize(Control)"/> is used.
+        /// If this property is null,
+        /// <see cref="ToolBarUtils.GetDefaultImageSize(AbstractControl)"/> is used.
         /// </remarks>
         public static int? DefaultImageSize { get; set; }
 
@@ -134,7 +171,8 @@ namespace Alternet.UI
         /// Gets or sets default color of the SVG images in the normal state.
         /// </summary>
         /// <remarks>
-        /// If this property is null, <see cref="Control.GetSvgColor(KnownSvgColor)"/> is used with
+        /// If this property is null,
+        /// <see cref="AbstractControl.GetSvgColor(KnownSvgColor)"/> is used with
         /// <see cref="KnownSvgColor.Normal"/> parameter.
         /// </remarks>
         public static Color? DefaultNormalImageColor { get; set; }
@@ -143,7 +181,8 @@ namespace Alternet.UI
         /// Gets or sets default color of the SVG images in the disabled state.
         /// </summary>
         /// <remarks>
-        /// If this property is null, <see cref="Control.GetSvgColor(KnownSvgColor)"/> is used with
+        /// If this property is null,
+        /// <see cref="AbstractControl.GetSvgColor(KnownSvgColor)"/> is used with
         /// <see cref="KnownSvgColor.Disabled"/> parameter.
         /// </remarks>
         public static Color? DefaultDisabledImageColor { get; set; }
@@ -155,7 +194,7 @@ namespace Alternet.UI
         /// If this property is null, <see cref="DefaultNormalImageColor"/> is used.
         /// </remarks>
         [Browsable(false)]
-        public Color? NormalImageColor { get; set; }
+        public virtual Color? NormalImageColor { get; set; }
 
         /// <summary>
         /// Gets or sets color of the SVG images in the disabled state.
@@ -164,7 +203,7 @@ namespace Alternet.UI
         /// If this property is null, <see cref="DefaultDisabledImageColor"/> is used.
         /// </remarks>
         [Browsable(false)]
-        public Color? DisabledImageColor { get; set; }
+        public virtual Color? DisabledImageColor { get; set; }
 
         /// <summary>
         /// Gets or sets image size.
@@ -175,14 +214,14 @@ namespace Alternet.UI
         /// <see cref="DefaultImageSize"/> is used.
         /// </remarks>
         [Browsable(false)]
-        public int? ImageSize { get; set; }
+        public virtual int? ImageSize { get; set; }
 
         /// <summary>
         /// Gets or sets a value which specifies display modes for
         /// item image and text.
         /// </summary>
         [Browsable(true)]
-        public ImageToText ImageToText
+        public virtual ImageToText ImageToText
         {
             get => imageToText;
             set
@@ -204,7 +243,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets toolbar item size.
         /// </summary>
-        public double ItemSize
+        public virtual Coord ItemSize
         {
             get
             {
@@ -213,20 +252,20 @@ namespace Alternet.UI
 
             set
             {
-                if (itemSize < 24)
-                    itemSize = 24;
+                if (value < DefaultMinItemSize)
+                    value = DefaultMinItemSize;
                 if (itemSize == value)
                     return;
                 itemSize = value;
 
-                SuspendLayout();
-                foreach (var item in Children)
+                DoInsideLayout(() =>
                 {
-                    if (item is SpeedButton || item is PictureBox)
-                        item.SuggestedSize = GetItemSuggestedSize(item);
-                }
-
-                ResumeLayout();
+                    foreach (var item in Children)
+                    {
+                        if (item is SpeedButton || item is PictureBox)
+                            item.SuggestedSize = GetItemSuggestedSize(item);
+                    }
+                });
             }
         }
 
@@ -241,7 +280,7 @@ namespace Alternet.UI
             set
             {
                 base.Font = value;
-                SetChildrenFont(value, true);
+                SetChildrenFont(RealFont, true);
             }
         }
 
@@ -277,6 +316,38 @@ namespace Alternet.UI
                 {
                     if (NeedUpdateBackColor(item))
                         item.BackgroundColor = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets 'IsClickRepeated' property for all the tools.
+        /// </summary>
+        [Browsable(false)]
+        public virtual bool IsToolClickRepeated
+        {
+            get
+            {
+                var hasTrue = false;
+                var hasFalse = false;
+                foreach (var btn in ChildrenOfType<SpeedButton>())
+                {
+                    if (btn.IsClickRepeated)
+                        hasTrue = true;
+                    else
+                        hasFalse = true;
+                }
+
+                if (hasTrue && !hasFalse)
+                    return true;
+                return false;
+            }
+
+            set
+            {
+                foreach (var btn in ChildrenOfType<SpeedButton>())
+                {
+                    btn.IsClickRepeated = value;
                 }
             }
         }
@@ -324,7 +395,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets whether to display text in the buttons.
         /// </summary>
-        public bool TextVisible
+        public virtual bool TextVisible
         {
             get
             {
@@ -353,7 +424,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets whether to display images in the buttons.
         /// </summary>
-        public bool ImageVisible
+        public virtual bool ImageVisible
         {
             get
             {
@@ -395,17 +466,22 @@ namespace Alternet.UI
         /// </summary>
         public virtual ObjectUniqueId AddSpeedBtn()
         {
-            var result = InternalAddSpeedBtn(
-                ItemKind.Button,
-                null,
-                KnownSvgImages.ImgEmpty.AsImageSet(GetImageSize()),
-                null);
-            result.Enabled = false;
+            var result = AddSpeedBtnCore();
             return result.UniqueId;
         }
 
         /// <summary>
-        /// Adds <see cref="SpeedButton"/> to the control with svg image.
+        /// Adds an empty disabled <see cref="SpeedButton"/> aligned to the right.
+        /// </summary>
+        public virtual ObjectUniqueId AddRightSpeedBtn()
+        {
+            var result = AddSpeedBtnCore();
+            result.HorizontalAlignment = HorizontalAlignment.Right;
+            return result.UniqueId;
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpeedButton"/> with svg image.
         /// </summary>
         /// <param name="text">Item text.</param>
         /// <param name="image">Item image.</param>
@@ -416,12 +492,35 @@ namespace Alternet.UI
             SvgImage? image,
             EventHandler? action)
         {
-            return AddSpeedBtn(
+            var result = AddSpeedBtnCore(
                 text,
-                ToNormal(image),
-                ToDisabled(image),
+                image,
                 null,
                 action);
+            return result.UniqueId;
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpeedButton"/> aligned to the right.
+        /// </summary>
+        /// <param name="text">Item text.</param>
+        /// <param name="image">Item image.</param>
+        /// <param name="toolTip">Item tooltip.</param>
+        /// <param name="action">Click action.</param>
+        /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
+        public virtual ObjectUniqueId AddRightSpeedBtn(
+            string? text,
+            SvgImage? image,
+            string? toolTip = null,
+            EventHandler? action = null)
+        {
+            var result = AddSpeedBtnCore(
+                text,
+                image,
+                toolTip,
+                action);
+            result.HorizontalAlignment = HorizontalAlignment.Right;
+            return result.UniqueId;
         }
 
         /// <summary>
@@ -438,12 +537,36 @@ namespace Alternet.UI
             string? toolTip = null,
             EventHandler? action = null)
         {
-            return AddSpeedBtn(
+            var result = AddSpeedBtnCore(
+                text,
+                image,
+                toolTip,
+                action);
+            return result.UniqueId;
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpeedButton"/> to the control.
+        /// </summary>
+        /// <param name="text">Item text.</param>
+        /// <param name="image">Item image.</param>
+        /// <param name="toolTip">Item tooltip.</param>
+        /// <param name="action">Click action.</param>
+        /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
+        public virtual SpeedButton AddSpeedBtnCore(
+            string? text,
+            SvgImage? image,
+            string? toolTip = null,
+            EventHandler? action = null)
+        {
+            var result = AddSpeedBtnCore(
+                ItemKind.Button,
                 text,
                 ToNormal(image),
                 ToDisabled(image),
                 toolTip,
                 action);
+            return result;
         }
 
         /// <summary>
@@ -462,7 +585,7 @@ namespace Alternet.UI
             string? toolTip = null,
             EventHandler? action = null)
         {
-            var result = InternalAddSpeedBtn(
+            var result = AddSpeedBtnCore(
                 ItemKind.Button,
                 text,
                 imageSet,
@@ -510,7 +633,7 @@ namespace Alternet.UI
             string? toolTip = null,
             EventHandler? action = null)
         {
-            var result = InternalAddSpeedBtn(
+            var result = AddSpeedBtnCore(
                 ItemKind.ButtonSticky,
                 text,
                 imageSet,
@@ -540,34 +663,26 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Adds <see cref="SpeedButton"/> to the control.
+        /// Sets image of the item for the normal state.
         /// </summary>
-        /// <param name="text">Item text.</param>
-        /// <param name="action">Click action.</param>
-        /// <param name="toolTip">Item tooltip.</param>
-        /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
-        public virtual ObjectUniqueId AddTextBtn(
-            string? text,
-            string? toolTip = null,
-            EventHandler? action = null)
+        /// <param name="id">Item id.</param>
+        /// <param name="value">Image identifier.</param>
+        public virtual void SetToolImage(ObjectUniqueId id, KnownButton value)
         {
-            text ??= string.Empty;
+            var info = KnownButtons.GetInfo(value);
+            var svg = info?.SvgImage;
+            SetToolSvg(id, svg);
+        }
 
-            SpeedTextButton speedButton = new()
-            {
-                ToolTip = toolTip ?? string.Empty,
-                Text = text,
-                VerticalAlignment = UI.VerticalAlignment.Center,
-                Margin = DefaultTextBtnMargin,
-            };
-
-            UpdateItemProps(speedButton, ItemKind.ButtonText);
-
-            if (action is not null)
-                speedButton.Click += action;
-            speedButton.Parent = this;
-
-            return speedButton.UniqueId;
+        /// <summary>
+        /// Sets image of the item for the normal state.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        /// <param name="value"><see cref="ImageSet"/> to use as item image.</param>
+        public virtual void SetToolSvg(ObjectUniqueId id, SvgImage? value)
+        {
+            var image = value?.AsImageSet(GetImageSize());
+            SetToolImage(id, image);
         }
 
         /// <summary>
@@ -581,6 +696,50 @@ namespace Alternet.UI
             if (item is null)
                 return;
             item.ImageSet = value;
+        }
+
+        /// <summary>
+        /// Sets command and command parameters for the item.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        /// <param name="command">A command that will be executed when tool is clicked.</param>
+        /// <param name="commandParameter">A parameter that will be passed
+        /// to the command when executing it.</param>
+        public virtual void SetToolCommand(
+            ObjectUniqueId id,
+            ICommand? command = null,
+            object? commandParameter = null)
+        {
+            var item = FindTool(id);
+            if (item is null)
+                return;
+            item.CommandParameter = commandParameter;
+            item.Command = command;
+        }
+
+        /// <summary>
+        /// Gets 'IsClickRepeated' property of the tool.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        public virtual bool GetToolIsClickRepeated(ObjectUniqueId id)
+        {
+            var item = FindTool(id);
+            if (item is null)
+                return false;
+            return item.IsClickRepeated;
+        }
+
+        /// <summary>
+        /// Sets 'IsClickRepeated' property of the tool.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        /// <param name="value">Value for the 'IsClickRepeated' property of the tool.</param>
+        public virtual void SetToolIsClickRepeated(ObjectUniqueId id, bool value)
+        {
+            var item = FindTool(id);
+            if (item is null)
+                return;
+            item.IsClickRepeated = value;
         }
 
         /// <summary>
@@ -649,64 +808,10 @@ namespace Alternet.UI
         /// </summary>
         public virtual ObjectUniqueId AddSpeedBtn(KnownButton button, EventHandler? action = null)
         {
-            var strings = CommonStrings.Default;
+            var info = KnownButtons.GetInfo(button);
 
-            switch (button)
-            {
-                case KnownButton.OK:
-                default:
-                    return AddSpeedBtn(strings.ButtonOk, KnownSvgImages.ImgOk, action);
-                case KnownButton.Cancel:
-                    return AddSpeedBtn(strings.ButtonCancel, KnownSvgImages.ImgCancel, action);
-                case KnownButton.Yes:
-                    return AddSpeedBtn(strings.ButtonYes, KnownSvgImages.ImgYes, action);
-                case KnownButton.No:
-                    return AddSpeedBtn(strings.ButtonNo, KnownSvgImages.ImgNo, action);
-                case KnownButton.Abort:
-                    return AddSpeedBtn(strings.ButtonAbort, KnownSvgImages.ImgAbort, action);
-                case KnownButton.Retry:
-                    return AddSpeedBtn(strings.ButtonRetry, KnownSvgImages.ImgRetry, action);
-                case KnownButton.Ignore:
-                    return AddSpeedBtn(strings.ButtonIgnore, KnownSvgImages.ImgIgnore, action);
-                case KnownButton.Help:
-                    return AddSpeedBtn(strings.ButtonHelp, KnownSvgImages.ImgHelp, action);
-                case KnownButton.Add:
-                    return AddSpeedBtn(strings.ButtonAdd, KnownSvgImages.ImgAdd, action);
-                case KnownButton.Remove:
-                    return AddSpeedBtn(strings.ButtonRemove, KnownSvgImages.ImgRemove, action);
-                case KnownButton.Clear:
-                    return AddSpeedBtn(strings.ButtonClear, KnownSvgImages.ImgRemoveAll, action);
-                case KnownButton.AddChild:
-                    return AddSpeedBtn(strings.ButtonAddChild, KnownSvgImages.ImgAddChild, action);
-                case KnownButton.MoreItems:
-                    return AddSpeedBtn(strings.ToolbarSeeMore, KnownSvgImages.ImgMoreActionsHorz, action);
-                case KnownButton.New:
-                    return AddSpeedBtn(strings.ButtonNew, KnownSvgImages.ImgFileNew, action);
-                case KnownButton.Open:
-                    return AddSpeedBtn(strings.ButtonOpen, KnownSvgImages.ImgFileOpen, action);
-                case KnownButton.Save:
-                    return AddSpeedBtn(strings.ButtonSave, KnownSvgImages.ImgFileSave, action);
-                case KnownButton.Undo:
-                    return AddSpeedBtn(strings.ButtonUndo, KnownSvgImages.ImgUndo, action);
-                case KnownButton.Redo:
-                    return AddSpeedBtn(strings.ButtonRedo, KnownSvgImages.ImgRedo, action);
-                case KnownButton.Bold:
-                    return AddSpeedBtn(strings.ButtonBold, KnownSvgImages.ImgBold, action);
-                case KnownButton.Italic:
-                    return AddSpeedBtn(strings.ButtonItalic, KnownSvgImages.ImgItalic, action);
-                case KnownButton.Underline:
-                    return AddSpeedBtn(strings.ButtonUnderline, KnownSvgImages.ImgUnderline, action);
-                case KnownButton.Back:
-                    return AddSpeedBtn(strings.ButtonBack, KnownSvgImages.ImgBrowserBack, action);
-                case KnownButton.Forward:
-                    return AddSpeedBtn(strings.ButtonForward, KnownSvgImages.ImgBrowserForward, action);
-                case KnownButton.ZoomIn:
-                    return AddSpeedBtn(strings.ButtonZoomIn, KnownSvgImages.ImgZoomIn, action);
-                case KnownButton.ZoomOut:
-                    return AddSpeedBtn(strings.ButtonZoomOut, KnownSvgImages.ImgZoomOut, action);
-                case KnownButton.BrowserGo:
-                    return AddSpeedBtn(strings.ButtonGo, KnownSvgImages.ImgBrowserGo, action);
-            }
+            var result = AddSpeedBtn(info?.Text?.SafeToString(), info?.SvgImage, action);
+            return result;
         }
 
         /// <summary>
@@ -758,16 +863,55 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Adds <see cref="PictureBox"/> to the control with contents created
+        /// from the the specified template.
+        /// </summary>
+        /// <param name="template">Template which is used to get picture pixels.</param>
+        /// <param name="needDisabled">Whether to get pixels
+        /// for disabled state of the template.</param>
+        /// <param name="toolTip">Item tooltip.</param>
+        /// <returns></returns>
+        public virtual ObjectUniqueId AddPicture(
+            TemplateControl template,
+            bool needDisabled = false,
+            string? toolTip = default)
+        {
+            template.Enabled = true;
+            ImageSet? image = TemplateUtils.GetTemplateAsImageSet(template);
+            ImageSet? imageDisabled = null;
+
+            if (needDisabled)
+            {
+                template.Enabled = false;
+
+                try
+                {
+                    imageDisabled = TemplateUtils.GetTemplateAsImageSet(template);
+                }
+                finally
+                {
+                    template.Enabled = true;
+                }
+            }
+
+            var result = AddPicture(image, imageDisabled, toolTip, true);
+            return result;
+        }
+
+        /// <summary>
         /// Adds <see cref="PictureBox"/> to the control.
         /// </summary>
         /// <param name="image">Normal image.</param>
         /// <param name="imageDisabled">Disable image.</param>
         /// <param name="toolTip">Item tooltip.</param>
+        /// <param name="ignoreSuggestedSize">Whether to ignore suggested
+        /// size of the item's control.</param>
         /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
         public virtual ObjectUniqueId AddPicture(
             ImageSet? image = null,
             ImageSet? imageDisabled = null,
-            string? toolTip = default)
+            string? toolTip = default,
+            bool ignoreSuggestedSize = false)
         {
             PictureBox picture = new()
             {
@@ -778,7 +922,14 @@ namespace Alternet.UI
                 VerticalAlignment = UI.VerticalAlignment.Center,
             };
 
-            picture.SuggestedSize = GetItemSuggestedSize(picture);
+            if (ignoreSuggestedSize)
+            {
+                picture.IgnoreSuggestedSize = true;
+            }
+            else
+            {
+                picture.SuggestedSize = GetItemSuggestedSize(picture);
+            }
 
             if (imageDisabled is not null)
             {
@@ -801,7 +952,7 @@ namespace Alternet.UI
         /// to the toolbar.
         /// </remarks>
         /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
-        public virtual ObjectUniqueId AddControl(Control control)
+        public virtual ObjectUniqueId AddControl(AbstractControl control)
         {
             control.Parent = this;
             UpdateItemProps(control, ItemKind.Control);
@@ -831,7 +982,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="size">Optional spacer size.</param>
         /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
-        public virtual ObjectUniqueId AddSpacer(double? size = null)
+        public virtual ObjectUniqueId AddSpacer(Coord? size = null)
         {
             Panel control = new()
             {
@@ -1012,6 +1163,64 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Sets 'Tag' property of the tool.
+        /// </summary>
+        /// <param name="toolId">ID of a previously added tool.</param>
+        /// <param name="tag">Value of the 'Tag' property.</param>
+        public void SetToolTag(ObjectUniqueId toolId, object? tag)
+        {
+            var item = GetToolControl(toolId);
+            if (item is null)
+                return;
+            item.Tag = tag;
+        }
+
+        /// <summary>
+        /// Gets 'Tag' property of the tool.
+        /// </summary>
+        /// <param name="toolId">ID of a previously added tool.</param>
+        public object? GetToolTag(ObjectUniqueId toolId)
+        {
+            var item = GetToolControl(toolId);
+            return item?.Tag;
+        }
+
+        /// <summary>
+        /// Gets all tools which are derived from the specified type.
+        /// </summary>
+        /// <typeparam name="T">Type of the tool</typeparam>
+        /// <returns></returns>
+        public virtual IEnumerable<T> GetToolsAs<T>()
+        {
+            foreach (var item in Children)
+            {
+                if (item is not T btn)
+                    continue;
+                yield return btn;
+            }
+        }
+
+        /// <summary>
+        /// Gets all tools which are derived from the <see cref="SpeedButton"/>.
+        /// </summary>
+        public IEnumerable<SpeedButton> GetTools() => GetToolsAs<SpeedButton>();
+
+        /// <summary>
+        /// Gets collection of the tools with 'Sticky' property equal to the specified value.
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerable<SpeedButton> GetStickyTools(bool value = true)
+        {
+            foreach (var item in Children)
+            {
+                if (item is not SpeedButton btn)
+                    continue;
+                if(btn.Sticky == value)
+                    yield return btn;
+            }
+        }
+
+        /// <summary>
         /// Gets the specified toolbar item Sticky property value.
         /// </summary>
         /// <param name="toolId">ID of a previously added tool.</param>
@@ -1101,22 +1310,19 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void DeleteAll(bool dispose = false)
         {
-            Stack<Control> controls = new();
-            controls.PushRange(Children);
-            SuspendLayout();
-            try
+            if (!HasChildren)
+                return;
+
+            Stack<AbstractControl> controls = new(Children);
+            DoInsideLayout(() =>
             {
                 foreach (var control in controls)
                 {
                     control.Parent = null;
-                    if(dispose)
+                    if (dispose)
                         control.Dispose();
                 }
-            }
-            finally
-            {
-                ResumeLayout();
-            }
+            });
         }
 
         /// <summary>
@@ -1150,12 +1356,12 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <param name="text">New property value.</param>
-        public virtual void SetToolText(ObjectUniqueId id, string? text)
+        public virtual void SetToolText(ObjectUniqueId id, object? text)
         {
             var item = GetToolControl(id);
             if (item is null)
                 return;
-            item.Text = text ?? string.Empty;
+            item.Text = text.SafeToString();
         }
 
         /// <summary>
@@ -1163,12 +1369,12 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <param name="value">New property value.</param>
-        public virtual void SetToolShortHelp(ObjectUniqueId id, string? value)
+        public virtual void SetToolShortHelp(ObjectUniqueId id, object? value)
         {
             var item = GetToolControl(id);
             if (item is null)
                 return;
-            item.ToolTip = value;
+            item.ToolTip = value.SafeToString();
         }
 
         /// <summary>
@@ -1176,7 +1382,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <returns></returns>
-        public virtual ICustomAttributes? GetToolCustomAttr(ObjectUniqueId id)
+        public virtual ICustomAttributes<string, object>? GetToolCustomAttr(ObjectUniqueId id)
         {
             var item = GetToolControl(id);
             if (item is null)
@@ -1189,7 +1395,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <returns></returns>
-        public virtual ICustomFlags? GetToolCustomFlags(ObjectUniqueId id)
+        public virtual ICustomFlags<string>? GetToolCustomFlags(ObjectUniqueId id)
         {
             var item = GetToolControl(id);
             if (item is null)
@@ -1240,10 +1446,22 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="id">Item id.</param>
         /// <returns></returns>
-        public virtual Control? GetToolControl(ObjectUniqueId id)
+        public virtual AbstractControl? GetToolControl(ObjectUniqueId id)
         {
             var result = FindChild(id);
             return result;
+        }
+
+        /// <summary>
+        /// Gets item control at the specified index.
+        /// </summary>
+        /// <param name="index">Item index.</param>
+        /// <returns></returns>
+        public virtual AbstractControl? GetToolControlAt(int index)
+        {
+            if(index < GetToolCount())
+                return Children[index];
+            return null;
         }
 
         /// <summary>
@@ -1257,6 +1475,52 @@ namespace Alternet.UI
             if (item is null)
                 return;
             item.ShortcutKeys = value;
+        }
+
+        /// <inheritdoc/>
+        public override SizeD GetPreferredSize(SizeD availableSize)
+        {
+            return base.GetPreferredSize(availableSize);
+        }
+
+        /// <summary>
+        /// Moves toolbar to the bottom of the container. This is done
+        /// by setting it's <see cref="AbstractControl.VerticalAlignment"/> to
+        /// <see cref="VerticalAlignment.Bottom"/>. This moves toolbar to the bottom if
+        /// container's <see cref="AbstractControl.Layout"/> is <see cref="LayoutStyle.Vertical"/>.
+        /// Also this method optionally updates margin and border of the toolbar.
+        /// </summary>
+        /// <param name="onlyTopBorder">If True, only top border will be visible.
+        /// If false, doesn't change the border.</param>
+        /// <param name="updateMargin">If True, margin will be updated to have distance to other
+        /// content of the container. If False, doesn't change the margin.</param>
+        public virtual void MakeBottomAligned(bool onlyTopBorder = true, bool updateMargin = true)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            if(onlyTopBorder)
+                OnlyTopBorder();
+            if(updateMargin)
+                Margin = (0, ToolBar.DefaultDistanceToContent, 0, 0);
+        }
+
+        /// <summary>
+        /// Moves toolbar to the top of the container. This is done
+        /// by setting it's <see cref="AbstractControl.VerticalAlignment"/> to
+        /// <see cref="VerticalAlignment.Top"/>. This moves toolbar to the top if
+        /// container's <see cref="AbstractControl.Layout"/> is <see cref="LayoutStyle.Vertical"/>.
+        /// Also this method optionally updates margin and border of the toolbar.
+        /// </summary>
+        /// <param name="onlyBottomBorder">If True, only bottom border will be visible.
+        /// If false, doesn't change the border.</param>
+        /// <param name="updateMargin">If True, margin will be updated to have distance to other
+        /// content of the container. If False, doesn't change the margin.</param>
+        public virtual void MakeTopAligned(bool onlyBottomBorder = true, bool updateMargin = true)
+        {
+            VerticalAlignment = VerticalAlignment.Top;
+            if (onlyBottomBorder)
+                OnlyBottomBorder();
+            if (updateMargin)
+                Margin = (0, 0, 0, ToolBar.DefaultDistanceToContent);
         }
 
         /// <summary>
@@ -1286,6 +1550,23 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Sets item 'Shortcut' property value.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        /// <param name="key">Key code.</param>
+        /// <param name="modifiers">Key modifiers.</param>
+        public virtual void SetToolShortcut(
+            ObjectUniqueId id,
+            Key key,
+            ModifierKeys modifiers = UI.ModifierKeys.None)
+        {
+            var item = FindTool(id);
+            if (item is null)
+                return;
+            item.ShortcutKeyInfo = [new KeyInfo(key, modifiers)];
+        }
+
+        /// <summary>
         /// Set click action for the item.
         /// </summary>
         /// <param name="id">Item id.</param>
@@ -1296,6 +1577,17 @@ namespace Alternet.UI
             if (item is null)
                 return;
             item.ClickAction = value;
+        }
+
+        /// <summary>
+        /// Gets last tool casted to the specified type.
+        /// </summary>
+        /// <typeparam name="T">Type of the required result.</typeparam>
+        /// <returns></returns>
+        public virtual T? LastTool<T>()
+            where T : AbstractControl
+        {
+            return Children[Children.Count - 1] as T;
         }
 
         /// <summary>
@@ -1347,15 +1639,136 @@ namespace Alternet.UI
             DisabledImageColor ?? DefaultDisabledImageColor ?? GetSvgColor(KnownSvgColor.Disabled);
 
         /// <summary>
+        /// Gets item control as <see cref="SpeedButton"/>. If tool doesn't use
+        /// <see cref="SpeedButton"/> as a control, returns Null.
+        /// </summary>
+        /// <param name="id">Item id.</param>
+        public SpeedButton? FindTool(ObjectUniqueId id)
+        {
+            var result = GetToolControl(id) as SpeedButton;
+            return result;
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpeedButton"/> to the control.
+        /// </summary>
+        /// <param name="text">Item text.</param>
+        /// <param name="action">Click action.</param>
+        /// <param name="toolTip">Item tooltip.</param>
+        /// <returns><see cref="ObjectUniqueId"/> of the added item.</returns>
+        public virtual ObjectUniqueId AddTextBtn(
+            string? text,
+            string? toolTip = null,
+            EventHandler? action = null)
+        {
+            text ??= string.Empty;
+
+            var speedButton = CreateToolSpeedTextButton();
+
+            speedButton.ToolTip = toolTip ?? string.Empty;
+            speedButton.Text = text;
+            speedButton.VerticalAlignment = UI.VerticalAlignment.Center;
+            speedButton.Margin = DefaultTextBtnMargin;
+
+            UpdateItemProps(speedButton, ItemKind.ButtonText);
+
+            if (action is not null)
+                speedButton.Click += action;
+            speedButton.Parent = this;
+
+            return speedButton.UniqueId;
+        }
+
+        /// <summary>
+        /// Adds an empty disabled <see cref="SpeedButton"/> to the control.
+        /// </summary>
+        public virtual SpeedButton AddSpeedBtnCore()
+        {
+            var result = AddSpeedBtnCore(
+                ItemKind.Button,
+                null,
+                KnownSvgImages.ImgEmpty.AsImageSet(GetImageSize()),
+                null);
+            result.Enabled = false;
+            return result;
+        }
+
+        /// <summary>
+        /// Adds <see cref="SpeedButton"/> to the control.
+        /// </summary>
+        /// <param name="text">Item text.</param>
+        /// <param name="itemKind">Item kind.</param>
+        /// <param name="imageSet">Item image.</param>
+        /// <param name="imageSetDisabled">Item disabled image.</param>
+        /// <param name="toolTip">Item tooltip.</param>
+        /// <param name="action">Click action.</param>
+        public virtual SpeedButton AddSpeedBtnCore(
+            ItemKind itemKind,
+            string? text,
+            ImageSet? imageSet,
+            ImageSet? imageSetDisabled,
+            string? toolTip = null,
+            EventHandler? action = null)
+        {
+            text ??= string.Empty;
+
+            var speedButton = CreateToolSpeedButton();
+
+            speedButton.ImageVisible = imageVisible;
+            speedButton.TextVisible = textVisible;
+            speedButton.ImageToText = imageToText;
+            speedButton.Text = text;
+            speedButton.ImageSet = imageSet;
+            speedButton.ToolTip = toolTip ?? text;
+            speedButton.VerticalAlignment = UI.VerticalAlignment.Center;
+            speedButton.Margin = DefaultSpeedBtnMargin;
+
+            speedButton.SuggestedSize = GetItemSuggestedSize(speedButton);
+
+            if (imageSetDisabled is not null)
+            {
+                speedButton.DisabledImageSet = imageSetDisabled;
+            }
+
+            UpdateItemProps(speedButton, itemKind);
+
+            if (action is not null)
+                speedButton.Click += action;
+            speedButton.Parent = this;
+
+            return speedButton;
+        }
+
+        /// <summary>
+        /// Creates <see cref="SpeedButton"/> for use in the toolbar.
+        /// Override to create customized speed buttons.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual SpeedButton CreateToolSpeedButton()
+        {
+            return new SpeedButton();
+        }
+
+        /// <summary>
+        /// Creates <see cref="SpeedTextButton"/> for use in the toolbar.
+        /// Override to create customized speed text buttons.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual SpeedTextButton CreateToolSpeedTextButton()
+        {
+            return new SpeedTextButton();
+        }
+
+        /// <summary>
         /// Updates common properties of the item control.
         /// </summary>
         /// <param name="control">Control which properties to update.</param>
         /// <param name="itemKind">Item kind.</param>
         /// <remarks>
         /// This method is called when new item is added, it updates
-        /// <see cref="Control.BackgroundColor"/> and other properties.
+        /// <see cref="AbstractControl.BackgroundColor"/> and other properties.
         /// </remarks>
-        protected virtual void UpdateItemProps(Control control, ItemKind itemKind)
+        protected virtual void UpdateItemProps(AbstractControl control, ItemKind itemKind)
         {
             if (itemKind == ItemKind.Control)
                 return;
@@ -1369,7 +1782,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control">Control to check</param>
         /// <returns></returns>
-        protected virtual bool NeedUpdateBackColor(Control control) => NeedUpdateForeColor(control);
+        protected virtual bool NeedUpdateBackColor(AbstractControl control) => NeedUpdateForeColor(control);
 
         /// <summary>
         /// Gets whether child control foreground color need to be updated when
@@ -1377,7 +1790,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control">Control to check</param>
         /// <returns></returns>
-        protected virtual bool NeedUpdateForeColor(Control control)
+        protected virtual bool NeedUpdateForeColor(AbstractControl control)
         {
             Type[] types =
             {
@@ -1398,65 +1811,20 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Adds <see cref="SpeedButton"/> to the control.
+        /// Gets item's suggested size.
         /// </summary>
-        /// <param name="text">Item text.</param>
-        /// <param name="itemKind">Item kind.</param>
-        /// <param name="imageSet">Item image.</param>
-        /// <param name="imageSetDisabled">Item disabled image.</param>
-        /// <param name="toolTip">Item tooltip.</param>
-        /// <param name="action">Click action.</param>
-        protected virtual SpeedButton InternalAddSpeedBtn(
-            ItemKind itemKind,
-            string? text,
-            ImageSet? imageSet,
-            ImageSet? imageSetDisabled,
-            string? toolTip = null,
-            EventHandler? action = null)
-        {
-            text ??= string.Empty;
-
-            SpeedButton speedButton = new()
-            {
-                ImageVisible = imageVisible,
-                TextVisible = textVisible,
-                ImageToText = imageToText,
-                Text = text,
-                ImageSet = imageSet,
-                ToolTip = toolTip ?? text,
-                VerticalAlignment = UI.VerticalAlignment.Center,
-                Margin = DefaultSpeedBtnMargin,
-            };
-
-            speedButton.SuggestedSize = GetItemSuggestedSize(speedButton);
-
-            if (imageSetDisabled is not null)
-            {
-                speedButton.DisabledImageSet = imageSetDisabled;
-            }
-
-            UpdateItemProps(speedButton, itemKind);
-
-            if (action is not null)
-                speedButton.Click += action;
-            speedButton.Parent = this;
-
-            return speedButton;
-        }
-
-        private SizeD GetItemSuggestedSize(Control control)
+        /// <param name="control">Child control for which to get the suggested size.</param>
+        /// <returns></returns>
+        protected virtual SizeD GetItemSuggestedSize(AbstractControl control)
         {
             if (control is PictureBox)
+            {
                 return itemSize;
-            if (TextVisible)
-                return (double.NaN, itemSize);
-            return itemSize;
-        }
+            }
 
-        private SpeedButton? FindTool(ObjectUniqueId id)
-        {
-            var result = GetToolControl(id) as SpeedButton;
-            return result;
+            if (TextVisible)
+                return (Coord.NaN, itemSize);
+            return itemSize;
         }
     }
 }

@@ -13,7 +13,6 @@ namespace Alternet.UI
     /// This enumeration supports a bitwise combination of its member values.
     /// </remarks>
     [TypeConverter("Alternet.UI.ModifierKeysConverter")]
-    [ValueSerializer("Alternet.UI.ModifierKeysValueSerializer")]
     [Flags]
     public enum RawModifierKeys
     {
@@ -25,21 +24,21 @@ namespace Alternet.UI
         /// <summary>
         /// The "Alt" key on Windows and Linux or "Option" key on macOS.
         /// </summary>
-        Alt = 1 << 0,
+        Alt = 1,
 
         /// <summary>
-        /// A "Control" key on Windows and Linux or "Command" key on macOS.
+        /// A "Control" key on Windows and Linux or "Command" key on macOS. Value is 0x0002.
         /// </summary>
         Control = 1 << 1,
 
         /// <summary>
-        /// A shift key.
+        /// A shift key. Value is 0x0004.
         /// </summary>
         Shift = 1 << 2,
 
         /// <summary>
         /// The Microsoft "Windows" key on Windows or "Control" key
-        /// on macOS or "Meta" key on Linux.
+        /// on macOS or "Meta" key on Linux. Value is 0x0008.
         /// </summary>
         Windows = 1 << 3,
 

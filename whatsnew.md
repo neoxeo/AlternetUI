@@ -1,1527 +1,203 @@
-# 0.9.613 (2024 June 25)
+# 0.9.703 (2025 January 17)
 
-- Used netstandard2.0 in the library.
-- Fixed bug in splitter movement, get mouse pos from system.
-- Window.Icon can be specified in uixml. Example: "embres:RoslynSyntaxParsing.Sample.ico".
-- Application.SetUnhandledExceptionModes.
-- BaseException, BaseXmlException, ExceptionCreatedEventArgs classes.
-- SplittedPanel: TopBottomVisible, LeftRightVisible.
-- LogListBox.ShowDebugWelcomeMessage.
-- Alternet.UI.Build.Tasks: Support Alternet.Editor in uixml.
-- Cursor.AllowCustomCursors.
-- Used ScrollBarOrientation instead of ScrollOrientation beacuse it was a duplicate.
-- Clipboard.SetDataObject(IDataObject? data, bool copy).
-- new properties in DataFormats as in WinForms.
-- DataObject.SetText(string textData, TextDataFormat format).
+- PanelSettings control is finished.
+- ControlAndLabel: LabelToControl property which allow to specify horizontal or vertical layout between label and control.
+- Return ICommandSource.CommandTarget and add Command.CurrentTarget property.
+- Create FontComboBox, PanelListBoxAndCards.
+- Maui: Add CheckBoxWithLabelView.
+- Maui: Update to the new nuget versions.
+- Maui: Update used WinRT version.
+- Clipboard: Flush, HasFormat.
+- IDataObject.HasFormat.
+- ListControlItem: TextHasBold, SetLabelFlag.
+- Fixed VirtualListBox.FindFirstVisibleFromLast for 0 item.
+- PictureBox: IsImageCentered, GetImagePreferredSize().
+- ColorComboBox and ColorListBox: Value property setter is fixed. Find(Color? value) method is fixed.
+- Fixed some issues in scroll layout.
+- PanelSettings: Color value editors.
+- PanelSettings: Fixed text and selector editor creation.
+- Set HorizontalAlignment = Left in constructor for some controls.
+- Clipboard formats handling improvement.
+- Clipboard: Fixed exception macos.
+- Calendar: Added update theme after handle created.
+- PopupCalendar: more correct initial size.
+- PopupWindow: By default title bar made visible as allows to move popup.
+- TabControl: Fixed not to create invisible pages on dispose.
+- Border.ResetBorders(), ScrollViewer.CreateWithChild.
+- Control: Fixed MinimumSize, MaximumSize setters.
+- Redo native controls events handling.
+- List editor now is non-modal.
+- BaseComponent merged into FrameworkElement.
 
-# 0.9.612 (2024 June 21)
+# 0.9.702 (2025 January 12)
 
-- <u>**Critical**</u>: Fix exception when year > 3000.
-- Optimized Keys to/from Key conversions.
-- SkiaContainer now handles focus and keyboard input.
-- ComboBox: SelectedIndexChanged, DropDownStyle.
-- Application.StartuPath, CommonDialog.ShowModal, FileDialog.FilterIndex, Button.UseVisualStyleBackColor, ListControl.SelectedIndexAsInt.
+- VirtualListBox: Fixed not repatined after EndUpdate in some cases.
+- VirtualListBox: Fixed some selection related bugs.
+- VirtualListBox: Added RemoveSelectedAndUpdateSelection, SelectItemsAndScroll, SelectLastItemAndScroll.
+- VirtualListBox: Redo EnsureVisible internally without using native control.
+- Add SystemColorsLight and used them in Calendar and PlessSystemColors. SystemColorsLight contains predefined RGB values for system colors when light theme is selected.
+- ObjectUniqueId: precalculate HashCode.
+- IndexedValues.GetLockedItemCached.
+- ListControlItem: Selected state is saved per container.
+- Exclude invisible on screen controls from TAB traversal.
+- Set CanSelect and TabStop in constructor for some controls.
+- TextBox: Fixed WantTab behavior.
+- Fixed Tab traversal behavior.
+- Fixed: Invisible controls don't receive key down anymore.
+- ColorComboBox: Fixed colors were not filled by default.
+- RichToolTip: redesigned to work without creating internal controls.
+- Demo: Return design corners to PropertyGrid sample.
+- RichToolTip: ToolTipAlignment, ToolTipHorizontalAlignment,  ToolTipVerticalAlignment.
+- RichToolTip: ToolTipVisibleChanged event.
+- RichToolTip is now derived from ScrollViewer and can be scrollable.
+- Improved exception handling. Stack frame is now correctly shown for the exceptions raised in the library.
+- UnhandledExceptionMode: CatchWithDialog, CatchWithDialogAndThrow, CatchWithThrow.
+- Create focus event arguments and pass them to GorFocus and LostFocus events.
+- Maui: Fixed AbstractControl.FocusedControl behavior.
+- Maui: OnHandleCreated and OnHandleDestroyed are called by ControlView.
+- Maui: Maui: Clipboard now keeps non text data.
+- Set ParentBackColor/ParentForeColor = true in constructor for different panel like controls.
+- Create ErrorPictureBox, ComboBoxAndButton, BaseEventArgsWithAttr.
+- Fixed ParentBackColor and ParentForeColor behavior.
+- Fixed layout when LayoutStyle.Scroll.
+- ListControlItem.ImageIndex, AbstractControl.GetErrorsCollection.
+- Clipboard: Fix to allow SetData for multiple formats in the same DataObject.
+- UnmanagedDataObjectAdapter: Do not raise exception on unknown data formats.
+- Add PanelSettings control (unfinished).
+- TextBox.TextAlign type changed to TextHorizontalAlignment.
+- ControlAndButton: TextChanged, DelayedTextChanged events.
+- ComboBoxAndLabel.SelectedIndexChanged event.
+- ControlAndLabel: TextChanged, DelayedTextChanged events.
+- BaseException: Tag, IntFlags, IntFlagsAndAttributes, FlagsAndAttributes, CustomFlags, CustomAttr.
+- App.LogError: Fixed behavior in case when parameters is null.
 
-# 0.9.611 (2024 June 18)
+# 0.9.701 (2025 January 8)
 
-- <u>**Critical**</u> Updated to use WxWidgets 3.2.5. Fixes different problems on Linux.
-- Display: MinScaleFactor, AllDPI, MinDPI, MaxDPI, HasDifferentDPI, BaseDPI, BaseDPIValue.
-- Maui platform related improvements.
-- EnumMapping class.
+- ListBox and CheckListBox are now derived from VirtualListBox. As a result they work much faster with large number of items and has less platform specific problems.
+- VirtualListBox: Optimized operations inside BeginUpdate/EndUpdate. As a result Items.AddRange and other operations works much faster.
+- VirtualListBox: Fixed incorrect measure item in some cases. Implement more features internally without using platform control. Add FindAndSelect method. Ctrl+A select all items in the multuselect mode.
+- VirtualListBox: Implement selection internally without using platform control.
+- VirtualListBox: Fixed SelectedIndex prop setter.
+- RichToolTip: Message can be multiline and is word wrapped now.
+- ListControlItem: SvgImageWidth, SvgImageHeight, HorizontalAlignment, VerticalAlignment.
+- CharValidator: Fix didn't allow Delete key on Linux.
+- KnownSvgImages: ImgSearch, Search.
+- Add classes: EmptyTextHints.
+- PictureBox: Fixed GetPreferredSize.
+- ControlAndButton.IsButtonLeft.
+- TextBoxAndButton: InitFilterEdit, InitSearchEdit, SetSingleButton.
+- TextBoxAndButton: Removed InitErrorAndBorder as we have InnerOuterBorder.
+- ControlAndLabel: Do not create error picture if not requested.
+- TextBoxAndLabel.AutoShowError.
+- CustomTextBox: use idle event for errorPicture show.
+- Use DisposingOrDisposed in some controls for more safety.
+- CharValidator.AlwaysValidControlChars, AbstractControl.IgnoreCharValidator.
+- Value editors: set UseCharValidator = false by default.
+- Collection editor: Fixed look on Linux. Updated to work with new ListBox and CheckListBox. Allows to specify item attributes (like color, font, etc.) for list controls. Added reload of all properties after value is edited in PropertyGrid.
+- ThreadExceptionWindow: Do not show label about 'Quit' button if it is hidden. Show BaseException.AdditionalInformation if it is specified.
+- Calendar: MarkAll, ResetAttrAll, DefaultUseGeneric, SetColorThemeToLight, SetThemeInConstructor, DefaultShowWeekNumbers, DefaultSequentalMonthSelect, DefaultShowHolidays.
+- WindowSizeToContentMode: new enum members.
+- WindowWebBrowserSearch: Fixed search behavior.
+- ToolbarSet: Fixed layout when HasBorder = true.
+- Toolbar: AddRightSpeedBtn, AddSpeedBtnCore (many overloads with diff params).
+- FindReplaceControl: Fix layout, add OptionsVisible, ToggleReplaceVisible.
+- ImmutableObject: IsPropertyChangedSuspended, SuspendPropertyChanged, ResumePropertyChanged, DoInsideSuspendedPropertyChanged.
+- ScrollBar: setter for PosInfo property.
+- ScrollBar.PositionInfo: Assign, Record.
+- CardPanelItem: SupressException, DefaultSupressException.
+- UIXmlLoader: better error handling when uixml is loaded.
+- Fixed Control.ClientSize setter so it uses minimum and maximum sizes.
+- AbstractControl: Do not layout if added/removed control is hidden or ignored in layout.
+- LogUtils: Better exception logging.
+- Fixed AbstractControl.ChildrenLayoutBounds.
+- Fix exception on app exit in some cases.
 
-# 0.9.610 (2024 June 16)
+# 0.9.700 (2025 January 1)
 
-- <u>**Critical**</u> StatusBar: Fixed StatusBar was not shown in the window.
-- <u>**Critical**</u> SystemSettings: Fixed bug in ResetColors().
-- <u>**Critical**</u> Control: Fixed Bounds property set method. Now min width or height is always 0, previously it was possible to set negative values, so it caused Gtk exceptions on Linux.
-- Demo: Fixed uixml InputTransparent prop related exceptions.
-- ScrollBar: SizeFromMetrics(), ArrowBitmapSizeFromMetrics(), ThumbSizeFromMetrics().
-- Hide some properties in controls from PropertyGrid.
-- Control: Focus related fixes.
-- Image.Url property.
-- Demo: Fixed doubling of browsable types in PropGrid demo.
-- Demo: Fixed 'Add Panel', 'Set Null' actions for StatusBar demo.
+Summary:
 
-# 0.9.609 (2024 June 15)
+- AlterNET UI now supports .NET 9, MAUI 9, and SkiaSharp 3.
+- Improved MAUI support across the library alongside with WxWidgets.
+- New controls: TextBoxAndButton (TextBox with buttons and image on the right side), RichToolTip (reimplemented inside the library), PopupControl (popups inside the parent control), and others.
+- Generic controls (can be used as parts of native controls and are handled internally in the library without operating system resources allocation) and Template controls that can be rendered to Graphics or Bitmap.
+- VirtualListView: Improved painting in owner-draw mode, with different methods for thread-safe operations that allow fast loading of a large number of items.
 
-- Size and Rect: PixelToDip/PixelFromDip.
-- Window: DisplayChanged event.
-- LogListBox: Fixed scrolling to end when item added.
-- TextBox: Supports INotifyDataErrorInfo interface.
-- TextBox: ErrorsChanged event.
-- TextBox: HasErrors property.
-- TextBox: HasErrorEmptyText(), HasErrorMinLength(), HasErrorMaxLength(), GetErrors().
-- TextBox: Added new optional 'errorEnumerator' param in RunDefaultValidation and Report* methods.
-- ResourceLoader.StreamFromUrlOrDefault.
-- GraphicsFactory: CreateMemoryCanvas(Image image), CreateMemoryDC renamed to CreateMemoryCanvas.
-- TextBoxAndLabel: Fixed double Init() in constructor.
-- ControlAndLabel: supports INotifyDataErrorInfo.
-- Control: e.CurrentTarget is correctly assigned in KeyPress event.
-- Control: BubbleMouse renamed to InputTransparent as in Maui.
-- Control: Simplified Focus related methods/props.
-- Control: AbsolutePosition, AllParents.
-- Control: INotifyDataErrorInfo is supported.
-- Control: HasErrors - returns whether this control or it's child controls have validation errors.
-- Control: GetErrors - gets the validation errors for this control and it's child controls.
-- Control: ErrorsChanged event - Occurs when the validation errors have changed for this control or it's child controls.
-- Font.SizeInDips.
-- ScrollBar: DefaultMetrics, Metrics.
-- PointD: +/- operators for (PointD, PointD).
-- ImageLockMode is used in LockSurface.
-- Improvements related to drawing on Skia and using Control in Maui.
+More details:
 
-# 0.9.608 (2024 June 12)
+## CONTROLS AND WINDOWS
 
-- Control: DpiChanged event.
-- Control: MeasureCanvas optimized (uses global memory dc and is not created for every control).
-- Control: Enabled is returned correctly if parent control is disabled.
-- Control: GetPixelScaleFactor() -> ScaleFactor.
-- Control: IsMouseOver implemented inside Control and not passed to platform.
-- Control: Removed SendSizeEvent as not possible to implement on Maui.
-- Control: Removed ScreenToDevice, DeviceToScreen as we have similar PixelToDip/PixelFromDip methods.
-- Control: Removed BeginIgnoreRecreate/EndIgnoreRecreate as were buggy and confusing, use BeginInit/EndInit.
-- Control: Dpi and ScaleFactor are cached.
-- Control: IsParentEnabled, IsThisEnabled.
-- LogListBox: BoundToApplicationLog can be set.
-- Image.BitsFormat.
-- NativeApiGenerator: No switch clause is generated if there is only one event.
-- Display: Removed exceptions.
-- Display: IsOk, MaxScaleFactor, AllScalefactors, speed optimizations.
-- UixmlLoader: new static Func properties LoadFromResName, LoadFromStream, ReportLoadException.
-- TabControl: TabSizeChanged event.
-- Window: Call PerformLayout on DpiChanged event.
-- SystemColors: Updated on SystemColorsChanged.
-- PlessMouse: LastMousePosition, LastMousePositionChanged.
-- GraphicsFactory: GetOrCreateMemoryDC, CreateMemoryDC.
-- Graphicsfactory: ScaleFactor param is now optional in all PixelFromDip/PixelToDip and other methods that have it. If it is not specified, Display.MaxScaleFactor is used.
-- PointD: MinValue, MacValue, new constructor.
-- ARGBValue, RGBAValue structs and PlessSystemSettingsHandler class.
+- Window and its descendants can be created and used as controls. We have added additional constructors and static CreateAs method with WindowKind parameter, which can override window kind. For example, this technology allows inserting a window as a child of another window or control. 
+- Separated platform control from abstract control. So now we have AbstractControl and GenericControl, which are not bound to the OS control.
+- Control now notifies subscribers (GlobalNotifications and Notifications properties) about its events. You can use AddGlobalNotification, RemoveGlobalNotification, AddNotification, and RemoveNotification methods to register/unregister for notifications.
+- Moved InputBindings property and related methods from Window to AbstractControl to specify input bindings for any control.
+- Improved FrameworkElement (the parent class of the control) made it much simpler and more efficient.
+- Dispose is now called for all child controls.
+- DelayedTextChanged and DelayedSelectionChanged events allow for the implementation of more user-friendly applications.
+- Simplify and speed up native keyboard, mouse, and application events. Optimize scroll notifications.
 
-# 0.9.607 (2024 June 10)
+## NEW FEATURES IN CONTROLS
 
-- Added SkiaSharp mega demo in ControlsSample.
-- Control: SystemColorsChanged event.
-- Control: All event calls and other code move out from On* methods to Raise* methods, so now we do not need to call base method when overriding On* methods.
-- Control: Added Bubble* methods.
-- Control: GetFocusedControl speed optimization.
-- Control: static events FocusedControlChanged, HoveredControlChanged
-- GenericImage: HasAlpha, HasMask are now properties and not methods (similar to Image).
-- GenericImage: LockSurface() which allows to lock SKCanvas.
-- Key and mouse events handling speed optimization.
-- Mouse and Keyboard classes are now not abstract and have Default property.
-- PictureBox is invalidated when Image prop is set.
-- Fixed exception in get mouse pos from system (occured in some cases).
-- Platformless caret implemented in Control.
+- Many controls are now derived from Border, so it is possible to specify custom borders with any color and width.
+- Command and CommandParameter properties are added to different controls, so now it’s possible to specify ICommand (or its name) in the UIXML, and the command will be executed. We have added a NamedCommand class, which handles command execution.
+- The new CharValidator property is implementing character validation on the input.
+- TextBox new feature: Use events and/or type converter for text to/from value conversion.
+- Improved ComboBox and VirtualListView painting in owner-draw mode.
+- VirtuaListBox now has methods that allow loading items to the control very fast. Additionally, there are methods that can load items from another thread.
+- All controls have many new properties and methods.
 
-# 0.9.606 (2024 June 8)
+## LAYOUT
 
-- Display.Reset, Image.HasMask.
-- Display: AllScreens property checks whether display were added/removed from system.
-- Control: ForEachChild(action, recursive), ResetMeasureCanvas(), ResetDisplay().
-- Window: DpiChanged event is raised when form is moved to another display and it has other dpi.
-- Window: Child's Display and MeasureCanvas properties are updated when form is moved to another display.
-- Color: Used ColorStruct inside, AsStruct property, speed optimizations.
-- Color: Constructors made public, MinMaxRgb method.
-- Image.LockSurface - allows to get SKCanvas from Image.
-- ImageBitsFormat class.
-- GraphicsFactory: Definable converters from color, pen, font to SKPaint.
-- GraphicsFactory: NativeBitsFormat, AlphaBitsFormat, GenericBitsFormat.
-- GraphicsFactory: ScaleFactorFromDpi, PixelFromDip, PixelToDip for Coord, Point, Rect, Size.
-- Simplify and speed up system color to rgb conversion.
-- Graphics: GetDPI now returns SizeI.
-- Graphics: HorizontalScaleFactor, VerticalScaleFactor, ScaleFactor.
-- Graphics: Removed "I" suffix from DrawRotatedTextI, StretchBlitI, BlitI. Added GraphicsUnit optional parameter instead of it.
-- Graphics: Removed optional useMask param in DrawImage.
-- Graphics: ToDip for Point, Size, Rect.
-- Graphics: FillRectangle(Brush brush, RectD rectangle, GraphicsUnit unit).
-- Added SkiaSharpSampleDll with SkiaSharp samples.
+- Stack layout bug fixes. Also added support for HorizontalLayout.Fill when Layout = Horizontal.
+- LayoutStyle.Scroll - The new control layout style is as in ScrollViewer.
+- PerformLayout method speed optimization.
+- ScrollViewer: Fixed incorrect layout in some cases.
 
-# 0.9.605 (2024 June 5)
+## NEW CONTROLS
 
-- Color: GetRgbValues, WithRed, WithGreen, WithBlue, WithAlpha.
-- Color: Optimization of the internal structure (occupy less memory and speed up).
-- Color: SkiaColor, State properties.
-- Color: Optimization of AsPen and GetAsPen.
-- Color: Optimization of Color to SKColor conversion.
-- Image and GenericImage: static Create(int width, int height, SKColor[] pixels).
-- Image and GenericImage: Correct pixel conversion in case when image has alpha or mask color
-- Image: static Create(int width, int height, Color color).
-- Image and GenericImage: ConvertToDisabled implemented internally
-- Image: ChangeLightness(int ialpha).
-- Image: Load methods now understand urls.
-- Image: Save to file now uses file system.
-- Image: Exceptions are not raised during load/save, only false is returned in case of error.
-- GenericImage: Pixels, RgbData, AlphaData properties.
-- GenericImage: FillPixels, FillAlphaData, FillRgbData, CreatePixels, CreateRgbData, CreateAlphaData, SetRgbValuesFromPtr, SetAlphaValuesFromPtr.
-- GenericImage: Removed GetNativeData, SetNativeData, GetNativeAlphaData, SetNativeAlphaData. Use Pixels, AlphaData, RgbData instead of them.
-- GraphicsFactory: Many new create SkPaint methods.
-- GraphicsFactory: DefaultScaleQuality, DefaultAntialias
-- SkiaUtils: IsFamilySkia, FontFamilies, ResetFonts.
-- Font.SkiaMetrics property.
-- By default only Skia compatible fonts are available in library.
-- FontFamily: SkiaTypeface, IsFixedPitch, IsFixedPitchFontFamily
-- New classes: FontListBox, FontNameAndSize, SampleFonts.
-- Correct implementation of default fixed pitch font search for maui/skia.
-- Included assets required by SkiaSharp in library csproj.
-- DialogFactory: AskByte and other methods.
-- Impoved installation scripts. Now TargetPlatfroms override can be specified using bool flags (See Source/Version/SampleFrameworksOverride.props).
+- New ControlAndButton and TextBoxAndButton controls. They have unlimited buttons and an optional error image on the right side of the control.
+- RichToolTip completely reimplemented. Now, it is derived from Control and shows tooltips inside itself. It supports showing tooltips with images only (without title and message text).
+- Added control templates painting. Related classes: TemplateControl, TemplateUtils, TemplateControls.
+- Created PopupControl - Allows popups inside the client area of the parent control.
 
-# 0.9.604 (2024 June 3)
+## NEW LIBRARIES
 
-- Fixed exception when maximized window is closed.
-- RadioButton: CheckedChanged event is now fired when IsChecked property changed from code.
-- Control: LocationChanged event is now fired.
-- Window: StateChanged event is now fired.
-- Image: ExtensionsForLoad, ExtensionsForSave props.
-- Color and RGBValue to/from SKColor conversions.
-- GenericImage and Image to/from SKBitmap conversions.
-- Font, Brush, Pen to/from Skia converters.
-- Brush: Renamed BrushColor property to AsColor.
-- Window: IsMaximized, IsMinimized.
-- Enum renamed GenericControlState -> VisualControlState.
-- Control.CurrentState renamed to VisualState as Window has State property and it was confusing.
-- Font.Default and Font.DefaultMono set methods.
-- FontFamily: Families, FamiliesNames and FamiliesNamesAscending speedup, types changed to IEnumerable.
-- FontFamily: Reset, IsOk.
-- FontFamily.IsFamilyValid speedup and implemented on c# internally.
-- SystemFonts: All properties are now can be set.
-- SystemFonts: Default, DefaultMono, Serif, SansSerif, GetFont, SetFont.
-- FontFamily.GetName property.
-- Renamed BaseApplication to App.
-- SolidBrush: made all constructors public.
-- Color.AsBrush now returns immutable brush.
-- Brushes: Now uses Color.AsBrush. As a result: speedup and less resources are used.
-- GenericImage: Load and constructor now understand urls (previously only filename).
-- LogListBox: Ctrl+C (selected items to clipboard).
-- Control: Calls to events moved to Raise* methods from On* methods, so now overriding doesn't require calling base.On* method.
-- Display.Default.
-- Font and Color: AsFillPaint, AsStrokePaint props.
-- SkiaGraphics: better DrawText, GetTextExtent.
-- GenericImage: Contstructors without IntPtr.
-- GenericImage: Added constrcutor with SKColor[] parameter.
-- GenericImage: Static methods GetRGBValues, GetAlphaValues, SeparateAlphaData.
-- GenericImage: All load file methods now understand urls.
-- GenericImage: Save methods now use FileSystem.
-- ResourceLoader now uses FileSystem, so it can be redirected by the developer.
-- RectI and RectD: static CreateRect(Width, Height).
-- ImageSet, ImageList, IconSet improved: Common ancestor, support IImageContainer interface.
-- ImageList.ImageSize is now SizeI as in WinForms.
+- .Net 9 support added
+- AlterNET UI updated to use the latest WxWidgets 3.2.6.
+- WebBrowser control now uses the newest Edge library.
+- MAUI 9 is now used.
+- SkiaSharp 3 is now used, as the previous version had MAUI-related issues introduced by the latest Visual Studio update.
+- NuGet packages used in the library are updated to the latest versions.
 
-# 0.9.603 (2024 May 30)
+## MAUI
 
-- Control: TextChanged event.
-- LogListBox: Fixed item repaint if LogReplace.
-- Image: Save methods now have optional quality parameter (but currently they are used only in maui port).
-- Added some SkiaSharp related features. 
-- Alternet.UI.Port namespace is used in all cs files in Port sub-folder.
+- Optimized control painting and caret movement.
+- Scrollbars are now painted in the ControlView.
+- SkiaGraphics: Implemented some of the drawing methods that were not previously implemented.
+- SVG images are now supported.
 
-# 0.9.602 (2024 May 26)
+## CLASSES
 
-- TransformMatrix reimplemented on c#.
-- Graphics: Push and Pop reimplemented on c#.
-- Resource url embres protocol now works without assembly name in url.
-- WebBrowser: moved xml comments to cs file.
-- Fixed csproj files so FrameworksOverride.props now works.
-- Add Changed event to IconSet and ImageList.
+- AdvDictionary is now derived from ConcurrentDictionary.
+- PlessVariant struct made public. It implements a variant structure that can contain data of different types.
+- IndexedValues - a fast and simple container for the index/value pairs.
+- Optimized FlagsAndAttributes.
+- New base classes: BaseObjectWithAttr and BaseObjectWithId. Most of the other classes are derived from them.
 
-# 0.9.601 (2024 May 23)
+## GRAPHICS
 
-- All controls are now separated from WxWidgets and were moved to Alternet.UI.Common.
-- Font: GetNumericWeightOf, CoerceFontParams, GetWeightClosestToNumericValue.
-- Font.SizeInPixels is now int.
-- Font: different static ToUserString methods.
-- Font.Encoding is now FontEncoding (previously was int).
-- FontFamily.GetName(GenericFontFamily family).
-- Application.Idle is now static event.
-- Use KnownSystemColor instead of SystemSettingsColor in all places.
-- Speed optimization: CheckBox, ProgressBar, MenuItem, KeyBinding, InputBinding.
-- Add touch related enums and event.
-- Implemented Default property in all common dialogs.
-- Enums moved to UI.Interfaces dll.
+- The DrawLabel method has been completely rewritten to support additional features.
+- New DrawElements, DrawTextWithBoldTags, and DrawTextWithFontStyle methods.
+- RequireMeasure - fast methods to get text measure canvas.
+- Color now has a virtual method to get ARGB, which allows the implementation of color themes in the application.
+- DrawText method now includes the TextFormat parameter. It has been completely rewritten and is now not specific to WxWidgets as it was implemented inside the library.
+- Transform and HasTransform properties have been optimized
 
-# 0.9.600 (2024 May 16)
+## CROSS-PLATFORM
 
-- Alternet.UI is now fully crossplatform. It was separated from WxWidgets. 
-We also started to port Alternet.UI to MAUI and Avalonia.UI. 
-It will be possible to use any Alternet.UI.Control descendant with these libraries.
-We plan to support at least three platforms: WxWidgets (Window, Linux, MacOs), MAUI (Windows, Android, iOS), Avalonia.UI.
-- Added ContainerControl - base class for all container controls.
-- Renamed GenericToolbar to ToolBar. Old toolbar worked only with WxWidgets, the new one is crossplatform.
-- Speedup of property handling in controls: ComboBox, NumericUpDown, Slider, DateTimePicker, TextBox. 
+- Added iOS, Android, and MacCatalyst to TargetFrameworks of MAUI-related libraries and projects.
+- Fixed installation on macOS Sonoma and newer versions.
+- Fixed caret behavior on Linux and macOS.
 
 ---
 
-# 0.9.527 (2024 April 4)
-
-- Added FileSystem, DefaultFileSystem classes and IFileSystem interface.
-- Control: FileSystem, GetFileSystem().
-- Used IFileSystem in FileListBox, Preview* controls.
-
-# 0.9.526 (2024 March 26)
-
-- FileListBox.Sorted.
-- PathUtils: PushDirectory, PopDirectory, GetFullPath.
-- Resourceloader: Fix relative to full path conversion.
-- AppUtils.SegmentCommandLine.
-- ListControlItem.CanRemove.
-- VListBox: Invalidated when item added or removed.
-- VListBox: SelectAll, UnselectAll, SetAllSelected.
-- Menu.ForEachItem, MenuItem.EnabledFunc.
-- ListBox: HasItems(), HasSelectedItems(), CanRemoveSelectedItem(), RemoveSelectedItem().
-
-# 0.9.525 (2024 March 25)
-
-- Added controls: PreviewFile, PreviewFileSplitted, PreviewInBrowser, PreviewTextFile, PreviewUixml, PreviewUixmlSplitted.
-- Added FileListBox control.
-- Control.LastDoubleClickTimestamp.
-
-# 0.9.524 (2024 March 22)
-
-- ListBox now calls ListControlItem.DoubleClickAction if it's specified.
-- Regress C++ from/to C# NativeObject conversion as did not work properly on Linux.
-- Different default Border control colors for dark/light themes.
-
-# 0.9.523 (2024 March 21)
-
-- Speedup C++ from/to C# NativeObject conversion. This increases overall application performance.
-- Uixml preview sample. Discussion and screenshot is here: https://github.com/alternetsoft/AlternetUI/discussions/130
-- Updated documentation.
-- ListControltem: SvgImage, SvgImageSize, DoubleClickAction.
-- SvgImage: ImageWithColor, ImageSetWithColor, LoadImage.
-- FileListBox, PreviewUixml, HiddenWindow controls.
-- Application: new static Invoke* methods similar to Control.Invoke* methods.
-
-# 0.9.522 (2024 March 20)
-
-- VCheckListBox.
-- LightDarkColor and LightDarkColors.
-- Improved exception handling. Added exceptions catching on non-Windows machines.
-- Fixed ignored mouse events on Linux.
-- TabControl: changed default border color as it was bad on Macos.
-- TabControl: Increase default tab padding. This is done because on normal dpi display distance was too small.
-
-# 0.9.521 (2024 March 16)
-
-- Splitter: improved painting when resize is done.
-- Improved log handling. Now it works faster and is more thread safe.
-- Changed default color for disabled svg images for light theme.
-- Added SvgImage, MonoSvgImage, ColorSvgImage, TwoColorSvgImage.
-- TextBox changed default error state image/color. Now error back/fore color is not used by default.
-- Fixed uixml and cs in documentation samples.
-- Added Clone and NormalBorderAsHovered to all theme related classes.
-- SpeedButton: DefaultCustomTheme, CustomTheme, StaticBorderTheme
-- SpeedButton.KnownTheme.StaticBorder (new SpeedButton theme with border in the normal state).
-- LogUtils: Add optional Kind param to log methods.
-- ThreadExceptionWindow made public.
-- Application.Run now shows exception dialog when unhandled exception occurs where user can select 
-whether to continue or exit the app.
-- Application: ThreadExceptionExitCode, LogUnhandledThreadException, UnhandledExceptionMode, UnhandledExceptionModeIfDebugger, 
-SetUnhandledExceptionModeIfDebugger, ExitAndTerminate(int exitCode = 0).
-- Graphics.DrawText(string text, PointD origin). Uses Control.DefaultFont and Brush.Default for drawing the text.
-- Graphics.DrawCheckBox, DrawingUtils.GetCheckBoxSize.
-- CustomControlPainter: GetCheckBoxSize, DrawCheckBox, Current.
-- VListBox: implemented checkboxes.
-- VListBox: CheckOnClick, CheckedIndicesDescending, CheckedIndices, CheckedCount, RemoveCheckedItems, ClearChecked, CheckItems, 
-SetItemChecked, SetItemCheckState, CheckedChanged event.
-- Control.MeasureCanvas.
-- Improved Window resize behavior.
-- SplittedTreeAndCards: Now possible to specify kind of the left control (TreeView or VListBox). Added many new props and methods.
-- Control.BindScrollEvents.
-- VListBox.HScrollBarVisible (not finished).
-- Added FromSvgString to Image and ImageSet. These methods are faster than FromSvgStream.
-
-# 0.9.520 (2024 March 13)
-
-- VListBox: SelectionVisible, CurrentItemBorderVisible, TextVisible.
-- Added VListBox/ColorListBox samples to ListBoxes tabs in ControlsSample demo.
-- BorderSettings: ToGrayScale, ToColor(Color).
-- Border side is not painted if color is empty or transparent or not ok.
-- ListControlItem.Border.
-- VListBox: DefaultCurrentItemBorder, CurrentItemBorder, SelectionBorder.
-- DrawingUtils.FillBorderRectangle.
-- GenericLabel: Improved painting and layout.
-- PopupWindow{T}, PopupListBox{T}, PopupColorListBox.
-- SpeedColorButton: PopupWindow, ShowPopupWindow.
-- Improved Application.Log related code.
-
-# 0.9.519 (2024 March 11)
-
-- StringSearch.UseContains. So now it's possible to specify whether to use partial text compare during search operations 
-in any ListControl descendant (ListControl.Search.UseContains).
-- ColorListBox.
-- Control.GetUpdateClientRect.
-- Many bug fixes, new properties and methods in VListBox. This control is ready to use.
-- KnownColorSvgUrls and KnownColorSvgImages.
-- Meny new properties in ListControlItem. Now it allows to specify style of the item (font, color, height, etc.). This is used in VListBox.
-- Application.Log: Added LogItemKind param.
-- LogListBox: shows image near log item.
-
-# 0.9.518 (2024 March 9)
-
-- Image.FromScreen.
-- StreamFromUrl now uses Path.GetFullPath #124.
-- ResourceLoader.CustomStreamFromUrl event.
-- ImageSet constructor with url parameter.
-- Fixed Control.HideToolTip.
-- UIActionSimulator: Added SendKey which is SendKeyUp+SendKeyDown.
-- Added NativeKeyCode from 33 to 126, so, for example, NativeKeyCode.V can be used.
-- UIActionSimulator: Added Send__If methods, so it is possible to have send command in the single line without if checks.
-
-# 0.9.517 (2024 March 8)
-
-- ColorComboBox.Value.
-- Fixed MenuItem raised multiple Click events. Fixed two problems: If menu item was not on the main level it raised multiple 
-Click events. Clicks were logged twice in the MenuSample.
-- ListControl.CustomItemText event.
-- VListBox: DefaultItemMargin, ItemMargin, DefaultSelectedItemTextColor, SelectedItemTextColor, DefaultItemTextColor, 
-ItemTextColor, SelectedItemBackColor, DefaultSelectedItemBackColor, SelectedItemIsBold.
-- VListBox: Added virtual methods to get font and color settings for the items.
-- VListBox: Added virtual DrawItem and MeasureItemSize.
-- NinePatchDrawingWindow: Draw on all screens.
-
-# 0.9.516 (2024 March 5)
-
-- Started VListBox control. This is ListBox descendant which is capable to contain huge number of items.
-- Fixed Alternet.UI.Pal library loader.
-- Graphics: FromScreen, DrawRotatedTextI, BlitI, StretchBlitI.
-- Renamed DrawSlicedImage to DrawImageSliced and defined as Graphics extension #115.
-- AppUtils.ExecuteTerminalCommand.
-- Add ConsoleUtils class.
-
-# 0.9.515 (2024 March 4)
-
-- TextureBrush.
-- RectD: Inflate(), Deflate().
-- DrawingUtils: DrawDoubleBorder, DrawSlicedImage.
-- Control: AddVerticalGroupBox, AddHorizontalGroupBox.
-- ComboBox: DefaultImageVerticalOffset, DefaultImageTextDistance, DefaultImageBorderColor, GetItemImageRect.
-- Improved demo layout.
-- New Bitmap contructor with url param: Bitmap(string url).
-- Graphics: DrawImageI, FillRectangleI.
-- Brush.Transparent.
-- Image: AsBrush, Bounds.
-- Control: AddTabControl, new Group method override.
-- Implemented and used converter for GraphicsUnit.
-- Improved ColorComboBox painting.
-
-# 0.9.514 (2024 March 2)
-
-- Added ColorComboBox. You can check how it looks in Button page of ControlSample demo.
-- SpeedButton.HideToolTipOnClick.
-- TabControl.TabsVisible.
-- Button.SetImageMargins parameters are now in dips.
-- FindReplaceControl: DefaultFindEditBorderColorLight, DefaultFindEditBorderColorDark, DefaultNotFoundBorderLight, 
-DefaultNotFoundBorderDark, FindEditBorder, ReplaceEditBorder, FindEditBorderColor.
-- Control.GetPreferredSize().
-- Image.IsDisposed.
-- Graphics: DrawImage now asserts image size #114.
-- Demo layout improved.
-- Control.MinElementSize and it's used in popup window Ok and Cancel buttons.
-- ComboBox owner draw improved.
-- ComboBox: OwnerDrawItemBackground, OwnerDrawItem properties. 
-
-# 0.9.513 (2024 February 29)
-
-- SpeedButton shortcuts are now handled in KeyDown.
-- ThreadExceptionWindow: used svg image.
-- ShortcutInfo class.
-- Added 3 color svg images in Resources\ColorSvg: circle-exclamation-blue, circle-xmark-red, triangle-exclamation-yellow.
-- ControlSet new methods: Padding, MinSize, MinWidth, MinHeight.
-- SpeedButton.LoadSvg(string url, SizeI imageSize)
-
-# 0.9.512 (2024 February 27)
-
-- Implemented owner drawn ComboBox.
-- Added IComboBoxItemPainter and ComboBox.ItemPainter.
-- Added more ImageSet.GetNormalAndDisabledSvg overrides.
-
-# 0.9.511 (2024 February 26)
-
-- Added UIActionSimulator. This class is used to simulate user 
-interface actions such as a mouse click or a key press. Common usage for this class would be to provide 
-playback and record (aka macro recording) functionality for users, or to drive unit tests by simulating user sessions. 
-This class currently doesn't work when using Wayland with Linux.
-- Control: MinChildMargin, AddLabels.
-- Fixed bugs with colors on control recreate. This is a big difference in default look of the controls. Previous behavior 
-set wrong default colors to some of the controls. Compare, for example, Button look on Windows in this build with old builds.
-- ComboBox: HasBorder, EmptyTextHint.
-- FindReplaceControl: Used EmptyTextHint in editors.
-- ControlList.Items are IListControlItems now.
-
-# 0.9.509 (2024 February 25)
-
-- SimpleSoundPlayer. On Linux requires package osspd: sudo apt-get -y install osspd.
-- Add SystemSound and SystemSounds.
-- Fixed PropertyGrid.SuggestedInitDefaults() (mostly Linux related)
-- ImageSet: New FromSvgStream override capable of loading svg with two different colors.
-- ImageSet: Original FromSvgStream doesn't dispose Stream anymore.
-- ImageSet: GetNormalAndDisabledSvg.
-- Uixml code generator: improve error output.
-- Control.Title, so now possible to add any control as TabControl page.
-- TabControl: Returned Pages, SelectedPageChanged #107.
-- Fixed layout: SuggestedHeight was previously ignored in vertical layout.
-- Returned TabControl.SelectedPage.
-- #108 MinMasterTemplate.
-- Fixed mouse wheel event fired multimple times #103.
-- TabControl is repainted when tab page Title changed.
-- TabConrol.DefaultMinTabSize.
-- SpeedButton: DefaultUseTheme, CustomTheme, UseTheme properties.
-- Application.Log fixed exception in some situations.
-- TabControl.TabTheme.
-- GenericToolBarSet -> ToolBarSet.
-- Fixed Display.Name.
-- Removed #if FEATURE_WINDOWS_SYSTEM_COLORS.
-- Control.AddButtons.
-- SupressBell, StopSound.
-
-# 0.9.507 (2024 February 23)
-
-## 2024 February 23
-
-- Hidden AuiManager and other Aui* controls. The reason is that they do not work properly on Linux and MacOs. Also
-they are very limited. We suggest using TabControl, SideBarPanel, ToolBar, Splitter, SplittedPanel instead of Aui* controls.
-- Hidden Sizer* objects and interfaces. As we introduced Control.Layout property, all Sizer* functionality can be 
-implemented through this or using StackPanel, Grid and other layout related containers.
-- TabControl: Draw vertical lines between tabs.
-- TabControl.SetTabImage.
-- TabControl.DisplayRectangle.
-- SpeedButton.Text is now displayed if needed.
-- Color: Added static events StringToColor, ColorToString, ColorToDisplayString.
-- Color: AHex, RGBWeb, ARGBWeb properties.
-- Color from tuple (byte, byte, byte) implicit conversion (Calls Color.FromRgb).
-- Color from tuple (byte, byte, byte, byte) implicit conversion (Calls Color.FromArgb).
-- SpeedColorButton: Now can show color text near color image.
-- SpeedColorButton: Events ValueChanged, StringToColor, ColorToString.
-- SpeedColorButton: Text property is synced with Value.
-- SpeedColorButton: Value is now nullable.
-- Fixed SpeedColorButton/SpeedButton behavior if Ebabled=false.
-- FindReplaceControl: Fixed incorrect align.
-- Control: ParentFont, ParentForeColor, ParentBackColor.
-- GenericToolbar.ImageToText.
-- SpeedButton: Improved default colors.
-- Hidden CardPanelHeader control. The reason it is limited clone of GenericToolBar. You can use TabControl or GenericToolBar instead.
-- <u>**Uixml to Cs generator change.**</u>. Now it is not allowed to specify event handlers in the Uixml 
-if control has no Name property specified. Previously it was possible but raised an exception in some cases. 
-- Display: AllScreens, Bounds, BoundsDip, DeviceName.
-- Application.IsRunning.
-- ThreadExceptionWindow fixed and improved: Removed exception when its used. Now it is possible to specify whether to
- show Continue button. Layout is improved. Keys Esc and Enter work now. Added localization for buttons.
-- UiXml reading improved: Dialog with error information is shown when there are uixml reading errors. 
-UixmlLoader.ShowExceptionDialog property.
-- Demo improved.
-
-## 2024 February 20
-
-- GenericTabControl -> TabControl.
-- Now TabControl works fine under Linux.
-- UserPaintControl -> UserControl as in WinForms.
-- WinForms compatibility related improvements.
-- Fixed: PictureBox/SpeedButton layout.
-- PopupPictureBox made public.
-- PopupWindow: ShowOkButton, ShowCancelButton.
-
-### AnimationPlayer improved:
-
-- Now it is possible to connect custom animation provider using CreatePlayerDriver function.
-- Demo improved (show info, show frame buttons).
-- New props: FrameCount, AnimationSize, IsOk.
-- New methods: GetDelay, GetFrame.
-- IAnimationPlayer interface.
-
-### CardPanelHeader improved:
-
-- event EventHandler? ButtonSizeChanged.
-- CardPanelHeaderItem? GetTab(int? index).
-- bool RemoveAt(int? index).
-- int Insert(int? index, string text, ObjectUniqueId cardId).
-
-## 2024 February 19
-
-- <u>**GenericTabControl.HasInteriorBorder.**</u>.
-- Color implicit operator to Brush and Pen.
-- PaintEventArgs: Graphics, ClipRectangle.
-- Rect.FromLTRB(PointD leftTop, PointD rightBottom).
-- DrawingUtils: FillRectangleBorder, FillRectanglesBorder.
-- <u>**WebBrowser sample impoved**</u> (Samples\ControlsSample\Pages\Other\WebBrowserPage.uixml.cs). 
-Added three sample pages to combobox url: Animated GIF player, MP3 player, WAV player. 
-
-## 2024 February 18
-
-- <u>**Integrated all other samples to ControlsSample**</u>.
-- Application: DefaultIcon, IdleLog.
-- Control: LayoutData, LayoutProps.
-- Threading sample (ControlsSample/InternalSamples/ThreadingSample) improved. Added correct thread cancellation when form is closed.
-- Hidden AuiManager sample. Currently we can't suggest to use AuiManager and other Aui* controls. 
-After testing it's features and functionality, we found that it works badly under Linux and MacOs. 
-Also there are some limitations in the Aui* controls which are critical. Currently we suggest to use:
-SplittedPanel as a container for sidebars, SideBarPanel as a simple tabcontrol for sidebars, GenericToolBar as a toolbar.
-
-## 2024 February 16
-
-- IFlagsAndAttributes: this[string name], Flags, Attr.
-- #82 PropertyGridSample: sort components (A to Z).
-- Add GraphicControl. This is UserPaintControl descendant. By default GraphicControl is not focusable.
-- GenericLabel: TextFormat, bug fixes.
-- Improved Samples.
-- CardPanelHeader.DefaultMinTabSize.
-- Control: CustomLayout event, CustomFlags, CustomAttr.
-- Control: <u>Dock property is used in all layouts.</u> For example you can if some child of the StackPanel
-has Dock=DockStyle.Right, it will be aligned right. All other align rules are applied after docking child controls.
-An example is added to LayoutSample/StackPanel.
-- Moved sample controls back to demo (FancySlider, FancyProgressBar, TikTacToe). 
-- BaseControlItem: Tag, FlagsAndAttributes, FlagsAndAttributes, CustomAttr.
-
-## 2024 February 15
-
-### GenericLabel improvement:
-
-- Can optionally draw Image next to text.
-- Can align text.
-- Can be painted in different fore and back colors when hovered or has other states.
-- Background and border is optionally painted.
-- Color? TextBackColor.
-- bool ImageVisible.
-- int MnemonicCharIndex.
-- GenericAlignment TextAlignment.
-- string? TextPrefix.
-- string? TextSuffix.
-- event ImageChanged.
-- Image and DisabledImage properties.
-- Made not focusable by default.
-
-### Other:
-
-- PictureBox: Padding now is used to specify offsets for the image.
-- PictureBox: CenterHorz and CenterVert used when Text is painted.
-- Thickness: LeftTop, RightBottom.
-- CardPanelHeader: DefaultTabPadding, TabMargin, TabPadding.
-- GenericToolBar.SetToolAlignCenter.
-- GenericToolBar: ItemSize, DefaultToolBarDistance, ToolBarDistance.
-- StackPanel: Horizontally aligned StackPanel can have centered items (item's HorizontalAlignment = Center). See demo in PropertyGridDemo for GenericToolBarSet control.
-- SpeedColorButton.ShowDialog.
-- PropertyGridSample: Add SpeedColorButton demo.
-- PointD, RectD: GetLocation(bool).
-- RectD, SizeD: GetSize(bool).
-- Control: DefaultOnLayout, DefaultGetPreferredSize.
-- Control: ColumnSpan, RowSpan.
-- Control: GlobalGetPreferredSize, GlobalOnLayout static events.
-- MinMasterTemplate: Add uixml support.
-- Add Tests\CustomControlInUixml sample project.
-- FindReplaceControl: Use ComboBox instead TextBox as find/replace controls.
-- FindReplaceControl: Add find scope editor.
-- GenericTabControl.TabAlignment, SelectTab.
-- SideBarPanel is now derived from GenericTabControl.
-- Font: Fixed AsBold and AsUnderlined. Previosly original font style was completely ignored. Now Bold/Underlined style 
-is added to the original font style. For example if font is italic, AsBold property will return both italic and bold font.
-- Graphics.DrawLabel.
-
----
-
-# 0.9.506 (2024 February 14)
-
-## 2024 February 14
-
-### Layout improvement:
-
-Added Control.Layout property. Now it is possible to specify layout method for any control. 
-Old way:
-
-```xml
-<GroupBox Padding="5" Margin="0,5,0,0">
-	<VerticalStackPanel>
-		<Label Text="Last Item" Margin="0,0,0,10"/>
-		<Button Text="To View" Click="ScrollLastItemIntoViewButton_Click"/>
-	</VerticalStackPanel>
-</GroupBox>
-```
-
-New way:
-
-```xml
-<GroupBox Layout="Vertical" Padding="5" Margin="0,5,0,0">
-	<Label Text="Last Item" Margin="0,0,0,10"/>
-	<Button Text="To View" Click="ScrollLastItemIntoViewButton_Click"/>
-</GroupBox>
-```
-
-So we do not need to add extra StackPanel or other containers, we can just specify 
-Layout="Vertical" in the parent control in order to change default layout style.
-
-Currently these layouts are implemented: None, Dock, Basic, Vertical, Horizontal.
-
-- None: No layout. Use Bounds and Size properties to move/resize child controls.
-- Basic: Default layout for the Control. VerticalAlignment, HorizontalAlignment and SuggestedSize properties 
-are used to layout the child controls.
-- Vertical, Horizontal: StackPanel like alignment. Also opposite bound can be aligned via
-VerticalAlignment and HorizontalAlignment properties.
-- Dock: Control.Dock property is used to align the child controls.
-
-Control.GetDefaultLayout() virtual method returns default layout in the control. 
-For example, Control returns LayoutStyle.Basic, VerticalStackPanel returns LayoutStyle.Vertical.
-It allows to specify used layout in case when Layout property is null (by default).
-
-Element 'Fill' was added to VerticalAlignment and HorizontalAlignment enums. It allows to
-layout the child control so it will occupy the remaining empty space of the container.
-
-### Other improvements and changes:
-
-- Renamed Toolbar -> ToolBar, Window.Toolbar -> Window.ToolBar.
-- Control: ChildRemoved, ChildInserted, ChildVisibleChanged events.
-- Window: ToolBar property is now Control.
-- Window: StatusBar property is now FrameworkElement.
-- LayoutDirection enum and property were renamed to LangDirection.
-- Splitter: Now works faster.
-
-## 2024 February 12
-
-- Control: AllChildren, AllChildrenInLayout.
-- SideBarPanel.TabAlignment.
-- StackPanel: Improved aligment. Now child's VerticalAlignment property (Stretched, Top and Bottom) 
-can be used to specify vertical alignment. For the example see SideBarPanel control.
-Previously all childs were aligned to top.
-- StackPanel: IsVertical, IsHorizontal.
-- Improved popup windows behavior on MacOs.
-- Control: MouseEnter, MouseLeave now use BubbleMouse.
-- PropertyGridSample: Add SideBarPanel demo.
-- Updated used Nuget packages #85.
-
-## 2024 February 11
-
-- PopupWindow: Improved behavior, fixed bugs.
-- Created samples for PopupCalendar, PopupPropertyGrid, PopupTreeView.
-- #82 Hide Text prop in some controls.
-- Calendar.HitTest, Application.BeforeNativeLogMessage.
-
-## 2024 February 10
-
-- Improved layout on form resize.
-- PopupWindow: Add Ok and Cancel buttons on bottom.
-- On Linux popup now uses ShowModal as in this case form is positioned in the center of the screen. 
-On some Linux systems window manager doesn't allow to position the form, so all popups will be centered. 
-Previously popup forms were shown in strange positions on some Linux systems.
-- PopupWindow.ModalPopups.
-- PopupWindow: System window border is used instead of Border control.
-- PopupWindow: By default popup is now resizable.
-- Improved PopupCheckListBox and added it's demo in ControlsSample.
-- MouseEventArgs: Fixed Location, X, Y values.
-- Documentation: search only when Enter key pressed (so now search in docs is much faster).
-- Add Source\Tests\UseLocalPackages project. This is an example on how to have nugets in local folder.
-- Control: Right, Bottom props set methods.
-- Window.SupressEsc.
-
----
-
-# 0.9.505 (2024 February 6)
-
-## 2024 February 6
-
-- Controls: Speed up of create and destroy.
-- Controls: Speed up of event handling.
-- Fixed not found Pal library under some Linux versions.
-- Fixed compilation problem under Linux introduced Feb 5.
-
-## 2024 February 5
-
-- PropertyGrid: CanResetProp, ResetProp.
-- ColorDialog.Default.
-- Control: ProcessException event, AvoidException
-- Color.Parse improved: Now conversion is faster and doesn't create ColorConverter instance. Color surrounded with ( ) is 
-converted correctly. New Parse method with context and culture params.
-- PropertyGrid: Fixed color property paint. Now color image is square.
-- Updated documentation.
-
-## 2024 February 2
-
-- Control.BubbleMouse.
-- NativeControlPainter class which allows to paint different control parts in the native OS style.
-- Fixed installation scripts errors introduced Jan 31.
-- Improved documentation web site look.
-
-## 2024 January 31
-
-- Window.Closed event as in WinForms.
-- Control: ContainsFocus, HelpRequested, OnHelpRequested.
-- Window.KeyPreview.
-- Window: AlwaysOnTop -> TopMost (as in WinForms).
-- Mouse events like in WinForms.
-- LangVersion = 10.0 for some projects.
-- Now it is possible to setup Alternet.UI without having Net 8.
-- Lowered LangVersion in csproj from 'latest' to 11.0.
-
-## 2024 January 27
-
-- Documentation is now built with the latest DocFx version.
-
-## 2024 January 25
-
-- Added SpeedColorButton, FancyProgressBar, FancySlider, TicTacToeControl controls.
-- Added PropertyGrid.PropertyCustomCreate event.
-- Border control painting improved.
-- Fixed: Use StartLocation only once.
-- Fixed #79 (PropertyGridSample resize problem).
-- Fixed TabControl resize problem on Linux.
-- Fixed Maximize Window problem on Linux. Returned window maximize button for Linux.
-- Control: HandleCreated, HandleDestroyed events.
-- ComboBoxAndLabel: SelectedItem, SelectedIndex, IsEditable, Items.
-- Added documentation samples for some of the controls.
-- ListControl, ComboBoxAndLabel: Items set method.
-
-## 2024 January 23
-
-- Added SideBarPanel control. This control can be used in <see cref="SplittedPanel"/> side bars.
-- DialogWindow: EscModalResult, EnterModalResult.
-- Border: optimized usage of graphics resources.
-- Improved documentation (added control pictures and fixed documentation sample projects).
-- PropertyGridSample: Added samples for controls (ComboBoxAndLabel, TextBoxAndLabel, SpeedTextButton, GenericToolBarSet).
-- Color.IsDark(), TabControl.PageAdded.
-- ControlsSample: Autodetect image color in button sample.
-- Window: StartLocation is used, fixed #16.
-- Fixed UserPaintControl.HasBorder behavior. Now it affects border paint in all cases.
-- FindReplaceControl improved.
-
-## 2024 January 20
-
-- RichToolTip improved: Fixed align when title is empty. Now it is possible to show simple tooltip like is done in ToolTip.
- Added ShowSimple static method.
-- Modal windows are shown more correctly.
-- Added MiniFrameWindow, DialogWindow.
-- Activation of the application when modal form is visible is now OK.
-- When modal form is closed, previous window is activated OK.
-- ShowModal moved to DialogWindow.
-- Control: CenterOnParent, SetSizeToContent.
-- PanelOkCancelButtons.UseModalResult, SizeD.PositiveInfinity.
-
-## 2024 January 18
-
-- Fixed exception when some keys pressed on Linux.
-- FontStyle made compatible with WinForms.
-- Fixed uixml preview in VS.
-- SystemInformation.WorkingArea.
-
----
-
-# 0.9.500 (2024 January 15)
-
-This beta focuses on supporting the development of the cross-platform AlterNET Studio Code Editor,
- adding new controls, adding missing properties to the existing controls, fixing known bugs, and improvements.
-
-This is a short list of changes from 0.9.404 to 0.9.500.
-
-- Added new controls: Calendar, ScrollBar, Splitter, AnimationPlayer, MultilineTextBox, RichTextBox,
- GenericLabel, LogListBox, GenericToolBar, ComboBoxAndLabel, SplittedPanel, TextBoxAndLabel,
- RichToolTip, GenericTabControl, FindReplaceControl, SpeedButton and SpeedTextButton.
-- TextBox control now supports validating user input.
-- Added new classes: ToolTip, Display, SystemSettings, Caret, Cursor, Cursors, and SystemFonts.
-- Added HighDpi display support.
-- Improved SVG image handling.
-- Fixed control flickering on Windows.
-- Improved control look and behavior on Linux and macOS.
-- Added missing properties and methods to the existing controls.
-- Bug fixes and optimizations.
-
----
-
-# 0.9.412 (2024 January 15)
-
-## 2024 January 15
-
-- Font.DefaultMono, Control.DefaultMonoFont.
-- SplittedPanel: Create side panels virtual methods, All panels are Control descendants, DefaultPanelSize virtual property,
-Splitters property.
-- Improved PropertyGridSample and other demos.
-- CardPanelHeader.SelectLastTab.
-- Vertically aligned StackPanel stretches last child control if child's VerticalAlignment = Stretch and
- StackPanel.AllowStretch = true.
-- Fixed splitter color in Dark/Light schemes.
-- GenericToolBar.DeleteAl.
-- PropertyGrid: CalcScrolledPositionI, CalcScrolledPositionD, GetHitTestColumn, GetHitTestProp, CalcUnscrolledPositionI, 
-CalcUnscrolledPositionD.
-- Added Reset menu item in PropertyGridSample.
-- Activated, Deactivated events are now declared in the Control (previously in Window).
-- Fixed single control layout in the Window.
-- PropertyGrid improved Double property editor.
-- Control: Change to SuggestedSize, SuggestedWidth, SuggestedHeight calls Layout.
-- GenericLabel: Fixed painting when IsBold=true.
-- GenericToolbar: Fixed IsBold.
-- Control now invalidates when Enabled is changed. This fixed user controls drawing when Enabled is changed.
-- GenericLabel: Repainted with correct color when Enabled is changed. Better Layout (SuggestedSize is used for layout).
-
-## 2024 January 11
-
-- Add FindReplaceControl, SpeedTextButton controls.
-- Splitter.SizeDelta and resize speed improvement.
-- Fixed MenuItem.cpp SetDisabledBitmap under Linux.
-- GenericToolBar: DefaultSpeedBtnMargin, DefaultStickyBtnMargin, DefaultTextBtnMargin, AddStickyBtn, ToggleToolSticky.
-- Add GenericToolBarSet control. Impleements multiple toolbars in one control.
-- Fixed Color compare operator.
-- CardPanelHeader improved. Used SpeedButton instead of Label. Hover border is shown when mouse is over. TabClick event
- is not fired if Tab is already selected.
-- Fixed CardPanelHeader painting Linux/Macos.
-- Splitter improved. Optionally draw background and foreground line in the center. New props: DefaultNormalColors, NormalColors.
- Better painting under Linux.
-
-## 2024 January 9
-
-- SpeedButton: Defaults, DisabledImageSet, ImageSet.
-- Bitmap new constructor parameter Depth.
-- GenericImage: SetAlpha(byte value), new constructor GenericImage(SizeI size, bool clear = false).
-- Control: GetChildren, SetChildrenFont, SetChildrenBackgroundColor, SetChildrenForegroundColor.
-- ControlSet: Font(Font? value), BackgroundColor(Color? value), ForegroundColor(Color? value).
-- StackPanel right aligns child if it's HorizontalAlignment = Right.
-- Color now is class, AsBrush, AsPen and GetAsPen(1) are cached.
-- SpeedButton: ShortcutKeys, Shortcut, ShortcutKeyInfo, TextVisible, ImageToText.
-- GenericToolBar: ImageToText, Items, TextVisible, ImageVisible, SetToolShortcut.
-- UserPaintControl.DropFownMenu, fixed Click event.
-- GenericToolBar: DefaultImageSize, DefaultNormalImageColor, DefaultDisabledImageColor, NormalImageColor, DisabledImageColor,
- ImageSize, NormalSvgImages, NormalSvgImages, AddSpeedBtn, SetToolAction, AddToolAction, RemoveToolAction,
-SetToolImage, SetToolDisabledImage, GetToolImage, GetToolDisabledImage.
-- SpeedButton: DefaultShortcutToolTipTemplate, ShortcutToolTipTemplate.
-- ContextMenu.Closing event.
-
----
-
-# 0.9.411 (2024 January 5)
-
-## 2024 January 5
-
-- Added GenericToolBar control. Demo is in PropertyGridSample.
-- MenuItem: Image, DisabledImage. Now it's possible to specify images in menus.
-- SpeedButton: Sticky, DropDownMenu, ClickAction.
-- Fixed SvgColors default Disabled color.
-- Grid: AddStarRow, AddStarColumn.
-- PictureBox.DisabledImage.
-
-## 2024 January 1
-
-- Added SplittedPanel. Panel with top, bottom, left, right sub-panels and splitters.
-- Added SpeedButton control.
-- Cursors: HSplit, VSplit.
-- Control.ContextMenuStrip. You can assign here ContextMenu and it will be shown on mouse right-click.
-- ContextMenu: Opening, OnOpening.
-- Fixed Keys to Key convertion.
-- Fixed PictureBox.Image #76.
-- Fixed Control mouse capture lost handling.
-- RectD: Left, Top, Right, Bottom set methods.
-- DrawingUtils: new drawing methods (DrawVertLine, DrawHorzLine, FillRectangleBorder, etc.).
-- Fixed PictureBox Height not work #77.
-- Control: new focus related props (AcceptsFocus, AcceptsFocusFromKeyboard, AcceptsFocusRecursively, AcceptsFocusAll). 
-- GenericLabel control made public.
-- Fixed Graphics.GetClippingBox.
-- Control.IgnoreLayout property. If True control is not used in container layout.
-- LayoutPanel.Layout property now works.
-
-## 2023 December 27
-
-- Added Splitter (can see demo in ControlsSample - Layout - LayoutPanel).
-- Control keyboard handling speed up.
-- SystemColors made all colors non readonly.
-- Fixed string to color comversion for named colors.
-- Control: IndexInParent, NextSibling, Right, Bottom, DefaultForeColor, DefaultBackColor, QueryContinueDrag (dummy).
-
-## 2023 December 24
-
-- Control.Scroll event.
-- Fixed NewtonSoft.Json vulnerability (updated to new nuget version).
-- Fixed Alternet.UI.Integration.Remoting compilation #72.
-- Fixed WebBrowser.NavigateToString #71.
-- Control: TextChanged, OnTextChanged.
-- DrawingContext -> Graphics (WinForms related).
-- Graphics: SetPixel, GetPixel.
-- Control: Resize, OnResize (WinForms related).
-
-## 2023 December 19
-
-- Control.KeyPress event.
-- Control.Invalidate with Region param.
-- UserPaintControl: Scrollbars, WantChars.
-- Optimized structures (Rect, Point, Size, Color, etc.) in UI C++ code. As a result, all structures are passed
- faster from C# to C++ code.
-- Control: IsScrollable, Dock (works when inside LayoutPanel), BackgroundImage (dummy), BackgroundImages (dummy).
-- Control Scroll methods:
-    * void SetScrollBar(bool isVertical, bool visible, int value, int largeChange, int maximum)
-    * bool IsScrollBarVisible(bool isVertical)
-    * int GetScrollBarValue(bool isVertical)
-    * int GetScrollBarLargeChange(bool isVertical)
-    * int GetScrollBarMaximum(bool isVertical)
-- Region: IsEmpty, IsOk, Clear(), Contains(Point), Contains(Rect), new constrcutor.
-- Renamed Rect, Size, Point. This rename is done to make drawing structures more compatible with WinForms and less confusing.
-Rect -> RectD, Point -> PointD, Size -> SizeD, Int32Rect -> RectI, Int32Size -> SizeI, Int32Point -> PointI.
-
----
-
-# 0.9.410 (2023 December 15)
-
-## 2023 December 15
-
-- Finished ScrolBar. Added HScrollBar, VScrollBar.
-- MouseWheelEventArgs -> MouseEventArgs.
-- MouseButtonEventArgs -> MouseEventArgs.
-- MouseEventArgs: Button, ClickCount, Delta.
-- Control: IsFocused -> Focused.
-- SystemInformation: DoubleClickTime, MouseWheelScrollLines.
-- Cursor new constructors (from image, from stream).
-- New constructor: Bitmap(Stream stream, BitmapType bitmapType = BitmapType.Any).
-- Cursors.Default.
-- Control: SendToBack, BringToFront, SetChildIndex, OnFontChanged, ImeMode.
-- Operators: Color == System.Drawing.Color.
-- GenericLabel used in CardPanelHeaderButton. So all problems with CardPanelHeader on Linux and MacOs are fixed.
-- Collection: SetItemIndex, GetItemIndex.
-
-## 2023 December 13
-
-- Working on the ScrollBar control.
-- Added WindowLogListBox. A Window with LogListBox control.
-- Improved Font:
-    * Speed and memory optimization.
-    * public Font Base {get;}
-    * public static Font Get(string familyName, double emSize, FontStyle style = FontStyle.Regular);
-    * public Font GetWithStyle(FontStyle style);
-    * FontFamily is not created when not needed.
-- ControlSet: WidthToMax(), Width(double).
-- Improved DrawingContext:
-    * Added inline atrribite to all methods.
-    * public Size GetTextExtent(string text, Font font, Control? control);
-    * public Size GetTextExtent(string text, Font font);
-    * GetDPI();
-    * public void DrawText(string text, Point location, Font font, Color foreColor, Color backColor);
-    * public void DestroyClippingRegion();
-    * public void SetClippingRegion(Rect rect);
-    * public Rect GetClippingBox();
-- Application.CreateAndRun.
-- Added GetButtonEvents sample.
-- Improvements and bug fixes in Samples.
-- Separated Key and Keys enums. This is for better WinForms compatibility.
-- KeyEventArgs made compatible with WinForms.
-- Improved Control:
-    * Added Text virtual property. This is for better WinForms compatibility.
-    * ModifierKeys, KeyModifiers.
-    * Control now supports IComponent.
-    * ResetCursor, ResetFont, ResetBackColor, SetStyle, MousePosition.
-    * PointToScreen, PointToClient.
-- MenuItem.ShortcutKeys and new constructor.
-- Font.Clone().
-- AssemblyUtils: EnumProps, IsReadOnly.
-
-## 2023 December 9
-
-- Improved Image/Bitmap:
-    * public Bitmap(int width, int height, DrawingContext dc);
-    * public Bitmap(GenericImage genericImage, DrawingContext dc);
-    * public Bitmap(Int32Size size, Control control);
-    * double ScaledWidth {get;}
-    * public Int32Size ScaledSize {get;}
-    * double ScaledHeight {get;}
-    * public Int32Size DipSize {get;}
-    * public double ScaleFactor {get;set;}
-- Timer made more compatible with system timer. Interval property is now int. Added IntervalAsTimeSpan, AutoReset property.
-Added Elapsed event. Timer is not inherited from Component and supports IComponent. Added sample in Source/Tests/Timer.
-- Color.GetAsPen(double width, DashStyle dashStyle), Color.GetAsPen(double width).
-- Clipboard.ContainsText(TextDataFormat).
-- DrawingContext new methods. Allow to fill and stroke figure in one call.
-    * void RoundedRectangle(Pen pen, Brush brush, Rect rectangle, double cornerRadius);
-    * void Rectangle(Pen pen, Brush brush, Rect rectangle);
-    * void Ellipse(Pen pen, Brush brush, Rect rectangle);
-    * void Path(Pen pen, Brush brush, GraphicsPath path);
-    * void Pie(Pen pen, Brush brush, Point center, double radius, double startAngle, double sweepAngle);
-    * void Circle(Pen pen, Brush brush, Point center, double radius);
-    * void Polygon(Pen pen, Brush brush, Point[] points, FillMode fillMode);
-- Better painting in Border/PaintBox.
-- Font: Smaller, Larger, Scaled.
-- Rect.ToRect, Point.OffsetBy, Image.Canvas. 
-- Ceiling method in Rect, Point, Size.
-
-## 2023 December 7
-
-- System.Drawing related changes in UI Image/Bitmap. This is done to make Image and Bitmap more compatible with System.Drawing.Image.
-Main change: All constructors are changed so image width/height are in pixels like it's done in 
-System.Drawing.Image. Previously some of the constructors had Dip sizes. BUT this was bad as there can be 
-more than one display with different DPI and we don't know which DPI to use when converting pixel to/from dip. 
-Added Size, Width, Height (in pixels). Added SizeDip(Control) and BoundsDip(Control) methods to get image 
-size in dips (now this is control related). Added new constructors (Image, int, int) and other. All examples and were code updated
-to reflect these changes.
-- Control: ForeColor, BackColor.
-- Made MinMaster.csproj template crossplatform.
-
-## 2023 December 5
-
-- Install.OnlyDebug scripts. They build only x64 Debug, so installation is much faster when needed.
-- Control.Invalidate(Rect rect), RefreshRect(Rect rect, bool eraseBackground = true).
-- HighDpi related improvements in Control, AuiToolbar, TextInputDialog, NumberInputDialog, RichToolTip, sample projects.
-- GenericImage.ChangeToGrayScale().
-- Image to ImageSet explicit conversion operator.
-- New Image.ToGrayScale() approach. Thanks to @neoxeo, we improved Image.ToGrayScale(), #66
-Also added static event GrayScale, it allows to implement custom gray scale for the images if needed.
-Also added samples of new GrayScale methods usage to PaintSample and AuiManagerSample.
-- Fixed app.manifest in all sample projects.
-- RichToolTip: IgnoreImages, DefaultIgnoreImages.
-- Improved Border/PictureBox painting.
-- ImageSet: DefaultSize, AsImageFor, GetPreferredBitmapSizeAtScale, GetPreferredBitmapSizeFor.
-- Rect/Point/Size/Color conversion from/to System.Drawing.*.
-- Made Rect, Point, Size, Color methods inline where possible.
-- Control.Log.
-- MinSplitterSashSize is now HighDpi ready.
-- AuiManager: Splitter color and size are like in SplitterPanel.
-- WinForms related: Point.Offset, TextDataFormat, Clipboard/Contains* are now methods.
-
-## 2023 December 3
-
-- AuiManager HighDpi support.
-- Control.DefaultFont setter. Now is possible to change default font for the controls. So on high dpi screens we could change
-this property in order to zoom every control if it wasn't already created. In the our samples default font is now increased
- if dpi > 96.
-- HighDpi related. Window: IncFontSize, IncFontSizeHighDpi, UpdateDefaultFont.
-- PictureBox.Canvas, Display.Primary.
-- GenericImage conversion operator to Bitmap.
-- Rect implicit convertion from tuple (Point, Size).
-- Image: Save/Load now return bool, added Bounds.
-- PaintSample better load/save #64.
-- GenericImage: ForEachPixel, GetRGB(int x, int y), GetPixel(int x, int y, bool withAlpha = false), SetPixel(int x, int y, Color color, bool withAlpha = false).
-- RGBValue and HSVValue improvements: Added standard methods for any structs.
-- Optimized default colors declarations (speed up in Color use).
-- Added sample images to PaintSample.
-- Added BaseMemory class. It works with native memory buffers (alloc, realloc, free, fill, etc.). It can be used with GenericImage.
-- Added ActionRef.
-- MenuItem.Add(string title, Action onClick).
-- RGBValue conversion operators.
-- Added example actions to PaintSample. Show usage of get/set native pixel buffer methods.
-- Sample pages with rich text use Control.DefaultFont.
-- WinForms related dummy classes: ContextMenuStrip, IWin32Window, ToolStripMenuItem, Form, Graphics.
-- WinForms related: Control.CreateGraphics.
-- WinForms related: Key -> Keys. Added missing key declarations.
-- WinForms related: PenDashStyle -> DashStyle.
-- WinForms related: Added Border3dSide, GraphicsUnit.
-- WinForms related: Font more compatible with WinForms #6.
-- WinForms related: MessageBox made more compatible with WinForms. All related enums are updated
- to have all elements existing in WinForms. All static Show methods are made in the same way.
- MessageBoxResult renamed to DialogResult. Added static event
- MessageBox.ShowDialog which allows to override default show message box handler. Added MessageBoxInfo, HelpNavigator, HelpInfo.
-- WinForms related: SolidBrush.Color set method.
-- Fixed PaintSample error #67.
-- MinMasterTemplate in Install.Scripts\MinMasterTemplate. This is minimal project template
- to use with Alternet.UI latest master version from github.
-- Application: log messages are queued until log event is registered, Is64BitOS, Is64BitProcess, LogWarning, LogError.
-- Font and FontFamily doesn't raise any exceptions anymore. If Font name is not found, a default
- font is used and error messages is logged. If bad parameters are passed to the font constructor, error message is output to log
-and font is created with default parameters.
-
----
-
-# 0.9.409 (2023 November 30)
-
-## 2023 November 30
-
-- GenericImage - platform independant image for pixel manipulations.
-- Image and Bitmap: DefaultDisabledBrightness, AsGeneric (comverts to GenericImage), HasAlpha, PixelWidth, 
-PixelHeight, DefaultBitmapType, Depth, Load(string, BitmapType), Save(string, BitmapType), Save(Stream, BitmapType), 
-Load(Stream, BitmapType), GetSubBitmap(Int32Rect), ConvertToDisabled(brightness), Rescale(Int32Size), ResetAlpha().
-- IconSet separated from ImageSet. As a result - ImageSet is mush faster (no conversion to icon is done on image load or add).
-Also Window.Icon type is now IconSet.
-- PictureBox now uses current control state to paint image. As a result, Enabled and other properties that change control state
- are fully functional and are used to select the appropriate image. Use StateObjects.Images to set images for
- different control states (see GenericControlState enum).
-- HSVValue and RGBValue classes.
-- Color : AlphaBlend, ChangeLightness, MakeMono, MakeGrey, MakeDisabled, AsImage(Int32Size).
- Color to SolidBrush converter. Color to and from RGBValue converters.
-- PictureBox: CenterVert, CenterHorz.
-- Control: Raise, Lower.
-- Image: IsOk, IsEmpty, Rect, IsNullOrEmpty, IsNotNullAndOk, GetExtensionsForOpenSave, GetExtensionsForOpen, GetExtensionsForSave.
-- Application.Alert, Size.AnyIsEmpty, Rect.CenterIn, Rect.ConvertToString, Display.IsVertical.
-- Add FileMaskUtils and use it in PaintSample #64.
-- Display: PixelFromDip for Size, Rect, Point, etc.
-- ControlDefaults: HasBorderOnWhite, HasBorderOnBlack.
-- Improved Border and PictureBox painting.
-
-## 2023 November 26
-
-- Added PopupPropertyGrid popup window.
-- SplitterPanel: Now is possible to set min sash size.
-- PropertyGrid: GetPropertyParent, GetFirstChild, GetPropertyCategory, GetFirst, GetProperty, GetPropertyByLabel,
- GetPropertyByName, GetPropertyByNameAndSubName, GetSelection.
-- Bitmap.Clone, Image: GetDrawingContext, Clone.
-- Control: Borders, StateObjects, SetImage, SetBackground, DrawDefaultBackground, BehaviorOptions, CurrentStateOverride.
-- Control: AfterShow event, AfterHide event, SetBounds(Rect, SetBoundsFlags).
-- Border and PictureBox: improved painting.
-- New PlatformDefaults settings: AllowButtonHasBorder, AllowButtonBackground, AllowButtonForeground.
- This is related to bad look of customized buttons on MacOs and Linux.
-- ControlSet.Enabled, CardPanelHeader.DefaultTabMargin, Application.LogNameValueIf, ListControl.AddEnumValues<T>(T selectValue).
-- Improved animation page in ControlsSample (thanks to @neoxeo).
-- Improved different samples.
-- WindowPropertiesSample: Add 'Properties...' button.
-- Control.RowIndex and Control.ColumnIndex used in Grid.
-- Set Button.MinMargin = 3 on Linux.
-- Designer.MouseLeftButton is called when mouse button is clicked.
-- Optimized OS detection and defaults.
-
-## 2023 November 24
-
-- Control: CurrentState prop and CurrentStateChanged event.
-- Added HeaderLabel, SplittedTreeAndCards, PanelMultilineTextBox controls.
-- Added CardPanelHeader.Text, Application.AddIdleTask, TextBox.BindText, DateTimePicker.BindValue.
-- ControlAndLabel: DefaultControlLabelDistance, CreateDefaultLabel, CreateLabel.
-- Control: SetFocusIfPossible, SetMouseCapture, CanUserPaint, IsMouseOverChanged, IsMouseOver,
- Backgrounds, Foregrounds, IsMouseLeftButtonDown, OnIsMouseOverChanged.
-- ControlSet: Size, InnerMaxWidth, InnerSuggestedWidthToMax.
-- SplitterPanel: SashPositionDip, SplitVerticalDip, SplitHorizontalDip.
-- Fixed LayoutPanelPage in ControlsSample.
-- Added different ControlState* classes.
-- Fixed LinkLabel (#62).
-- No more wxWidgets code warnings in Visual Studio.
-- Improved DialogFactory.GetTextFromUser.
-- Fixed AuiToolbar MouseCapture problems on Linux/MacOs.
-- Fixed TextBox text alignment enum choices.
-- Border: Borders for different control states.
-
-## 2023 November 23
-
-- Fixed controls flickering on Windows: TextBox, Button, CheckBox, RadioButton, Label, ComboBox, LinkLabel,
- ListBox, DateTimePicker, Calendar, TabControl, TreeView, NumericUpDown.
-- Improved Layout in controls: SplitterPanel.
-- Border: UniformCornerRadius, UniformRadiusIsPercent. Allows to draw background with rounded corners. 
-- CardPanelHeader: DefaultBorderWidth, DefaultBorderPadding, DefaultBorderMargin, DefaultAdditionalSpace, 
-Border, TabHorizontalAlignment, BorderWidth, BorderPadding, DefaultBorderSideWidth, 
-BorderMargin, TabGroupHorizontalAlignment, TabVerticalAlignment,
-TabGroupVerticalAlignment, Orientation.
-- Added CardPanelHeaderButton. Now it is possible to customize button used in CardPanelHeader, just assign
- CustomButton.CreateButton property or override CardPanelHeader.CreateHeaderButton() method.
-- CardPanel: SelectedCardIndex, IndexOf, BackgroundColorActiveTab, BackgroundColorInactiveTab,
- ForegroundColorActiveTab, ForegroundColorInactiveTab, CardPropertyChanged.
-- Draw design corners in PropertyGridSample. Also Border control can draw such borders.
-- Ctrl+Shift+Alt+F12 if DEBUG shows Developer Tools. If it is not what is wanted, clear KnownKeys.ShowDeveloperTools.
-- Added Application.DoInsideBusyCursor, Control.Group, TreeView.SelectFirstItem, Control.HasIndirectParent,
- FontAndColor.ChangeColor, ButtonBase.ClickAction, TextBox.ShowDialogGoToLine.
-- RichTextBox: CurrentPosition, event CurrentPositionChanged.
-- ControlSet: LabelMaxWidth, LabelSuggestedWidthToMax.
-- Rect, Size, Point, Thickness implicit convert from tuple. Example: Size size = (5, 10);
-- Control: DebugBacgkroundColor, UseDebugBackgroundColor.
-- Fixed SplitterPanel cursor problems on Linux.
-- Improved ControlsSample, PropertyGridSample and other.
-- Rect: MinWidthHeight, MaxWidthHeight, PercentOfWidth, PercentOfHeight, PercentOfMinSize.
-
----
-
-# 0.9.408 (2023 November 20)
-
-- Added Net 8.0 support.
-- Svg image default fill color is determined using IsDark (so dark themes are supported).
-- Control: IsDarkBackground, Idle event.
-- Font: PixelSize, IsUsingSizeInPixels, NumericWeight, IsFixedWidth, Weight.
-- Application: DebugWriteLine, LogBeginSection, LogEndSection, LogSeparator.
-- Added PanelDeveloperTools, WindowDeveloperTools controls. 'Developer tools' is added to context menu of LogListBox.
-- Added IPropertyGridItem.FlagsAndAttributes, Control.FlagsAndAttributes, ICustomFlags, ICustomAttributes, IFlagsAndAttributes,
- Factory, SvgColors, StatusBar.Text, FontAndColor.
-- RichTextBox: DefaultUrlColorOnWhite, DefaultUrlColorOnBlack, CreateUrlAttr.
-- Color: GetLuminance, IsOk, RHex, GHex, BHex, RGBHex, IsBlack.
-- Added svg load parameter: fill color override.
-- Fixed Window.Icon=null didn't work.
-- Collection: RemoveLast, RemoveFirst.
-- Fixed exception in Control idle event unbind.
-- Fixed Collection clear items event handling.
-- StatusBar improvements: Added visual Panel editor to MenuSample. Fixed known bugs. Added StatusBarPanel: Tag, Clone, Assign.
- Added StatusBar: TextEllipsize, Window, Add, Clear. Improved StatusBar demo in MenuSample.
-- UIDialogListEditWindow improved: Hide toolbar buttons if they are not allowed. Apply edited property value in PropertyGrid before Ok button is pressed.
-- Add PropertyGrid methods: ClearSelection, ClearModifiedStatus, CollapseAll, EditorValidate, ExpandAll.
-- Improved in Control: ResetBackgroundColor, ResetForegroundColor.
-- Fixed Control OnGotFocus, OnLostFocus now are called.
-- Control: BackgroundStyle, GetStaticDefaultFontAndColor, GetDefaultFontAndColor, IsTransparentBackgroundSupported,
- AlwaysShowScrollbars, GetChildrenRecursive.
-- Fixed DrawingSample bad painting on Linux.
-- CardPanel and CardPanelHeader can be used together.
-- Improved CardPanelHeader: Now possible to specify active/inactive tab foreground and background colors and whether to use them.
- Also active tab bold style is now optional.
-- Better exception handling.
-- Fixed exception in key handling under Ubuntu 23.
-- GenericTabControl.
-- Display: ClientAreaDip, GeometryDip, PixelToDip.
-- Control: GetDisplay, PixelFromDip, GetPixelScaleFactor, PixelToDip, PixelFromDipF, HideToolTip, UniqueId.
-- Add PopupListBox.ResultItem, AuiToolbar.GetToolPopupLocation, PropertyGrid.SuggestedInitDefaults, StatusBar.SetText,
-PropertyGrid.AddConstItem, Slider.BindValue.
-- Add PopupListBox demo in AuiManagerSample (click on toolbar button opens popup list box).
-- Add PopupWindow.ShowPopup at location.
-- Control: ResetBackgroundColor, ResetForegroundColor now have 'method' parameter.
-- TextBox: DefaultResetErrorBackgroundMethod, DefaultResetErrorForegroundMethod, ResetErrorBackgroundMethod, ResetErrorForegroundMethod.
-- Application: IsAndroidOS, IsIOS, IsAndroidVersionAtLeast.
-- Control now raises global events: ControlDefaults.InitDefaults, Designer.ControlDisposed, Designer.ControlCreated, Designer.ControlParentChanged.
-- Moved some props TextBox -> CustomTextEdit.
-- Custom event logger in Developer Tools.
-- ListControl: SelectedAction, Add(string,Action).
-- Changed base class of control items like TreeViewItem to BaseControlItem. All items have now UniqueId property.
-- CardPanel: WaitControlContainer , WaitControl, UseWaitControl, SelectedCard, Find(Control).
-
----
-
-# 0.9.407 (2023 November 13)
-
-- RichTextBox is now full featured rich text editor not derived from TextBox.
-- Added PanelRichTextBox, ValueEditorString, ValueEditorUrl controls.
-- Added RichToolTip, ToolTip, Display, SystemSettings, Caret, Cursor, Cursors, SystemFonts classes.
-- Rect speed optimization.
-- ListControl: FindStringCulture, CompareOptions, DefaultFindStringCulture, DefaultCompareOptions. Improved FindString* behavior
- to use these new props. Added FindString demo to ControlsSample.
-- TextBox: IsRequired, AutoUrlOpen, DefaultAutoUrlOpen, DefaultErrorUseBackgroundColor, DefaultErrorUseForegroundColor,
- DefaultAutoUrlModifiers, AutoUrlModifiers, IsNullOrEmpty, IsNullOrWhiteSpace.
-- Grid: ColumnCount, RowCount.
-- Control: Cursor, IsBold, ColumnIndex, RowIndex, GetColumnGroup, GetRowGroup.
-- ControlSet: LabelSuggestedWidth, LabelColumnIndex, LabelColumnIndex.
-- ControlAndLabel: LabelColumnIndex, LabelSuggestedWidth.
-- ListBox: SelectedItemsAsText, ItemsAsText.
-- CardPanelHeader: TabHasBorder, DefaultTabHasBorder.
-- Fixed ColorUtils.FindKnownColor exception on MacOs.
-- Fixed bad RichToolTip colors on Linux.
-- TextBoxAndLabel: IsValidMail, IsNullOrEmpty, IsNullOrWhiteSpace.
-- Add SaveFileDialog.OverwritePrompt, OpenFileDialog.FileMustExist.
-- FileDialog: NoShortcutFollow, ChangeDir, PreviewFiles, ShowHiddenFiles.
-- AuiToolbar better tool click handling.
-- Fixed FileDialog: FileName not assigned to dialog.
-- Fixed bad popup in CustomControlsSample.
-- Fixed system colors under Linux and MacOs. Preivously system colors under Linux and MacOs were hard coded.
- Now we use SystemSettings to get them.
-- Fixed #57, #58.
-- Added Border.HasBorder, SoundUtils.Bell, CardPanel.UseBusyCursor, PlatformDefaults.TextBoxUrlClickModifiers,
- ModifierKeysConverter.ToString, KeyInfo.ToString, KeyInfo.GetCustomKeyLabel, KeyInfo.RegisterCustomKeyLabels,
-Application.BackendOS.
-- Application: IsBusyCursor, BeginBusyCursor, EndBusyCursor.
-- DialogFactory: GetTextFromUser, GetNumberFromUser.
-- RichTextBox: CaretLineNumber, LastLineNumber, ShowDialogGoToLine, SaveToStream, LoadFromStream.
-- Added StringSearch class and used it in ListControl, TextBox, RichTextBox (Search property).
-- Fixed MacOs related RichTextBox key combinations.
-
----
-
-# 0.9.406 (2023 November 5)
-
-- Add MultilineTextBox, RichTextBox, LogListBox, ComboBoxAndLabel, ControlAndLabel, TextBoxAndLabel, controls.
-- Add popup windows: PopupWindow, PopupListBox, PopupCheckListBox, PopupPictureBox, PopupCalendar, PopupTreeView, PopupAuiManager.
-- Add value editors: HexEditorUInt32, ValueEditorByte, ValueEditorCustom, ValueEditorDouble, ValueEditorEMail, ValueEditorInt16,
- ValueEditorInt32, ValueEditorInt64, ValueEditorSByte, ValueEditorSingle, ValueEditorUDouble, ValueEditorUInt16, ValueEditorUInt32, 
-ValueEditorUInt64, ValueEditorUSingle.
-- PictureBox: ImageVisible, ImageStretch.
-- TextBox: MinValue, MaxValue, DefaultValidatorErrorText, DefaultErrorBackgroundColor, DefaultErrorForegroundColor,
- NumberStyles, FormatProvider, DataType, ValidatorReporter, ValidatorErrorText, EmptyTextAllow, EmptyTextValue,
- GetDataTypeCode, GetMinMaxRangeStr, CreateValidator, GetKnownErrorText, ReportValidatorError, DefaultFormat, Converter,
- DefaultText, SetTextAs* methods, MinLength, MaxLength, TextAsNumber, Options, CurrentPosition, CurrentPositionChanged event,
-ReportErrorMinMaxLength, UseValidator, ErrorStatusChanged event, .
-- ITextBoxTextAttr: Add GetFontStyle, SetFontStyle, GetFontItalic, GetFontInfo, SetFontInfo.
-- TextBox: Add rich edit methods SetSelectionStyle, ToggleSelectionFontStyle, ToggleSelectionBold, ToggleSelectionItalic,
- ToggleSelectionUnderline, ToggleSelectionStrikethrough, SelectionSetColor, SelectionSetAlignment, SelectionAlignCenter,
- SelectionAlignLeft, HandleRichEditKeys, SelectionAlignRight, SelectionJustify.
-- Fixed TextBox.SelectAll if it is rich editor.
-- Improvments in Validator classes and methods.
-- Fixed TabControl behavior and bad painting under Linux.
-- Improved resize behavior of AuiManager controls and panels.
-- AuiToolbar: All Add methods now return toolId.
-- AuiToolbar: Add EventToolNameOrId, GetToolName(), GetToolTag(), SetToolName(), SetToolTag(), GetToolMinHeights(),
- GetToolMaxOfMinHeights().
-- AuiToolbar: Fixed Clear, DeleteTool, ShowPopupMenu.
-- Add Application.FirstWindow; Collection: First, Last; ControlSet: Visible, Action; ImageSet.AsImage.
-- Add Window.MakeAsPopup, StringUtils.TryParseNumber.
-- AssemblyUtils: Optimization of GetMinValue, GetMaxValue. Add consts for Default, MinValue
- and MaxValue for all number types. Add GetRealTypeCode, GetMinMaxRangeStr, GetDefaultNumberStyles, GetDefaultValue, 
-UpgradeNumberType, IsNumberTypeCode.
-- Add Slider.ClearTicks().
-- PictureBox made unfocusable.
-- Control: Add methods and props for grouping of children. Added GroupIndexes, GroupIndex, NewGroupIndex, GetGroup, MemberOfGroup.
-- FontInfo improved: add Name property, FontInfo instance is not created if not needed, new constructor, validated SizeInPoints
- property on set.
-
----
-
-# 0.9.405 (2023 October 25)
-
-- Added Calendar and AnimationPlayer controls.
-- Implemented Sizer functionality. It allows to implement complex controls layouts.
-- Add to TreeViewItem: TextColor, BackgroundColor, IsBold.
-- TreeView speedup (removed handlesByItems usage).
-- Updated webview to 2.1.0.2045.28.
-- Updated wxWidgets to 3.2.3.
-- Improvements in Validators, added number validator demo to ControlsSample.
-- Fixed TextBox.Validator
-- Fixed exceptions in menu and toolbar.
-- Fixed exception in DragAndDropSample.
-- Moved PanelTreeAndCards control to the main library.
-- Improved Xml documentation in cs files.
-- Improved handling of Uixml errors (not finished).
-- Add to CheckBox: CheckState, ThreeState, AlignRight, AllowAllStatesForUser.
-- Add Label.BindText, ComboBox.BindEnumProp, CheckBox.BindBoolProp.
-- Add to TextBox: TextAlign, TextWrap.
-- Add to ListControl: FirstItem, SelectFirstItem().
-- Minor improvements in PropertyGrid.
-- Add to Control: LayoutDirection, ChildrenSet, AddStackPanel, AddButton, AddHorizontalStackPanel, AddVerticalStackPanel,
-AddCheckBox, AddLabel, AddGroupBox.
-- Fixed freeze/system hang on Linux in CustomColorPicker popup.
-- Add to Popup: IsTransient, PuContainsControls, BorderStyle.
-- Add to Window: BorderStyle, IsPopupWindow.
-
----
-
-# 0.9.404 (2023 October 10)
-
-- Add CardsPanelHeader control.
-- Improved Samples, fixed Linux and MacOs related problems.
-- Add to Size: GetWidths, GetHeights, MaxWidthHeight, NaN, IsNan, AnyIsNan.
-- Add ComboBox.UseChoiceControl.
-- Fixed "Unrecognised keycode 393,394" under MacOs.
-- Fixed DateTimePicker bugs on Linux.
-- Add to LinkLabel: UseGenericVersion, UseShellExecute.
-
-# 0.9.403 (2023 October 7)
-
-- Added PanelWebBrowser, CardPanel controls.
-- Added WebBrowserSearchWindow.
-- Add to Control: MinimumSize, MaximumSize, MinHeight, MaxHeight, MinWidth, MaxWidth.
-- Add ControlSet class to perform group operations on controls.
-- Fixed exception in wxGetKeyStateGTK under Linux (Ubuntu 22 and higher).
-- Fixed crashes in button demo under Linux.
-- Fixed #11 and other bugs in PrintPreview.
-- Add WebBrowser/PanelWebBrowser constructor with url param. Now is possible to specify default url which will be opened.
-- Add to IAuiPaneInfo: GetBestSize, GetMinSize, GetMaxSize.
-- Add to LinkLabel: HoverColor, NormalColor, VisitedColor, Visited.
-- Add new Label, CheckBox, Button constructor with Text parameter.
-- Added Application new props and methods.
-- Fixed PropertyGrid color scheme bugs.
-- Improved Sample projects.
-- Add to PropertyGrid: different color props.
-- Add ComboBox.BindSelectedItem.
-- Add to Grid: AddAutoColumn, AddAutoRow.
-- Add to NotifyIcon: IsOk, IsAvailable, IsIconInstalled.
-- Removed many hints and warnings.
-
-# 0.9.402 (2023 September 28)
-
-- Border improvements: 
-BorderWidth's can be any positive number (previously only 0 and 1).
-Can set individual colors of the border sides.
-Border painting is now compatible with Background brush and BackgroundColor.
-- Added AuiManager.ArtProvider, AuiToolbar.ArtProvider. Now possible to specify colors and other settings
-for Aui toolbars and panes.
-- Fixed event handling in many cpp controls.
-- Add to Control: SuggestedSize, SuggestedWidth, SuggestedHeight.
-- Add to Button: ExactFit, StateImages.FocusedImage.
-- Fixed flickering in Label, LinkLabel under Windows.
-- Improved sample projects.
-- Added Application.DoEvents.
-- Added to Font: GetDefaultOrNew, custom Equals.
-- Fixed KnownColorTable.cs not compiled under Linux.
-- Improved TreeView.MakeAsListBox.
-- Added Control.DoInsideLayout.
-- Fixed ListViewItem cell index not assigned bug.
-- Added IAuiNotebookPage and used in AuiNotebook.
-- Fixed Button.cpp not updated images on recreate.
-- Add to DrawingContext: DrawPoint, DrawDebugPoints.
-- Add to Color: AsBrush, AsPen.
-- Added Pen.AsBrush.
-- NativeApiGenerator improved, do not gen try/catch on events.
-- Fixed: Button images now work under Macos.
-- AuiToolbar: Implemented methods to set min size of the controls.
-
-# 0.9.401 (2023 September 22)
-
-- Complete rewrite of the StatusBar control (many new features, fixed known bugs).
-- Added PanelAuiManager control.
-- Fixed ListView.Items were not added without created native control.
-- Added to TreeView: FirstItem, LastItem, LastRootItem, Add, FocusAndSelectItem, Add(string).
-- Added to Control: DoInsideUpdate, InUpdates, DragStart event.
-- Added to Collection: SetCount.
-- Added to (ListViewItrem, TreeViewItem): Assign, Clone.
-- Added to ListControl: RemoveAll, ClearSelected, FindString.
-- Added to Application: different loggind methods.
-- Fixed DragDrop related issues.
-- Fixed (ListBox, ComboBox) item change not applied to control.
-- Add to Button: HoveredImage, PressedImage, DisabledImage.
-- Fixed incorrect event handling in Control.cpp.
-- Add static Button.ImagesEnabled (mostly for MacOs).
-- TreeViewItem.IsSelected is now writable.
-- Improved NativeApiGenerator: Now extra code is not generated for simple properties and methods (speed up overall lib performance), fixed bugs.
-- Fixed Window exception in some cases
-
-# 0.9.400 (2023 September 15)
-
-- Added PropertyGrid, AuiManager, AuiToolbar, AuiNotebook, PanelOKCancelButtons controls.
-- Added Svg images support.
-- Added AuiManager, PropertyGrid samples.
-- Added Validator class and interface (allows to apply constraints on input data in TextBox and other controls).
-- Added to Control: CanAcceptFocus, IsFocusable, BackgroundColor, ForegroundColor, Disposed event.
-- Added to TextBox: Validator, DefaultValidator.
-- Added to TreeView: RemoveSelected, RemoveAll, RemoveItemAndSelectSibling.
-- Added to TreeViewItem: NextOrPrevSibling.
-- Added visual editor for list and collection properties.
-- Improved Brush and Font handling in Control.
-- Fixed bugs in ComboBox.
-- Improved Font, Brush (and its descendants).
-- Improved Native class generator (speedup in Native controls, bug fixes). 
-- Speed up in Collection, TreeView, TreeViewItem, ListView, .
-- Fixed (TreeView, ListBox) raised SelectionChanged twice.
-- Fixed exceptions in DateTimePicker, StatusBar.
-- Implemented localization related classes, methods and props (full localization is not completed yet).
-- Improved ContextMenu.Show.
-- Added to Window: HasSystemMenu.
-- Implemented in Color: speedup, new methods and props, localization.
-- Added Control.Parent set method.
-- Speed up: MenuItem.Items are not created for items without childs.
-- Added to ResourceLoader: Default, StreamFromUrl, etc.
-- Fixed bug in application exit if no visible form.
-
----
-
-# 0.9.300 (2023 August 9)
-
-- Added LinkLabel, SplitterPanel, LayoutPanel controls.
-- Added FontDialog.
-- Improved TextBox. Added many new properties and methods. Added simple RichEdit functionality.
-- Added time editor to DateTimePicker. Added PopupKind, different MinDate and MaxDate properties.
-- General UI work speedup. Speedup in control creation, in events processing, in drawing (no more rect, 
-point, size, thickness conversions), in NativeApi.Generator (less full recompilation of PAL dll is needed). 
-Also removed different static dictionaries used to convert native controls to UI controls. 
-- Improved Border control. Added BorderWidth and BorderColor properties. Now it is possible to specify 
-whether to draw individual border side (BorderWidth is Thickness). Currently values are limited to 0 and 1.
-- Fixed ListView, TabControl, CheckListBox, Button, NumericUpDown bugs.
-- Improved ListView speed with large number of items.
-- Improved Toolbars.
-- Added Image GrayScale methods.
-- Improved Samples.
-- Control.Font now works.
-- Added TreeView.HasBorder, ToolbarItem.DisabledImages, Control.GetDPI(), Toolbar.GetDefaultImageSize, 
-Control.SetBounds(), Control.Width and Height, Font.AsBold, Font.AsUnderlined, NumericUpDown.Increment, 
-WebBrowser.HasBorder, Control.GetVisibleChildren, Control.HasChildren, Control.GetVisibleChild, Application.Idle,
-Color.GetKnownColors, Button.HasBorder, Toolbar.IsRight, Toolbar.IsVertical, Button.TextVisible, Button.TextAlign,
-Button.SetImagePosition, Button.SetImageMargins, TreeView.VariableRowHeight, TreeView.TwistButtons, 
-TreeView.StateImageSpacing, TreeView.Indentation, TreeView.RowLines, TreeView.HideRoot, Control.BeginIgnoreRecreate, 
-Control.EndIgnoreRecreate
-and other properties and methods.
-- Improved work on Linux and MacOs.
-
----
-
-# 0.9.201 (2023 July 9)
-
-- Fixed painting problems on window resize and move.
-- Fixed not working scrollbars in ListView, TreeView, ListBox, CheckedListBox.
-- Improved look of the Sample projects on Linux and macOS.
-- Improved behavior and fixed bugs in the Sample projects.
-- Fixed some of the UIXml previewer problems in Sample projects.
-- Added WebBrowser.Url property.
-- Fixed Border control painting on Linux.
-- Added UserPaintControl control.
-- Improvements in the installation scripts.
-- New static properties in Border control: DefaultBorderPen, DefaultBorderWidth, DefaultBorderColor.
-- New methods Grid.SetRowColumn, Image.FromUrl, ImageSet.FromUrl.
-- New properties ListBox.SelectedIndicesDescending, CheckListBox.CheckedIndicesDescending.
-- New methods ListBox.RemoveSelectedItems, ListBox.RemoveItems, CheckListBox.RemoveCheckedItems, 
-	ListBox.IsValidIndex, ListBox.GetValidIndexes.
-- CheckListBox now fires SelectionChanged event and keeps corect SelectedIndices.
-- Added HasBorder property to ListBox, CheckListBox.
-- Removed TextBox.EditControlOnly property. Added TextBox.HasBorder property. 
-- Fixed bug in toolbar and statusbar when additional strange items appeared if items were added from code.
-
-# 0.9.200 (2023 Jun 29)
-
-- Added WebBrowser control.
-- Added WebBrowser control demo page in the ControlsSample project.
-- Added ControlsTest project with WebBrowser.
-- Added Install.bat, Install.sh, Install.ps1 scripts. This greatly simplified the installation process.
-- Added complete Net 6, Net 7, and Net 4.81 support.
-- Removed Alternet.DateTime. Now you can use System.DateTime in all places. 
-- Added binary wxWidgets download instead of compilation during the installation. This speeds up the process of installation.
-- Removed VS2019 support.
-- Removed GTK debug messages on Linux.
-- Added Application properties: DisplayName, AppClassName, VendorName, VendorDisplayName.
- 
+Older items can be found [here](Documents/Whatsnew.History/whatsnew-2024.md)

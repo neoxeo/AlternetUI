@@ -10,12 +10,22 @@ namespace Alternet.UI
     /// <summary>
     /// <see cref="ListBox"/> descendant for selecting font names.
     /// </summary>
-    public class FontListBox : VListBox
+    public class FontListBox : VirtualListBox
     {
         /// <summary>
         /// Gets or sets method that initializes items in <see cref="FontListBox"/>.
         /// </summary>
         public static Action<FontListBox>? InitFonts = InitDefaultFonts;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FontListBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public FontListBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FontListBox"/> class.
@@ -26,7 +36,8 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FontListBox"/> class.
+        /// Initializes a new instance of the <see cref="FontListBox"/> class
+        /// with default list of the fonts.
         /// </summary>
         /// <param name="defaultFonts">Specifies whether to add default fonts
         /// to the control.</param>

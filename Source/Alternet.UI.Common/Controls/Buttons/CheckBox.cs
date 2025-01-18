@@ -25,6 +25,16 @@ namespace Alternet.UI
         private bool threeState;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CheckBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public CheckBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="CheckBox"/> class with the specified text.
         /// </summary>
         /// <param name="text"></param>
@@ -39,6 +49,9 @@ namespace Alternet.UI
         /// </summary>
         public CheckBox()
         {
+            ParentBackColor = true;
+            ParentForeColor = true;
+            HorizontalAlignment = HorizontalAlignment.Left;
         }
 
         /// <summary>
@@ -55,15 +68,19 @@ namespace Alternet.UI
         /// </returns>
         [DefaultValue(CheckState.Unchecked)]
         [RefreshProperties(RefreshProperties.All)]
-        public CheckState CheckState
+        public virtual CheckState CheckState
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CheckState;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (!threeState && value == CheckState.Indeterminate)
                     value = CheckState.Unchecked;
                 if (CheckState == value)
@@ -83,7 +100,7 @@ namespace Alternet.UI
         /// is <see langword="false"/>.
         /// </returns>
         [DefaultValue(false)]
-        public bool ThreeState
+        public virtual bool ThreeState
         {
             get
             {
@@ -92,6 +109,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (threeState == value)
                     return;
                 if (!value && CheckState == CheckState.Indeterminate)
@@ -108,7 +127,7 @@ namespace Alternet.UI
         /// Gets or sets whether to align check box on the right side of the text.
         /// </summary>
         [DefaultValue(false)]
-        public bool AlignRight
+        public virtual bool AlignRight
         {
             get
             {
@@ -117,6 +136,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (alignRight == value)
                     return;
                 alignRight = value;
@@ -134,7 +155,7 @@ namespace Alternet.UI
         /// the third state by clicking.
         /// </remarks>
         [DefaultValue(false)]
-        public bool AllowAllStatesForUser
+        public virtual bool AllowAllStatesForUser
         {
             get
             {
@@ -143,12 +164,20 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (allowAllStatesForUser == value)
                     return;
                 allowAllStatesForUser = value;
                 Handler.AllowAllStatesForUser = value;
             }
         }
+
+        /// <summary>
+        /// Gets a <see cref="ICheckBoxHandler"/> associated with this class.
+        /// </summary>
+        [Browsable(false)]
+        public new ICheckBoxHandler Handler => (ICheckBoxHandler)base.Handler;
 
         /// <summary>
         /// Gets or set a value indicating whether the <see cref="CheckBox"/> is
@@ -160,7 +189,7 @@ namespace Alternet.UI
         /// <remarks>When the value is <c>true</c>, the <see cref="CheckBox"/>
         /// portion of the control displays a check mark.</remarks>
         [DefaultValue(false)]
-        public bool IsChecked
+        public virtual bool IsChecked
         {
             get
             {
@@ -174,6 +203,17 @@ namespace Alternet.UI
                 else
                     CheckState = CheckState.Unchecked;
             }
+        }
+
+        /// <summary>
+        /// Same as <see cref="IsChecked"/>. This property is added for the compatibility
+        /// with legacy code.
+        /// </summary>
+        [Browsable(false)]
+        public bool Checked
+        {
+            get => IsChecked;
+            set => IsChecked = value;
         }
 
         /// <inheritdoc/>
@@ -194,12 +234,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets a <see cref="ICheckBoxHandler"/> associated with this class.
-        /// </summary>
-        [Browsable(false)]
-        internal new ICheckBoxHandler Handler => (ICheckBoxHandler)base.Handler;
-
-        /// <summary>
         /// Binds property specified with <paramref name="instance"/> and
         /// <paramref name="propName"/> to the <see cref="CheckBox"/>.
         /// After binding <see cref="CheckBox"/> will edit the specified property.
@@ -208,7 +242,7 @@ namespace Alternet.UI
         /// <param name="propName">Property name.</param>
         /// <remarks>Property must have the <see cref="bool"/> type. Value of the binded
         /// property will be changed automatically after <see cref="IsChecked"/> is changed.</remarks>
-        public CheckBox BindBoolProp(object instance, string propName)
+        public virtual CheckBox BindBoolProp(object instance, string propName)
         {
             var propInfo = AssemblyUtils.GetPropInfo(instance, propName);
             if (propInfo is null)
@@ -233,6 +267,8 @@ namespace Alternet.UI
         /// </summary>
         public void RaiseCheckedChanged()
         {
+            if (DisposingOrDisposed)
+                return;
             OnCheckedChanged(EventArgs.Empty);
             CheckedChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -250,18 +286,6 @@ namespace Alternet.UI
         /// event data.</param>
         protected virtual void OnCheckedChanged(EventArgs e)
         {
-        }
-
-        /// <inheritdoc/>
-        protected override void BindHandlerEvents()
-        {
-            base.BindHandlerEvents();
-        }
-
-        /// <inheritdoc/>
-        protected override void UnbindHandlerEvents()
-        {
-            base.UnbindHandlerEvents();
         }
     }
 }

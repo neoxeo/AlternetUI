@@ -9,7 +9,7 @@ namespace Alternet.UI
     /// <summary>
     /// Extends <see cref="IDisposable"/> with new events and properties.
     /// </summary>
-    public interface IDisposableObject : IDisposable
+    public interface IDisposableObject : IDisposable, IBaseObject
     {
         /// <summary>
         /// Occurs when control is disposed.
@@ -20,6 +20,11 @@ namespace Alternet.UI
         /// Gets whether object is disposed.
         /// </summary>
         bool IsDisposed { get; }
+
+        /// <summary>
+        /// Gets whether object is disposing or disposed.
+        /// </summary>
+        bool DisposingOrDisposed { get; }
 
         /// <summary>
         /// Gets or sets whether to dispose resources.

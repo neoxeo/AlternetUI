@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using Alternet.UI;
@@ -193,6 +194,8 @@ namespace Alternet.Drawing
 
             set
             {
+                if (Immutable)
+                    return;
                 Handler.HasAlpha = value;
             }
         }
@@ -260,6 +263,8 @@ namespace Alternet.Drawing
 
             set
             {
+                if (Immutable)
+                    return;
                 Handler.ScaleFactor = value;
             }
         }
@@ -354,7 +359,7 @@ namespace Alternet.Drawing
         /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Image(GenericImage image) => new Bitmap(image);
+        public static explicit operator Image(GenericImage image) => image.AsImage;
 
         /// <summary>
         /// Converts the specified <see cref='GenericImage'/> to a <see cref='Image'/>.
@@ -416,7 +421,7 @@ namespace Alternet.Drawing
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class
-        /// from the specified url.
+        /// from the specified url. Raises exceptions on errors.
         /// </summary>
         /// <param name="url">The file or embedded resource url used
         /// to load the image.
@@ -430,12 +435,29 @@ namespace Alternet.Drawing
         /// </code>
         /// </example>
         /// <param name="bitmapType">Type of the bitmap. Optional.</param>
+        /// <remarks>
+        /// Use <see cref="FromUrlOrNull"/> to load without exceptions.
+        /// </remarks>
         public static Image FromUrl(string url, BitmapType bitmapType = BitmapType.Any)
         {
             using var stream = ResourceLoader.StreamFromUrl(url);
             var result = new Bitmap(stream, bitmapType);
             result.url = url;
             return result;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// from the specified relative url and assembly.
+        /// </summary>
+        /// <param name="asm">Assembly from which image will be loaded.</param>
+        /// <param name="relativeName">Image name of relative path.
+        /// Slash characters must be changed to '.'. Example: "ToolBarPng.Large.Calendar32.png".</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Image FromAssemblyUrl(Assembly asm, string relativeName)
+        {
+            return Image.FromUrl(AssemblyUtils.GetImageUrlInAssembly(asm, relativeName));
         }
 
         /// <summary>
@@ -476,6 +498,7 @@ namespace Alternet.Drawing
         /// Creates images with screen pixels.
         /// </summary>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Image? FromScreen()
         {
             var handler = GraphicsFactory.Handler.CreateImageHandlerFromScreen();
@@ -488,9 +511,43 @@ namespace Alternet.Drawing
         /// <param name="stream">
         /// A <see cref="Stream" /> that contains the data for this <see cref="Image" />.</param>
         /// <returns>The <see cref="Image" /> this method creates.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Image FromStream(Stream stream)
         {
             return new Bitmap(stream);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class
+        /// from the specified url. Returns null if error occurs during image load.
+        /// No exceptions are raised.
+        /// </summary>
+        /// <param name="url">The file or embedded resource url used
+        /// to load the image.
+        /// </param>
+        /// <example>
+        /// <code>
+        /// var ImageSize = 16;
+        /// var ResPrefix = $"embres:ControlsTest.Resources.Png._{ImageSize}.";
+        /// var url = $"{ResPrefix}arrow-left-{ImageSize}.png";
+        /// button1.Image = Bitmap.FromUrlOrNull(url);
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// If DEBUG is defined, exception info is logged.
+        /// </remarks>
+        public static Image? FromUrlOrNull(string url)
+        {
+            try
+            {
+                var result = Image.FromUrl(url);
+                return result;
+            }
+            catch (Exception e)
+            {
+                LogUtils.LogExceptionIfDebug(e);
+                return null;
+            }
         }
 
         /// <summary>
@@ -539,12 +596,12 @@ namespace Alternet.Drawing
         /// </summary>
         /// <remarks>
         /// This is similar to <see cref="Image.FromSvgUrl"/> but uses
-        /// <see cref="Control.GetDPI"/> and <see cref="ToolBarUtils.GetDefaultImageSize(Coord)"/>
+        /// <see cref="AbstractControl.GetDPI"/> and <see cref="ToolBarUtils.GetDefaultImageSize(Coord)"/>
         /// to get appropriate image size which is best suitable for toolbars.
         /// </remarks>
         /// <param name="url">The file or embedded resource url with Svg data used
         /// to load the image.</param>
-        /// <param name="control">Control which <see cref="Control.GetDPI"/> method
+        /// <param name="control">Control which <see cref="AbstractControl.GetDPI"/> method
         /// is used to get DPI.</param>
         /// <returns><see cref="Image"/> instance loaded from Svg data for use
         /// on the toolbars.</returns>
@@ -564,6 +621,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="bitmap"><see cref="SKBitmap"/> with image data.</param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Image FromSkia(SKBitmap bitmap)
         {
             var genericImage = GenericImage.FromSkia(bitmap);
@@ -582,13 +640,21 @@ namespace Alternet.Drawing
             if (bitmap.Handler is SkiaImageHandler skiaHandler)
                 return skiaHandler.Bitmap;
 
+            SKBitmap result;
+
             if (assignPixels)
             {
                 var genericImage = (GenericImage)bitmap;
-                return GenericImage.ToSkia(genericImage, assignPixels);
+                result = GenericImage.ToSkia(genericImage, assignPixels);
             }
             else
-                return GenericImage.CreateSkiaBitmapForImage(bitmap.Width, bitmap.Height, bitmap.HasAlpha);
+            {
+                result = GenericImage.CreateSkiaBitmapForImage(bitmap.Width, bitmap.Height, bitmap.HasAlpha);
+            }
+
+            if (bitmap.Immutable)
+                result.SetImmutable();
+            return result;
         }
 
         /// <summary>
@@ -656,6 +722,9 @@ namespace Alternet.Drawing
         /// for the load operation.</remarks>
         public virtual bool Load(string url, BitmapType type = BitmapType.Any)
         {
+            if (Immutable)
+                return false;
+
             return InsideTryCatch(() =>
             {
                 using var stream = ResourceLoader.StreamFromUrl(url);
@@ -736,6 +805,9 @@ namespace Alternet.Drawing
         /// for the load operation.</remarks>
         public virtual bool Load(Stream stream, BitmapType type)
         {
+            if (Immutable)
+                return false;
+
             return Handler.LoadFromStream(stream, type);
         }
 
@@ -748,7 +820,8 @@ namespace Alternet.Drawing
         public virtual Image GetSubBitmap(RectI rect)
         {
             var converted = Handler.GetSubBitmap(rect);
-            return new Image(converted);
+            var result = new Image(converted);
+            return result;
         }
 
         /// <summary>
@@ -757,10 +830,17 @@ namespace Alternet.Drawing
         /// <param name="dpi"></param>
         public virtual void SetDPI(SizeD dpi)
         {
+            if (Immutable)
+                return;
             var factor = dpi.Width / 96;
             this.ScaleFactor = factor;
         }
 
+        /// <summary>
+        /// Creates new image using pixels of this image with changed lightness.
+        /// </summary>
+        /// <param name="ialpha">Lightgness (0..200).</param>
+        /// <returns></returns>
         public virtual Image ChangeLightness(int ialpha)
         {
             GenericImage image = (GenericImage)this;
@@ -795,6 +875,8 @@ namespace Alternet.Drawing
         /// <param name="sizeNeeded"></param>
         public virtual bool Rescale(SizeI sizeNeeded)
         {
+            if (Immutable)
+                return false;
             return Handler.Rescale(sizeNeeded);
         }
 
@@ -803,6 +885,8 @@ namespace Alternet.Drawing
         /// </summary>
         public virtual bool ResetAlpha()
         {
+            if (Immutable)
+                return false;
             return Handler.ResetAlpha();
         }
 
@@ -886,17 +970,37 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets the size of the image in device-independent units using the specified scale factor.
+        /// </summary>
+        /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
+        /// If not specified, default value is used.</param>
+        /// <returns></returns>
+        public virtual SizeD SizeDip(Coord scaleFactor)
+        {
+            return GraphicsFactory.PixelToDip(PixelSize, scaleFactor);
+        }
+
+        /// <summary>
         /// Gets the size of the image in device-independent units.
         /// </summary>
-        public virtual SizeD SizeDip(Control control)
+        public virtual SizeD SizeDip(AbstractControl control)
             => control.PixelToDip(PixelSize);
 
         /// <summary>
-        /// Gets image rect as (0, 0, SizeDip().Width, SizeDip().Height).
+        /// Gets image rect as (0, 0, SizeDip(control).Width, SizeDip(control).Height).
         /// </summary>
-        public virtual RectD BoundsDip(Control control)
+        public virtual RectD BoundsDip(AbstractControl control)
         {
             var size = SizeDip(control);
+            return (0, 0, size.Width, size.Height);
+        }
+
+        /// <summary>
+        /// Gets image rect as (0, 0, SizeDip(scaleFactor).Width, SizeDip(scaleFactor).Height).
+        /// </summary>
+        public virtual RectD BoundsDip(Coord scaleFactor)
+        {
+            var size = SizeDip(scaleFactor);
             return (0, 0, size.Width, size.Height);
         }
 
@@ -907,6 +1011,9 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public virtual ISkiaSurface LockSurface(ImageLockMode lockMode = ImageLockMode.ReadWrite)
         {
+            if (Immutable && lockMode != ImageLockMode.ReadOnly)
+                throw new Exception($"LockSurface({lockMode}) is not possible on the immutable image.");
+
             return GraphicsFactory.CreateSkiaSurface(this, lockMode);
         }
 
@@ -916,6 +1023,8 @@ namespace Alternet.Drawing
         /// <param name="bitmap">Bitmap to assign.</param>
         public virtual void Assign(SKBitmap bitmap)
         {
+            if (Immutable)
+                throw new Exception($"Assign(SKBitmap) is not possible on the immutable image.");
             Handler.Assign(bitmap);
         }
 
@@ -925,6 +1034,8 @@ namespace Alternet.Drawing
         /// <param name="genericImage">Image to assign.</param>
         public virtual void Assign(GenericImage genericImage)
         {
+            if (Immutable)
+                throw new Exception($"Assign(GenericImage) is not possible on the immutable image.");
             Handler.Assign(genericImage);
         }
 
@@ -934,6 +1045,8 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public virtual Graphics GetDrawingContext()
         {
+            if (Immutable)
+                throw new Exception($"GetDrawingContext() is not possible on the immutable image.");
             var dc = Graphics.FromImage(this);
             return dc;
         }

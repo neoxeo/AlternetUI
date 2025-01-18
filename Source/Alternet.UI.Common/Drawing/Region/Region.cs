@@ -229,7 +229,7 @@ namespace Alternet.Drawing
         /// <param name="dx">The amount to offset this <see cref="Region"/> horizontally.</param>
         /// <param name="dy">The amount to offset this <see cref="Region"/> vertically.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Translate(double dx, double dy)
+        public void Translate(Coord dx, Coord dy)
         {
             CheckDisposed();
             Handler.Translate(dx, dy);
@@ -246,6 +246,16 @@ namespace Alternet.Drawing
             return Handler.GetBounds();
         }
 
+        /// <summary>
+        /// Gets a <see cref="RectD"/> structure that represents a rectangle that
+        /// bounds this <see cref="Region"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RectD GetBounds(Graphics g)
+        {
+            return GetBounds();
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object? obj)
         {
@@ -254,10 +264,13 @@ namespace Alternet.Drawing
             if (obj is not Region region)
                 return false;
 
-            return Handler.Equals(region);
+            return Handler.IsEqualTo(region);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Calculates hash code for this object.
+        /// </summary>
+        /// <returns>A hash code for the current object.</returns>
         public override int GetHashCode()
         {
             return Handler.GetHashCode();

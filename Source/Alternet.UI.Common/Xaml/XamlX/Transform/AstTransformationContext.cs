@@ -12,7 +12,8 @@ namespace XamlX.Transform
 #endif
     class AstTransformationContext : XamlContextBase
     {
-        public Dictionary<string, string> NamespaceAliases { get; set; } = new Dictionary<string, string>();      
+        public Dictionary<string, string> NamespaceAliases { get; set; }
+            = new Dictionary<string, string>();      
         public TransformerConfiguration Configuration { get; }
         public IXamlAstValueNode RootObject { get; set; }
         public bool StrictMode { get; }
@@ -20,7 +21,7 @@ namespace XamlX.Transform
         public IXamlAstNode Error(IXamlAstNode node, Exception e)
         {
             if (StrictMode)
-                throw e;
+                Alternet.UI.ExceptionUtils.Rethrow(e);
             return node;
         }
 

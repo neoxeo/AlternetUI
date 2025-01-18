@@ -8,20 +8,30 @@ using Alternet.Drawing;
 
 namespace Alternet.UI
 {
-    public abstract class PlessDisplayFactoryHandler : DisposableObject, IDisplayFactoryHandler
+    /// <summary>
+    /// Implements dummy <see cref="IDisplayFactoryHandler"/> provider.
+    /// </summary>
+    public class PlessDisplayFactoryHandler : DisposableObject, IDisplayFactoryHandler
     {
-        public abstract IDisplayHandler CreateDisplay();
+        /// <inheritdoc/>
+        public virtual IDisplayHandler CreateDisplay()
+        {
+            return new PlessDisplayHandler();
+        }
 
+        /// <inheritdoc/>
         public virtual IDisplayHandler CreateDisplay(int index)
         {
             return CreateDisplay();
         }
 
+        /// <inheritdoc/>
         public virtual int GetCount()
         {
             return 1;
         }
 
+        /// <inheritdoc/>
         public virtual SizeI GetDefaultDPI()
         {
             if (App.IsIOS || App.IsMacOS)
@@ -29,11 +39,13 @@ namespace Alternet.UI
             return 96;
         }
 
-        public virtual int GetFromControl(Control control)
+        /// <inheritdoc/>
+        public virtual int GetFromControl(AbstractControl control)
         {
             return 0;
         }
 
+        /// <inheritdoc/>
         public virtual int GetFromPoint(PointI pt)
         {
             return 0;

@@ -15,7 +15,7 @@ namespace Alternet.UI
     /// <see cref="ListControlItem.Value"/> is <see cref="Color"/> and
     /// <see cref="ListControlItem.Text"/> is label of the color.
     /// </remarks>
-    public class ColorListBox : VListBox
+    public class ColorListBox : VirtualListBox
     {
         /// <summary>
         /// Gets or sets default painter for the <see cref="ColorListBox"/> items.
@@ -26,6 +26,19 @@ namespace Alternet.UI
         /// Gets or sets method that initializes items in <see cref="ColorListBox"/>.
         /// </summary>
         public static Action<ColorListBox>? InitColors = InitDefaultColors;
+
+        private Color? disabledImageColor;
+        private bool useDisabledImageColor = true;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ColorListBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ColorListBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorListBox"/> class.
@@ -46,33 +59,80 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether to use <see cref="DisabledImageColor"/>
+        /// for painting of the color image
+        /// when control is disabled.
+        /// </summary>
+        public virtual bool UseDisabledImageColor
+        {
+            get
+            {
+                return useDisabledImageColor;
+            }
+
+            set
+            {
+                if (useDisabledImageColor == value)
+                    return;
+                useDisabledImageColor = value;
+                if (Enabled)
+                    return;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets disabled image color.
+        /// </summary>
+        /// <remarks>
+        /// This color is used for painting color image when control is disabled.
+        /// If this property is null, color image will be painted using
+        /// <see cref="ColorComboBox.DefaultDisabledImageColor"/>.
+        /// </remarks>
+        public virtual Color? DisabledImageColor
+        {
+            get
+            {
+                return disabledImageColor;
+            }
+
+            set
+            {
+                if (disabledImageColor == value)
+                    return;
+                disabledImageColor = value;
+                if (Enabled)
+                    return;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the selected color.
         /// Color value must be added to the list of colors
         /// before selecting it.
         /// </summary>
-        public Color? Value
+        public virtual Color? Value
         {
             get
             {
                 if (SelectedItem is ListControlItem item)
                     return item.Value as Color;
-                return SelectedItem as Color;
+                return null;
             }
 
             set
             {
                 if (Value == value)
                     return;
-                foreach (var item in Items)
+                if (value is null)
                 {
-                    if (item is not ListControlItem item2)
-                        continue;
-                    if (item2.Value is not Color color)
-                        continue;
-                    if (color != value)
-                        continue;
+                    SelectedIndex = null;
+                }
+                else
+                {
+                    var item = FindOrAdd(value);
                     SelectedItem = item;
-                    break;
                 }
             }
         }
@@ -96,11 +156,11 @@ namespace Alternet.UI
         /// <param name="defaultValue">Default value.</param>
         /// <returns></returns>
         public static Color GetItemValueOrDefault(
-            ListControl control,
+            IListControl control,
             int itemIndex,
             Color defaultValue)
         {
-            object? item = control.GetItem(itemIndex);
+            object? item = control.GetItemAsObject(itemIndex);
 
             if (item is ListControlItem item1)
                 item = item1.Value;
@@ -111,6 +171,63 @@ namespace Alternet.UI
                 itemColor = defaultValue;
 
             return itemColor;
+        }
+
+        /// <summary>
+        /// Finds item with the specified color.
+        /// </summary>
+        /// <param name="value">Color value.</param>
+        /// <returns></returns>
+        public virtual ListControlItem? Find(Color? value)
+        {
+            return ColorComboBox.Find(value, Items);
+        }
+
+        /// <summary>
+        /// Finds item with the specified color or adds it.
+        /// </summary>
+        /// <param name="value">Color value.</param>
+        /// <param name="title">Color title. Optional.</param>
+        /// <returns></returns>
+        public virtual ListControlItem FindOrAdd(Color value, string? title = null)
+        {
+            var result = Find(value);
+            result ??= AddColor(value, title);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates item for the specified color and title.
+        /// </summary>
+        /// <param name="title">Color title. Optional. If not specified,
+        /// <see cref="Color.NameLocalized"/> will be used.</param>
+        /// <param name="value">Color value.</param>
+        /// <returns></returns>
+        public virtual ListControlItem CreateItem(Color value, string? title = null)
+        {
+            return ColorComboBox.DefaultCreateItem(value, title);
+        }
+
+        /// <summary>
+        /// Adds color to the list of colors.
+        /// </summary>
+        /// <param name="title">Color title. Optional. If not specified,
+        /// <see cref="Color.NameLocalized"/> will be used.</param>
+        /// <param name="value">Color value.</param>
+        public virtual ListControlItem AddColor(Color value, string? title = null)
+        {
+            var item = CreateItem(value, title);
+            Items.Add(item);
+            return item;
+        }
+
+        /// <summary>
+        /// Adds colors from the specified color categories.
+        /// </summary>
+        /// <param name="categories">Array of categories to add colors from.</param>
+        public virtual void AddColors(KnownColorCategory[]? categories)
+        {
+            ListControlUtils.AddColors(this, false, null, categories);
         }
 
         /// <summary>
@@ -135,21 +252,55 @@ namespace Alternet.UI
         public class DefaultItemPainter : IListBoxItemPainter
         {
             /// <inheritdoc/>
-            public virtual SizeD GetSize(VListBox sender, int index)
+            public virtual SizeD GetSize(object sender, int index)
             {
-                return sender.DefaultMeasureItemSize(index);
+                if (sender is not ColorListBox listbox)
+                    return SizeD.MinusOne;
+
+                return ListControlItem.DefaultMeasureItemSize(listbox, listbox.MeasureCanvas, index);
+            }
+
+            /// <summary>
+            /// Gets image color for the item.
+            /// </summary>
+            /// <param name="sender">Control.</param>
+            /// <param name="e">Parameters.</param>
+            /// <returns></returns>
+            public virtual Color GetImageColor(
+                ColorListBox sender,
+                ListBoxItemPaintEventArgs e)
+            {
+                var itemColor = GetItemValueOrDefault(sender, e.ItemIndex, Color.White);
+                var colorListBox = sender as ColorListBox;
+                var useDisabledImageColor = colorListBox?.UseDisabledImageColor ?? false;
+
+                if (!sender.Enabled && useDisabledImageColor)
+                {
+                    var disabledColor = colorListBox?.DisabledImageColor
+                        ?? ColorComboBox.DefaultDisabledImageColor;
+                    if (disabledColor is not null)
+                        itemColor = disabledColor;
+                }
+
+                return itemColor;
             }
 
             /// <inheritdoc/>
-            public virtual void Paint(VListBox sender, ListBoxItemPaintEventArgs e)
+            public virtual void Paint(object sender, ListBoxItemPaintEventArgs e)
             {
-                var itemColor = GetItemValueOrDefault(sender, e.ItemIndex, Color.White);
-
-                if (sender.TextVisible)
+                if (sender is not ColorListBox colorListBox)
                 {
-                    var (colorRect, itemRect) = sender.GetItemImageRect(e.ClipRectangle);
+                    if (sender is VirtualListControl listControl)
+                        listControl.DefaultDrawItemForeground(e);
+                    return;
+                }
+
+                var itemColor = GetImageColor(colorListBox, e);
+                if (colorListBox.TextVisible)
+                {
+                    var (colorRect, itemRect) = ListControlItem.GetItemImageRect(e.ClipRectangle);
                     e.ClipRectangle = itemRect;
-                    sender.DefaultDrawItem(e);
+                    colorListBox.DefaultDrawItemForeground(e);
                     ColorComboBox.PaintColorImage(e.Graphics, colorRect, itemColor);
                 }
                 else
@@ -159,7 +310,7 @@ namespace Alternet.UI
             }
 
             /// <inheritdoc/>
-            public virtual bool PaintBackground(VListBox sender, ListBoxItemPaintEventArgs e)
+            public virtual bool PaintBackground(object sender, ListBoxItemPaintEventArgs e)
             {
                 return false;
             }

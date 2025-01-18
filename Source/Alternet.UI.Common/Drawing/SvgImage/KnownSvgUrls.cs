@@ -17,6 +17,30 @@ namespace Alternet.UI
             "embres:Alternet.UI.Common.Resources.Svg.{0}.svg?assembly=Alternet.UI.Common";
 
         /// <summary>
+        /// Gets or sets url used to load "Triangle Arrow Down" svg image.
+        /// </summary>
+        public static string UrlImageTriangleArrowDown { get; set; }
+            = GetImageUrl("TriangleArrow.alternet-triangle-arrow-down");
+
+        /// <summary>
+        /// Gets or sets url used to load "Triangle Arrow Left" svg image.
+        /// </summary>
+        public static string UrlImageTriangleArrowLeft { get; set; }
+            = GetImageUrl("TriangleArrow.alternet-triangle-arrow-left");
+
+        /// <summary>
+        /// Gets or sets url used to load "Triangle Arrow Right" svg image.
+        /// </summary>
+        public static string UrlImageTriangleArrowRight { get; set; }
+            = GetImageUrl("TriangleArrow.alternet-triangle-arrow-right");
+
+        /// <summary>
+        /// Gets or sets url used to load "Triangle Arrow Up" svg image.
+        /// </summary>
+        public static string UrlImageTriangleArrowUp { get; set; }
+            = GetImageUrl("TriangleArrow.alternet-triangle-arrow-up");
+
+        /// <summary>
         /// Gets or sets url used to load an empty svg image.
         /// </summary>
         public static string UrlImageEmpty { get; set; } = GetImageUrl("alternet-empty");
@@ -28,15 +52,36 @@ namespace Alternet.UI
             GetImageUrl("alternet-circle-xmark");
 
         /// <summary>
+        /// Gets or sets url used to load "Search" svg image used in toolbars.
+        /// </summary>
+        public static string UrlImageSearch { get; set; } =
+            GetImageUrl("alternet-search");
+
+        /// <summary>
         /// Gets or sets url used to load "File|New" svg image used in toolbars.
         /// </summary>
         public static string UrlImageFileNew { get; set; } =
             GetImageUrl("alternet-file");
 
         /// <summary>
+        /// Gets or sets url used to load "Eye on" svg image.
+        /// </summary>
+        public static string UrlImageEyeOn { get; set; } = GetImageUrl("alternet-eye-on");
+
+        /// <summary>
+        /// Gets or sets url used to load "Eye off" svg image.
+        /// </summary>
+        public static string UrlImageEyeOff { get; set; } = GetImageUrl("alternet-eye-off");
+
+        /// <summary>
         /// Gets or sets url used to load "Plus Inside Square" svg image.
         /// </summary>
         public static string UrlImageSquarePlus { get; set; } = GetImageUrl("alternet-square-plus");
+
+        /// <summary>
+        /// Gets or sets url used to load "Keyboard" svg image.
+        /// </summary>
+        public static string UrlImageKeyboard { get; set; } = GetImageUrl("alternet-keyboard");
 
         /// <summary>
         /// Gets or sets url used to load "Minus Inside Square" svg image.
@@ -108,6 +153,36 @@ namespace Alternet.UI
             GetImageUrl("alternet-circle-exclamation");
 
         /// <summary>
+        /// Gets or sets url used to load "Circle Filled" svg image.
+        /// </summary>
+        public static string UrlImageCircleFilled { get; set; } = GetImageUrl("alternet-circle-filled");
+
+        /// <summary>
+        /// Gets or sets url used to load "Debug Run" svg image.
+        /// </summary>
+        public static string UrlImageDebugRun { get; set; } = GetImageUrl("alternet-debug-run");
+
+        /// <summary>
+        /// Gets or sets url used to load "Trash Can" svg image.
+        /// </summary>
+        public static string UrlImageTrashCan { get; set; } = GetImageUrl("alternet-trash-can");
+
+        /// <summary>
+        /// Gets or sets url used to load "Paste" svg image.
+        /// </summary>
+        public static string UrlImagePaste { get; set; } = GetImageUrl("alternet-paste");
+
+        /// <summary>
+        /// Gets or sets url used to load "Copy" svg image.
+        /// </summary>
+        public static string UrlImageCopy { get; set; } = GetImageUrl("alternet-copy");
+
+        /// <summary>
+        /// Gets or sets url used to load "Diamond Filled" svg image.
+        /// </summary>
+        public static string UrlImageDiamondFilled { get; set; } = GetImageUrl("alternet-diamond-filled");
+
+        /// <summary>
         /// Gets or sets url used to load "plus" svg image used in "Add" toolbar buttons.
         /// </summary>
         public static string UrlImagePlus { get; set; } = GetImageUrl("alternet-plus");
@@ -140,12 +215,12 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets url used to load svg image used in "Abort" buttons.
         /// </summary>
-        public static string UrlImageAbort { get; set; } = GetImageUrl("ban");
+        public static string UrlImageAbort { get; set; } = GetImageUrl("alternet-ban");
 
         /// <summary>
         /// Gets or sets url used to load svg image used in "Retry" buttons.
         /// </summary>
-        public static string UrlImageRetry { get; set; } = GetImageUrl("arrows-rotate");
+        public static string UrlImageRetry { get; set; } = GetImageUrl("alternet-arrows-rotate");
 
         /// <summary>
         /// Gets or sets url used to load svg image used in "Ignore" buttons.
@@ -210,7 +285,8 @@ namespace Alternet.UI
         /// Gets or sets url used to load svg image used in "Refresh" toolbar buttons
         /// for the <see cref="WebBrowser"/>.
         /// </summary>
-        public static string UrlImageWebBrowserRefresh { get; set; } = GetImageUrl("alternet-rotate-right");
+        public static string UrlImageWebBrowserRefresh { get; set; }
+            = GetImageUrl("alternet-rotate-right");
 
         /// <summary>
         /// Gets or sets url used to load svg image used in "Stop" toolbar buttons
@@ -242,7 +318,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets url used to load "Gear" svg image.
         /// </summary>
-        public static string UrlImageGear { get; set; } = GetImageUrl("gear");
+        public static string UrlImageGear { get; set; } = GetImageUrl("alternet-gear");
 
         /// <summary>
         /// Gets or sets url used to load "Use regular expressions" svg image.
@@ -257,7 +333,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets url used to load "Find Match Full Word" svg image.
         /// </summary>
-        public static string UrlImageFindMatchFullWord { get; set; } = GetImageUrl("alternet-match-full-word");
+        public static string UrlImageFindMatchFullWord { get; set; }
+            = GetImageUrl("alternet-match-full-word");
 
         /// <summary>
         /// Gets or sets url used to load "Arrow Down" svg image.
@@ -267,7 +344,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets url used to load "Circle" svg image.
         /// </summary>
-        public static string UrlImageCircle { get; set; } = GetImageUrl("circle");
+        public static string UrlImageCircle { get; set; } = GetImageUrl("alternet-circle");
 
         /// <summary>
         /// Gets or sets url used to load svg image used in horizontal "More Actions" toolbar buttons.
@@ -283,7 +360,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets url used to load generic folder icon.
         /// </summary>
-        public static string UrlIconFolder { get; set; } = GetImageUrl("folder");
+        public static string UrlIconFolder { get; set; } = GetImageUrl("alternet-folder");
 
         private static string GetImageUrl(string name) => string.Format(ResTemplate, name);
     }

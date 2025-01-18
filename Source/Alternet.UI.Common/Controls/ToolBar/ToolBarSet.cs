@@ -11,18 +11,30 @@ namespace Alternet.UI
     /// Implements multiple <see cref="ToolBar"/> controls.
     /// </summary>
     [ControlCategory("MenusAndToolbars")]
-    public partial class ToolBarSet : Control
+    public partial class ToolBarSet : HiddenBorder
     {
         /// <summary>
         /// Gets or sets default distance (in dips) between toolbars.
         /// </summary>
-        public static double DefaultToolBarDistance = 2;
+        public static Coord DefaultToolBarDistance = 2;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ToolBarSet"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ToolBarSet(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToolBarSet"/> class.
         /// </summary>
         public ToolBarSet()
         {
+            ParentBackColor = true;
+            ParentForeColor = true;
             Layout = LayoutStyle.Vertical;
             ToolBarCount = 1;
             IsGraphicControl = true;
@@ -31,7 +43,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets distance (in dips) between toolbars.
         /// </summary>
-        public virtual double? ToolBarDistance { get; set; }
+        public virtual Coord? ToolBarDistance { get; set; }
 
         /// <summary>
         /// Gets or sets the number of toolbars.
@@ -59,7 +71,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets <see cref="ToolBar.ItemSize"/> for the child toolbars.
         /// </summary>
-        public virtual double ItemSize
+        public virtual Coord ItemSize
         {
             get
             {
@@ -139,9 +151,12 @@ namespace Alternet.UI
             result.ParentBackColor = true;
             result.ParentFont = true;
             result.ParentForeColor = true;
+
+            var distance = ToolBarDistance ?? DefaultToolBarDistance;
+            result.Margin = distance;
+
             if (Children.Count > 0)
             {
-                result.Margin = (0, ToolBarDistance ?? DefaultToolBarDistance, 0, 0);
             }
 
             return result;

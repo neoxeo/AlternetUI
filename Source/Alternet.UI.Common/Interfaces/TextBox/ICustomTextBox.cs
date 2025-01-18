@@ -78,7 +78,7 @@ namespace Alternet.UI
         /// <inheritdoc cref="CustomTextBox.MinLength"/>
         int MinLength { get; set; }
 
-        /// <inheritdoc cref="Control.Text"/>
+        /// <inheritdoc cref="AbstractControl.Text"/>
         string Text { get; set; }
 
         /// <inheritdoc cref="CustomTextBox.GetNumberOfLines"/>
@@ -166,6 +166,6 @@ namespace Alternet.UI
             Action<string>? errorEnumerator = null);
 
         /// <inheritdoc cref="CustomTextBox.GetKnownErrorText"/>
-        string GetKnownErrorText(ValueValidatorKnownError kind);
+        string? GetKnownErrorText(ValueValidatorKnownError kind);
     }
 }

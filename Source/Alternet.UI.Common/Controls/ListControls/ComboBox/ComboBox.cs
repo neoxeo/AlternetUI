@@ -21,7 +21,7 @@ namespace Alternet.UI
     /// <para>
     /// To add or remove objects in the list at run time, use methods of the
     /// <see cref="Collection{Object}" /> class
-    /// (through the <see cref="ListControl.Items"/> property of the
+    /// (through the <see cref="ListControl{T}.Items"/> property of the
     /// <see cref="ComboBox" />).
     /// The list then displays the default string value for each object.
     /// You can add individual objects with the
@@ -34,8 +34,8 @@ namespace Alternet.UI
     /// In addition to display and selection functionality, the
     /// <see cref="ComboBox" /> also provides features that enable you to
     /// efficiently add items to the <see cref="ComboBox" /> and to find text
-    /// within the items of the list. With the <see cref="Control.BeginUpdate"/>
-    /// and <see cref="Control.EndUpdate"/> methods, you can add a large number
+    /// within the items of the list. With the <see cref="AbstractControl.BeginUpdate"/>
+    /// and <see cref="AbstractControl.EndUpdate"/> methods, you can add a large number
     /// of items to the <see cref="ComboBox" /> without the control
     /// being repainted each time an item is added to the list.
     /// </para>
@@ -48,33 +48,68 @@ namespace Alternet.UI
     /// </para>
     /// </remarks>
     [ControlCategory("Common")]
-    public partial class ComboBox : ListControl
+    public partial class ComboBox : ListControl, IListControl, IListControlItemContainer
     {
         /// <summary>
         /// Gets or sets default vertical offset of the item's image for the items with images.
         /// </summary>
-        public static double DefaultImageVerticalOffset = 3;
+        public static Coord DefaultImageVerticalOffset = 3;
 
         /// <summary>
         /// Gets or sets default distance between image and text in the item.
         /// </summary>
-        public static double DefaultImageTextDistance = 3;
+        public static Coord DefaultImageTextDistance = 3;
 
         /// <summary>
         /// Gets or sets default color of the image border.
         /// </summary>
         public static Color DefaultImageBorderColor = SystemColors.GrayText;
 
+        /// <summary>
+        /// Gets or sets default disabled text color.
+        /// </summary>
+        public static Color DefaultDisabledTextColor = SystemColors.GrayText;
+
+        private ValueContainer<VirtualListBox> listBox;
+
         private int? selectedIndex;
         private bool isEditable = true;
         private IComboBoxItemPainter? painter;
+        private ListControlItemDefaults? itemDefaults;
+        private bool droppedDown;
+        private int? reportedSelectedIndex;
+        private SizeD? savedBestSize;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ComboBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ComboBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ComboBox"/> class.
         /// </summary>
         public ComboBox()
         {
+            Handler.Required();
+            listBox = new(HandlePopupControlChanged);
         }
+
+        /// <summary>
+        /// Occurs when the drop-down portion of the <see cref="ComboBox" /> is no longer visible.
+        /// </summary>
+        [Category("Behavior")]
+        public event EventHandler? DropDownClosed;
+
+        /// <summary>
+        /// Occurs when the drop-down portion of a <see cref="ComboBox" /> is shown.
+        /// </summary>
+        [Category("Behavior")]
+        public event EventHandler? DropDown;
 
         /// <summary>
         /// Occurs when the <see cref="SelectedItem"/> property value changes.
@@ -108,6 +143,11 @@ namespace Alternet.UI
         public enum OwnerDrawFlags
         {
             /// <summary>
+            /// Owner draw is off.
+            /// </summary>
+            None = 0,
+
+            /// <summary>
             /// Specifies whether to draw background.
             /// </summary>
             ItemBackground = 1,
@@ -119,18 +159,81 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets defaults which are used when items are painted in the popup listbox
+        /// in the case when item is <see cref="ListControlItem"/> and owner draw mode is turned on.
+        /// </summary>
+        [Browsable(false)]
+        public virtual ListControlItemDefaults OwnerDrawItemDefaults
+        {
+            get
+            {
+                itemDefaults ??= new ListControlItemDefaults();
+                return itemDefaults;
+            }
+
+            set
+            {
+                itemDefaults = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the combo box is displaying its drop-down portion.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true" /> if the drop-down portion is displayed;
+        /// otherwise, <see langword="false" />. The default is false.</returns>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public virtual bool DroppedDown
+        {
+            get
+            {
+                return droppedDown;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                if (DroppedDown == value)
+                    return;
+                if (value)
+                    PlatformControl.ShowPopup();
+                else
+                    PlatformControl.DismissPopup();
+            }
+        }
+
+        /// <summary>
         /// Gets the starting index of text selected in the combo box.
         /// </summary>
         /// <value>The zero-based index of the first character in the string
         /// of the current text selection.</value>
-        public virtual int TextSelectionStart => Handler.TextSelectionStart;
+        public virtual int TextSelectionStart
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return PlatformControl.TextSelectionStart;
+            }
+        }
 
         /// <summary>
         /// Gets the number of characters selected in the editable portion
         /// of the combo box.
         /// </summary>
         /// <value>The number of characters selected in the combo box.</value>
-        public virtual int TextSelectionLength => Handler.TextSelectionLength;
+        public virtual int TextSelectionLength
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return PlatformControl.TextSelectionLength;
+            }
+        }
 
         /// <summary>
         /// Gets or sets a hint shown in an empty unfocused text control.
@@ -139,12 +242,16 @@ namespace Alternet.UI
         {
             get
             {
-                return Handler.EmptyTextHint;
+                if (DisposingOrDisposed)
+                    return default;
+                return PlatformControl.EmptyTextHint;
             }
 
             set
             {
-                Handler.EmptyTextHint = value;
+                if (DisposingOrDisposed)
+                    return;
+                PlatformControl.EmptyTextHint = value;
             }
         }
 
@@ -155,7 +262,7 @@ namespace Alternet.UI
         /// Setting the <see cref="Text"/> property to an empty string ("")
         /// sets the <see cref="SelectedIndex"/> to <c>null</c>.
         /// Setting the <see cref="Text"/> property to a value that is in the
-        /// <see cref="ListControl.Items"/> collection sets the
+        /// <see cref="ListControl{T}.Items"/> collection sets the
         /// <see cref="SelectedIndex"/> to the index of that item.
         /// Setting the <see cref="Text"/> property to a value that is not in
         /// the collection leaves the <see cref="SelectedIndex"/> unchanged.
@@ -173,6 +280,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (Text == value)
                     return;
 
@@ -209,13 +318,14 @@ namespace Alternet.UI
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 if (value < 0 || value >= Items.Count)
                     value = null;
                 if (selectedIndex == value)
                     return;
                 selectedIndex = value;
-                Text = GetItemText(SelectedItem);
+                Text = GetItemText(SelectedItem, false);
                 RaiseSelectedItemChanged();
             }
         }
@@ -240,6 +350,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 if (selectedIndex == null || selectedIndex < 0 || selectedIndex >= Items.Count)
                     return null;
                 return Items[selectedIndex.Value];
@@ -247,6 +359,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (SelectedItem == value)
                     return;
                 if (value == null)
@@ -278,6 +392,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (isEditable == value)
                     return;
                 CheckDisposed();
@@ -290,7 +406,8 @@ namespace Alternet.UI
         /// Gets or sets a value specifying the style of the combo box.
         /// </summary>
         /// <returns>
-        /// One of the <see cref="ComboBoxStyle" /> values. The default is <see langword="DropDown" />.
+        /// One of the <see cref="ComboBoxStyle" /> values.
+        /// The default is <see langword="DropDown" />.
         /// </returns>
         [Category("Appearance")]
         [DefaultValue(ComboBoxStyle.DropDown)]
@@ -325,11 +442,20 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the control has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
-            get => Handler.HasBorder;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return Handler.HasBorder;
+            }
+
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (HasBorder == value)
                     return;
                 Handler.HasBorder = value;
@@ -365,8 +491,12 @@ namespace Alternet.UI
         {
             get
             {
-                var margins = Handler.TextMargins;
+                var margins = PlatformControl.TextMargins;
                 var result = PixelToDip(margins);
+                if (result.X < 1)
+                    result.X = 1;
+                if (result.Y < 1)
+                    result.Y = 1;
                 return result;
             }
         }
@@ -388,6 +518,14 @@ namespace Alternet.UI
             }
         }
 
+        IListControlItemDefaults IListControlItemContainer.Defaults
+        {
+            get
+            {
+                return OwnerDrawItemDefaults;
+            }
+        }
+
         /// <summary>
         /// Gets or sets whether item is owner drawn.
         /// </summary>
@@ -405,28 +543,88 @@ namespace Alternet.UI
             }
         }
 
-        internal OwnerDrawFlags OwnerDrawStyle
+        /// <summary>
+        /// Gets or sets a value indicating whether your code or the operating system
+        /// will handle drawing of elements in the list.
+        /// </summary>
+        /// <returns>
+        /// One of the <see cref="DrawMode" /> enumeration values. The default
+        /// is <see cref="DrawMode.Normal" />.
+        /// </returns>
+        /// <remarks>
+        /// This property is added for the compatibility with legacy code.
+        /// Use <see cref="OwnerDrawStyle"/> property as it has more options.
+        /// </remarks>
+        [Category("Behavior")]
+        [DefaultValue(DrawMode.Normal)]
+        [RefreshProperties(RefreshProperties.Repaint)]
+        [Browsable(false)]
+        public virtual DrawMode DrawMode
         {
             get
             {
-                return Handler.OwnerDrawStyle;
+                if (OwnerDrawItemBackground || OwnerDrawItem)
+                    return UI.DrawMode.OwnerDrawVariable;
+                else
+                    return UI.DrawMode.Normal;
             }
 
             set
             {
+                if (DrawMode == value)
+                    return;
+                if(value == UI.DrawMode.Normal)
+                {
+                    OwnerDrawStyle = OwnerDrawFlags.None;
+                }
+                else
+                {
+                    OwnerDrawStyle = OwnerDrawFlags.ItemBackground;
+                }
+            }
+        }
+
+        AbstractControl? IListControlItemContainer.Control => this;
+
+        /// <summary>
+        /// Gets or sets control that will be shown in the popup.
+        /// </summary>
+        internal virtual VirtualListBox? PopupControl
+        {
+            get => listBox.Value;
+
+            set
+            {
+                listBox.SetValueAsControl(value);
+            }
+        }
+
+        internal OwnerDrawFlags OwnerDrawStyle
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return PlatformControl.OwnerDrawStyle;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
                 if (OwnerDrawStyle == value)
                     return;
-                Handler.OwnerDrawStyle = value;
+                PlatformControl.OwnerDrawStyle = value;
                 Invalidate();
             }
         }
 
-        internal new IComboBoxHandler Handler
+        internal IComboBoxHandler PlatformControl
         {
             get
             {
                 CheckDisposed();
-                return (IComboBoxHandler)base.Handler;
+                return (IComboBoxHandler)Handler;
             }
         }
 
@@ -445,22 +643,68 @@ namespace Alternet.UI
         /// the control and replacing information.
         /// </remarks>
         public virtual void SelectTextRange(int start, int length)
-            => Handler.SelectTextRange(start, length);
+        {
+            if (DisposingOrDisposed)
+                return;
+            PlatformControl.SelectTextRange(start, length);
+        }
 
         /// <summary>
         /// Selects all the text in the editable portion of the ComboBox.
         /// </summary>
-        public virtual void SelectAllText() => Handler.SelectAllText();
+        public virtual void SelectAllText()
+        {
+            if (DisposingOrDisposed)
+                return;
+            PlatformControl.SelectAllText();
+        }
 
         /// <summary>
         /// Raises the <see cref="SelectedItemChanged"/> event and calls
         /// <see cref="OnSelectedItemChanged(EventArgs)"/>.
         /// </summary>
+        [Browsable(false)]
         public void RaiseSelectedItemChanged()
         {
+            if (DisposingOrDisposed)
+                return;
+            var newIndex = SelectedIndex;
+
+            if (newIndex == reportedSelectedIndex)
+                return;
+
+            reportedSelectedIndex = newIndex;
+
             OnSelectedItemChanged(EventArgs.Empty);
             SelectedItemChanged?.Invoke(this, EventArgs.Empty);
             SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises the <see cref="DropDown"/> event and calls <see cref="OnDropDown"/> method.
+        /// </summary>
+        [Browsable(false)]
+        public void RaiseDropDown()
+        {
+            if (DisposingOrDisposed)
+                return;
+            droppedDown = true;
+            OnDropDown(EventArgs.Empty);
+            DropDown?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Raises the <see cref="DropDownClosed"/> event and
+        /// calls <see cref="OnDropDownClosed"/> method.
+        /// </summary>
+        [Browsable(false)]
+        public void RaiseDropDownClosed()
+        {
+            if (DisposingOrDisposed)
+                return;
+            droppedDown = false;
+            OnDropDownClosed(EventArgs.Empty);
+            DropDownClosed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -470,6 +714,8 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="instance">Object.</param>
         /// <param name="propName">Property name.</param>
+        /// <param name="addToItems">Optional function which returns whether to add
+        /// specified enum value to the items.</param>
         /// <remarks>
         /// Property must have the <see cref="Enum"/> type. Value of the binded
         /// property will be changed automatically after <see cref="SelectedItem"/>
@@ -480,27 +726,39 @@ namespace Alternet.UI
         /// elements using <see cref="PropertyGrid.GetPropChoices"/>. So, it is possible
         /// to localize labels and limit displayed enum elements.
         /// </remarks>
-        public virtual void BindEnumProp(object instance, string propName)
+        public virtual void BindEnumProp(
+            object instance,
+            string propName,
+            Func<object, bool>? addToItems = null)
         {
+            if (DisposingOrDisposed)
+                return;
             var choices = PropertyGrid.GetPropChoices(instance, propName);
             if (choices is null)
                 return;
             IsEditable = false;
 
             var propInfo = AssemblyUtils.GetPropInfo(instance, propName);
-            object? result = propInfo?.GetValue(instance, null);
+            if (propInfo is null)
+                return;
+            object? result = propInfo.GetValue(instance, null);
             int selectIndex = -1;
 
             for (int i = 0; i < choices.Count; i++)
             {
                 var label = choices.GetLabel(i);
                 var value = choices.GetValue(i);
-                var item = new ListControlItem(label, value);
-                var index = Add(item);
-                if (result is not null)
+                var enumValue = Enum.ToObject(propInfo.PropertyType, value);
+
+                if(addToItems?.Invoke(enumValue) ?? true)
                 {
-                    if (value == (int)result)
-                        selectIndex = index;
+                    var item = new ListControlItem(label, enumValue);
+                    var index = Add(item);
+                    if (result is not null)
+                    {
+                        if (value == (int)result)
+                            selectIndex = index;
+                    }
                 }
             }
 
@@ -523,19 +781,74 @@ namespace Alternet.UI
             }
         }
 
+        /// <inheritdoc/>
+        public override void PerformLayout(bool layoutParent = true)
+        {
+            base.PerformLayout(layoutParent);
+        }
+
+        /// <inheritdoc/>
+        public override void RaiseFontChanged(EventArgs e)
+        {
+            if (DisposingOrDisposed)
+                return;
+            InvalidateBestSize();
+            base.RaiseFontChanged(e);
+        }
+
+        /// <summary>
+        /// Gets text color when control is disabled.
+        /// </summary>
+        /// <returns></returns>
+        public virtual Color GetDisabledTextColor()
+        {
+            return DefaultDisabledTextColor;
+        }
+
         /// <summary>
         /// Default item paint method.
         /// </summary>
         /// <param name="e">Paint arguments.</param>
         public virtual void DefaultItemPaint(ComboBoxItemPaintEventArgs e)
         {
-            if (e.IsPaintingBackground || ShouldPaintHintText())
+            if (DisposingOrDisposed)
+                return;
+            if (ShouldPaintHintText())
             {
                 e.DefaultPaint();
                 return;
             }
 
-            var font = Font ?? Control.DefaultFont;
+            var item = e.Item as ListControlItem;
+            if (item is not null && !e.IsPaintingControl)
+            {
+                ListBoxItemPaintEventArgs listEventArgs = new(
+                    this,
+                    e.Graphics,
+                    e.ClipRectangle,
+                    e.ItemIndex);
+                listEventArgs.IsSelected = e.IsSelected;
+                listEventArgs.IsCurrent = e.IsSelected;
+
+                if (e.IsPaintingBackground)
+                {
+                    item.DrawBackground(this, listEventArgs);
+                }
+                else
+                {
+                    item.DrawForeground(this, listEventArgs);
+                }
+
+                return;
+            }
+
+            if (e.IsPaintingBackground)
+            {
+                e.DefaultPaint();
+                return;
+            }
+
+            var font = RealFont;
             Color color;
             color = ForegroundColor ?? SystemColors.WindowText;
 
@@ -547,7 +860,7 @@ namespace Alternet.UI
                 }
                 else
                 {
-                    color = SystemColors.GrayText;
+                    color = GetDisabledTextColor();
                 }
 
                 var size = e.Graphics.GetTextExtent(s, font);
@@ -577,6 +890,16 @@ namespace Alternet.UI
             }
         }
 
+        void IListControl.Add(ListControlItem item)
+        {
+            Items.Add(item);
+        }
+
+        object? IListControl.GetItemAsObject(int index)
+        {
+            return GetItem(index);
+        }
+
         /// <summary>
         /// Gets suggested rectangles of the item's image and text.
         /// </summary>
@@ -588,19 +911,29 @@ namespace Alternet.UI
             var offset = DefaultImageVerticalOffset;
             if (e.IsPaintingControl)
                 offset++;
+            else
+            {
+            }
 
-            var size = e.ClipRectangle.Height - (TextMargin.Y * 2) - (offset * 2);
+            var textMargin = TextMargin;
+            var size = e.ClipRectangle.Height - (textMargin.Y * 2) - (offset * 2);
             var imageRect = new RectD(
-                e.ClipRectangle.X + TextMargin.X,
-                e.ClipRectangle.Y + TextMargin.Y + offset,
+                e.ClipRectangle.X + textMargin.X,
+                e.ClipRectangle.Y + textMargin.Y + offset,
                 size,
                 size);
 
             var itemRect = e.ClipRectangle;
-            itemRect.X += imageRect.Width + DefaultImageTextDistance;
-            itemRect.Width -= imageRect.Width + DefaultImageTextDistance;
+            var horzOffset = imageRect.Right + DefaultImageTextDistance;
+            itemRect.X += horzOffset;
+            itemRect.Width -= imageRect.Right + DefaultImageTextDistance;
 
             return (imageRect, itemRect);
+        }
+
+        int IListControlItemContainer.GetItemCount()
+        {
+            return Items.Count;
         }
 
         /// <summary>
@@ -616,18 +949,123 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
+        public override void InvalidateBestSize()
+        {
+            savedBestSize = null;
+            base.InvalidateBestSize();
+        }
+
+        /// <inheritdoc/>
+        protected override SizeD GetBestSizeWithoutPadding(SizeD availableSize)
+        {
+            SizeD result = base.GetBestSizeWithoutPadding(availableSize);
+            if (Count > 0)
+            {
+                result.Width = Math.Max(CalcBestSizeCached().Width, result.Width);
+            }
+
+            return result;
+        }
+
+        /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
         {
             return ControlFactory.Handler.CreateComboBoxHandler(this);
         }
 
         /// <summary>
+        /// Called when the <see cref="DropDown"/> event is fired.
+        /// </summary>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+        protected virtual void OnDropDown(EventArgs e)
+        {
+        }
+
+        /// <inheritdoc/>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+        }
+
+        /// <summary>
+        /// Called when the <see cref="DropDownClosed"/> event is fired.
+        /// </summary>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+        protected virtual void OnDropDownClosed(EventArgs e)
+        {
+        }
+
+        /// <summary>
         /// Called when the value of the <see cref="SelectedItem"/> property changes.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
+        /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
         protected virtual void OnSelectedItemChanged(EventArgs e)
         {
+        }
+
+        private void HandlePopupControlChanged()
+        {
+            if (DisposingOrDisposed)
+                return;
+            PlatformControl.PopupControl = listBox.Value;
+        }
+
+        private SizeD CalcBestSize(int startIndex, int count)
+        {
+            var dc = MeasureCanvas;
+            SizeD result = SizeD.Empty;
+
+            for (int i = startIndex; i < count; i++)
+            {
+                var size = ListControlItem.DefaultMeasureItemSize(this, dc, i);
+                result.Width = Math.Max(result.Width, size.Width);
+                result.Height = Math.Max(result.Height, size.Height);
+            }
+
+            result.Width += 2 + PixelToDip(
+                SystemSettings.GetMetric(SystemSettingsMetric.VScrollX, this));
+            result.Height += 2;
+
+            return result;
+        }
+
+        private SizeD CalcBestSizeCached()
+        {
+            SizeD result;
+            if (savedBestSize is null)
+            {
+                result = CalcBestSize(0, Math.Min(Count, 512));
+                savedBestSize = result;
+            }
+            else
+                result = savedBestSize.Value;
+            return result;
+        }
+
+        /// <summary>
+        /// Default item painter for the ownerdraw <see cref="ComboBox"/> items.
+        /// </summary>
+        public class DefaultItemPainter : IComboBoxItemPainter
+        {
+            /// <inheritdoc/>
+            public virtual Coord GetHeight(ComboBox sender, int index, Coord defaultHeight)
+            {
+                var size = ListControlItem.DefaultMeasureItemSize(sender, sender.MeasureCanvas, index);
+                return size.Height;
+            }
+
+            /// <inheritdoc/>
+            public virtual Coord GetWidth(ComboBox sender, int index, Coord defaultWidth)
+            {
+                var size = ListControlItem.DefaultMeasureItemSize(sender, sender.MeasureCanvas, index);
+                return size.Width;
+            }
+
+            /// <inheritdoc/>
+            public virtual void Paint(ComboBox sender, ComboBoxItemPaintEventArgs e)
+            {
+                sender.DefaultItemPaint(e);
+            }
         }
     }
 }

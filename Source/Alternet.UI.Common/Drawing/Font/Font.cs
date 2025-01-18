@@ -19,6 +19,15 @@ namespace Alternet.Drawing
     [DebuggerDisplay("{ToInfoString()}")]
     public class Font : DisposableObject, IEquatable<Font>
     {
+        /// <summary>
+        /// Gets or sets default font size scaling fator for <see cref="Smaller"/>
+        /// and <see cref="Larger"/> methods.
+        /// </summary>
+        /// <remarks>
+        /// Default value of 1.2 was inspired by the W3C CSS specification.
+        /// </remarks>
+        public static FontSize SmallerLargerSizeScaleFactor = 1.2;
+
         private static Font? defaultFont;
         private static Font? defaultMonoFont;
 
@@ -29,9 +38,7 @@ namespace Alternet.Drawing
         private Font[]? fonts;
         private Font? baseFont;
         private FontFamily? fontFamily;
-        private SKPaint? strokeAndFillPaint;
-        private SKPaint? strokePaint;
-        private SKPaint? fillPaint;
+        private ObjectUniqueId? uniqueId;
 
         /// <summary>
         /// Initializes a new <see cref="Font"/> using a <see cref="FontInfo"/>.
@@ -357,7 +364,7 @@ namespace Alternet.Drawing
             };
 
             Handler = FontFactory.Handler.CreateFontHandler();
-            Handler.Update(prm);
+            Handler.Update(this, prm);
         }
 
         /// <summary>
@@ -391,10 +398,14 @@ namespace Alternet.Drawing
         /// </value>
         public static Font DefaultMono
         {
-            get => defaultMonoFont ??= CreateDefaultMonoFont();
+            get
+            {
+                return defaultMonoFont ??= CreateDefaultMonoFont();
+            }
+
             set
             {
-                if(value is null)
+                if (value is null)
                     defaultMonoFont = CreateDefaultMonoFont();
                 else
                     defaultMonoFont = value;
@@ -414,7 +425,7 @@ namespace Alternet.Drawing
         /// Gets the pixel size.
         /// </summary>
         [Browsable(false)]
-        public virtual int SizeInPixels => Handler.GetPixelSize();
+        public virtual int SizeInPixels => Handler.GetPixelSize(this);
 
         /// <summary>
         /// Gets the size in dips.
@@ -427,7 +438,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <returns></returns>
         [Browsable(false)]
-        public virtual bool IsUsingSizeInPixels => Handler.IsUsingSizeInPixels();
+        public virtual bool IsUsingSizeInPixels => Handler.IsUsingSizeInPixels(this);
 
         /// <summary>
         /// Gets the em-size of this <see cref="Font" /> measured in the units specified by
@@ -441,48 +452,6 @@ namespace Alternet.Drawing
                     return SizeInPixels;
                 else
                     return SizeInPoints;
-            }
-        }
-
-        /// <summary>
-        /// Gets <see cref="SKPaint"/> for this font with
-        /// <see cref="SKPaintStyle.StrokeAndFill"/> style.
-        /// </summary>
-        [Browsable(false)]
-        public virtual SKPaint AsStrokeAndFillPaint
-        {
-            get
-            {
-                strokeAndFillPaint ??= GraphicsFactory.FontToStrokeAndFillPaint(this);
-                return strokeAndFillPaint;
-            }
-        }
-
-        /// <summary>
-        /// Gets <see cref="SKPaint"/> for this font with
-        /// <see cref="SKPaintStyle.Stroke"/> style.
-        /// </summary>
-        [Browsable(false)]
-        public virtual SKPaint AsStrokePaint
-        {
-            get
-            {
-                strokePaint ??= GraphicsFactory.FontToStrokePaint(this);
-                return strokePaint;
-            }
-        }
-
-        /// <summary>
-        /// Gets <see cref="SKPaint"/> for this font with
-        /// <see cref="SKPaintStyle.Fill"/> style.
-        /// </summary>
-        [Browsable(false)]
-        public virtual SKPaint AsFillPaint
-        {
-            get
-            {
-                fillPaint ??= GraphicsFactory.FontToFillPaint(this);
-                return fillPaint;
             }
         }
 
@@ -511,9 +480,6 @@ namespace Alternet.Drawing
 
             set
             {
-                strokeAndFillPaint = null;
-                fillPaint = null;
-                strokePaint = null;
                 skiaFont = value;
             }
         }
@@ -566,7 +532,7 @@ namespace Alternet.Drawing
         [Browsable(false)]
         public virtual int NumericWeight
         {
-            get => Handler.GetNumericWeight();
+            get => Handler.GetNumericWeight(this);
         }
 
         /// <summary>
@@ -581,7 +547,13 @@ namespace Alternet.Drawing
         /// return value).
         /// </remarks>
         [Browsable(false)]
-        public virtual bool IsFixedWidth => Handler.IsFixedWidth();
+        public virtual bool IsFixedWidth
+        {
+            get
+            {
+                return Handler.IsFixedWidth(this);
+            }
+        }
 
         /// <summary>
         /// Gets the font weight.
@@ -748,7 +720,7 @@ namespace Alternet.Drawing
         /// <remarks>
         /// Note that under Linux the returned value is always UTF8.
         /// </remarks>
-        internal FontEncoding Encoding => Handler.GetEncoding();
+        internal FontEncoding Encoding => Handler.GetEncoding(this);
 
         /// <summary>
         /// Converts the specified <see cref='Font'/> to a <see cref='SKFont'/>.
@@ -889,31 +861,43 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Returns a unscaled version of this font.
+        /// </summary>
+        /// <param name="scaleFactor">Font size scaling factor.</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// The font size is divided by the given <paramref name="scaleFactor"/>.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public virtual Font Unscaled(FontSize scaleFactor)
+        {
+            return Get(Name, SizeInPoints / scaleFactor, Style);
+        }
+
+        /// <summary>
         /// Returns a smaller version of this font.
         /// </summary>
         /// <remarks>
-        /// The font size is divided by 1.2, the factor of 1.2 being inspired by the
-        /// W3C CSS specification.
+        /// The font size is divided by <see cref="SmallerLargerSizeScaleFactor"/>.
         /// </remarks>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual Font Smaller()
         {
-            return Get(Name, SizeInPoints / 1.2, Style);
+            return Get(Name, SizeInPoints / SmallerLargerSizeScaleFactor, Style);
         }
 
         /// <summary>
         /// Returns a larger version of this font.
         /// </summary>
         /// <remarks>
-        /// The font size is divided by 1.2, the factor of 1.2 being inspired by the
-        /// W3C CSS specification.
+        /// The font size is multiplied by <see cref="SmallerLargerSizeScaleFactor"/>.
         /// </remarks>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual Font Larger()
         {
-            return Scaled(1.2);
+            return Scaled(SmallerLargerSizeScaleFactor);
         }
 
         /// <summary>
@@ -931,6 +915,15 @@ namespace Alternet.Drawing
             return Get(this.Name, SizeInPoints * scaleFactor, this.Style);
         }
 
+        /// <summary>
+        /// Creates font with the specified parameters.
+        /// </summary>
+        /// <param name="familyName">A string representation of the font family
+        /// for the new font.</param>
+        /// <param name="emSize">The em-size, in points, of the new font.</param>
+        /// <param name="style">The <see cref="FontStyle"/> of the new font.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Font Get(string familyName, FontSize emSize, FontStyle style = FontStyle.Regular)
         {
             return new(familyName, emSize, style);
@@ -952,6 +945,43 @@ namespace Alternet.Drawing
             FontInfo info = this;
             info.Name = name;
             return new(info);
+        }
+
+        /// <summary>
+        /// Returns this font with same parameters, but with different size.
+        /// </summary>
+        /// <param name="sizeInPoints">New font size in points.</param>
+        /// <returns></returns>
+        public virtual Font WithSize(Coord sizeInPoints)
+        {
+            FontInfo info = this;
+            info.SizeInPoints = sizeInPoints;
+            return new(info);
+        }
+
+        /// <summary>
+        /// Returns this font with same parameters, but with incremented size.
+        /// </summary>
+        /// <param name="sizeInPoints">Value on which size of this font is incremented.</param>
+        /// <returns></returns>
+        public virtual Font IncSize(Coord sizeInPoints = 1)
+        {
+            FontInfo info = this;
+            info.SizeInPoints = Size + sizeInPoints;
+            return new(info);
+        }
+
+        /// <summary>
+        /// Returns font with same parameters, but with different bold style.
+        /// </summary>
+        /// <param name="isBold">Whether returned font is bold or not.</param>
+        /// <returns></returns>
+        public virtual Font WithBold(bool isBold)
+        {
+            if (isBold)
+                return AsBold;
+            var style = ChangeFontStyle(Style, FontStyle.Bold, false);
+            return WithStyle(style);
         }
 
         /// <summary>
@@ -1065,13 +1095,25 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets unique id of this object.
+        /// </summary>
+        [Browsable(false)]
+        public ObjectUniqueId UniqueId
+        {
+            get
+            {
+                return uniqueId ??= new();
+            }
+        }
+
+        /// <summary>
         /// Creates an exact copy of this <see cref="Font" />.
         /// </summary>
         public virtual Font Clone()
         {
             var result = FontFactory.Handler.CreateFontHandler();
             IFontHandler.FontParams prm = new(this);
-            result.Update(prm);
+            result.Update(this, prm);
             return new Font(result);
         }
 
@@ -1311,6 +1353,16 @@ namespace Alternet.Drawing
         {
             var nativeFont = FontFactory.Handler.CreateDefaultFontHandler();
             return new Font(nativeFont);
+        }
+
+        public Coord GetWidth(Graphics dc)
+        {
+            return dc.MeasureText("x", this).Width;
+        }
+
+        public Coord GetHeight(Graphics dc)
+        {
+            return dc.MeasureText("Wg", this).Height;
         }
 
         /// <inheritdoc/>

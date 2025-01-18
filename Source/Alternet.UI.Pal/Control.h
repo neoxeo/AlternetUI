@@ -20,14 +20,14 @@ namespace Alternet::UI
 
     // wxDummyPanel ===========================================
 
-    class wxDummyPanel : public wxPanel 
+    class wxDummyPanel : public wxPanel
     {
     public:        
         wxDummyPanel(wxWindow* parent,
             wxWindowID winid = wxID_ANY,
             const wxPoint& pos = wxDefaultPosition,
             const wxSize& size = wxDefaultSize,
-            long style = wxTAB_TRAVERSAL | wxNO_BORDER,
+            long style = wxNO_BORDER,
             const wxString& name = wxASCII_STR(wxPanelNameStr))
         {
             Create(parent, winid, pos, size, style, name);
@@ -60,21 +60,24 @@ namespace Alternet::UI
 
         }
     };
-  
+
     // Control ===========================================
                                       
     class Control : public Object
     {
 #include "Api/Control.inc"
     public:
+        wxCursor _cursor = wxNullCursor;
+
         void OnTextChanged(wxCommandEvent& event);
         void OnDpiChanged(wxDPIChangedEvent& event);
 
-        long BuildStyle(long style, long element, bool value);
+        long BuildStyle(long style, long element, bool value); 
         void UpdateWindowStyle(long element, bool value);
         static wxString GetMouseEventDesc(const wxMouseEvent& ev);
 
         virtual wxWindow* CreateWxWindowCore(wxWindow* parent) = 0;
+
         virtual wxWindow* CreateWxWindowUnparented() = 0;
 
         wxWindow* GetWxWindow();
@@ -114,15 +117,24 @@ namespace Alternet::UI
         void ApplyVisible(bool value);
 
     protected:
+        bool _wantChars = false;
+        bool _showVertScrollBar = false;
+        bool _showHorzScrollBar = false;
+        bool _scrollBarAlwaysVisible = false;
+        bool _destroyed = false;
+        
         bool bindScrollEvents = true;
         int _ignoreRecreate = 0;
         int _borderStyle = 0;
         int _disableRecreateCounter = 0;
         SizeI _eventOldDpi;
         SizeI _eventNewDpi;
+        wxWindow* _eventFocusWindow = nullptr;
+
+        long GetDefaultStyle();
 
         virtual void OnPaint(wxPaintEvent& event);
-        void OnEraseBackground(wxEraseEvent& event);
+        virtual void OnEraseBackground(wxEraseEvent& event);
 
         void OnMouseCaptureLost(wxEvent& event);
 
@@ -134,6 +146,7 @@ namespace Alternet::UI
         virtual void OnLocationChanged(wxMoveEvent& event);
         virtual void OnDestroy(wxWindowDestroyEvent& event);
         virtual void OnIdle(wxIdleEvent& event);
+        virtual void OnSetCursor(wxSetCursorEvent& event);
         virtual void OnActivate(wxActivateEvent& event);
         virtual void OnSysColorChanged(wxSysColourChangedEvent& event);
 
@@ -277,6 +290,8 @@ namespace Alternet::UI
         static wxDragResult GetDragResult(DragDropEffects input);
         static int GetDoDragDropFlags(DragDropEffects allowedEffects);
 
+        bool IsNullOrDeleting();
+
         wxDragResult RaiseDragAndDropEvent(
             const wxPoint& location,
             wxDragResult defaultDragResult,
@@ -284,7 +299,7 @@ namespace Alternet::UI
             ControlEvent event);
 
         void CreateDropTarget();
-        void DestroyDropTarget();
+        void DestroyDropTarget(bool setDropTarget);
 
         bool RetrieveVisible();
 

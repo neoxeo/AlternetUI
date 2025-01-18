@@ -15,34 +15,55 @@ namespace Alternet.UI
     /// your application.</remarks>
     [DesignerCategory("Code")]
     [ControlCategory("Hidden")]
-    public partial class Window : ContainerControl, IWindow
+    public partial class Window : Control, IWindow
     {
+        private static Window? dummy;
+        private static List<IControlNotification>? globalWindowNotifications;
+        private static WindowKind? globalWindowKindOverride;
         private static RectD defaultBounds = new(100, 100, 400, 400);
-        private static int incFontSizeHighDpi = 2;
-        private static int incFontSize = 0;
+        private static int? incFontSizeHighDpi;
+        private static int? incFontSize;
 
         private readonly WindowInfo info = new();
-        /*private object? toolbar = null;*/
+
+        private bool ignoreClosingEvent;
+        private bool ignoreClosedEvent;
+        private WindowKind? windowKindOverride;
+        private WeakReferenceValue<AbstractControl> activeControl;
         private IconSet? icon = null;
         private object? menu = null;
-        private Window? owner;
+        private WeakReferenceValue<Window> owner;
         private bool needLayout = false;
-        private Collection<InputBinding>? inputBindings;
         private int? oldDisplay;
+        private bool loadedCalled;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Window"/> class.
         /// </summary>
         public Window()
         {
-            SetVisibleValue(false);
-            ProcessIdle = true;
-            App.Current.RegisterWindow(this);
-            Bounds = GetDefaultBounds();
-
-            if (Control.DefaultFont != Font.Default)
-                Font = Control.DefaultFont;
+            Initialize();
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Window"/> class.
+        /// </summary>
+        /// <param name="windowKind">Window kind to use instead of default value.</param>
+        /// <remarks>
+        /// Fo example, this constructor allows to use window as control
+        /// (specify <see cref="WindowKind.Control"/>) as a parameter.
+        /// </remarks>
+        public Window(WindowKind windowKind)
+        {
+            windowKindOverride = windowKind;
+            Initialize();
+        }
+
+        /// <summary>
+        /// Occurs before a window is displayed for the first time.
+        /// </summary>
+        [Category("Behavior")]
+        public event EventHandler? Load;
 
         /// <summary>
         /// Occurs when window moves to another display.
@@ -58,11 +79,6 @@ namespace Alternet.UI
         /// Occurs when the value of the <see cref="Icon"/> property changes.
         /// </summary>
         public event EventHandler? IconChanged;
-
-        /*/// <summary>
-        /// Occurs when the value of the <see cref="ToolBar"/> property changes.
-        /// </summary>
-        public event EventHandler? ToolBarChanged;*/
 
         /// <summary>
         /// Occurs when the value of the <see cref="StatusBar"/> property changes.
@@ -169,6 +185,44 @@ namespace Alternet.UI
         public static Window? ActiveWindow => App.Handler.GetActiveWindow();
 
         /// <summary>
+        /// Gets global collection of the attached window notification objects.
+        /// These notifications are called for the each created window.
+        /// </summary>
+        public static IEnumerable<IControlNotification> GlobalWindowNotifications
+        {
+            get
+            {
+                if (globalWindowNotifications is null)
+                    return Array.Empty<IControlNotification>();
+                return globalWindowNotifications;
+            }
+        }
+
+        /// <summary>
+        /// Gets default window.
+        /// </summary>
+        /// <remarks>
+        /// Result is not null. The following properties and methods are used in order to find
+        /// the result: <see cref="ActiveWindow"/>, <see cref="App.MainWindow"/>,
+        /// <see cref="App.FirstWindow()"/>. If these members return null, dummy window is created
+        /// and returned.
+        /// </remarks>
+        public static Window Default
+        {
+            get
+            {
+                var result = Window.ActiveWindow ?? App.MainWindow ?? App.FirstWindow();
+                if(result is null)
+                {
+                    dummy ??= new();
+                    return dummy;
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets default location and position of the window.
         /// </summary>
         public static RectD DefaultBounds
@@ -187,9 +241,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default control font size increment
         /// (in points) on high dpi displays (DPI greater than 96).
-        /// Default value is 2.
         /// </summary>
-        public static int IncFontSizeHighDpi
+        public static int? IncFontSizeHighDpi
         {
             get => incFontSizeHighDpi;
 
@@ -205,9 +258,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default control font size increment (in points) on normal
         /// dpi displays (DPI less or equal to 96).
-        /// Default value is 0.
         /// </summary>
-        public static int IncFontSize
+        public static int? IncFontSize
         {
             get => incFontSize;
             set
@@ -229,8 +281,44 @@ namespace Alternet.UI
         /// this application.
         /// </summary>
         [Browsable(false)]
-        public virtual bool IsActive => Handler.IsActive;
+        public virtual bool IsActive
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return false;
 
+                return Handler.IsActive;
+            }
+        }
+
+        /// <summary>
+        /// Gets time when window was last time activated.
+        /// </summary>
+        [Browsable(false)]
+        public virtual DateTime? LastActivateTime
+        {
+            get;
+            set;
+        }
+
+        /// <inheritdoc/>
+        public override AbstractControl? Parent
+        {
+            get => base.Parent;
+
+            set
+            {
+                if (GetWindowKind() == WindowKind.Control)
+                {
+                    base.Parent = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets window handler.
+        /// </summary>
         [Browsable(false)]
         public new IWindowHandler Handler => (IWindowHandler)base.Handler;
 
@@ -255,10 +343,11 @@ namespace Alternet.UI
         /// Gets or sets a value indicating whether the form will receive key events
         /// before the event is passed to the control that has focus.</summary>
         /// <returns>
-        ///   <see langword="true" /> if the form will receive all
-        ///   key events; <see langword="false" /> if the currently selected
-        ///   control on the form receives key events.
-        ///   The default is <see langword="false" />.</returns>
+        /// <see langword="true" /> if the form will receive all
+        /// key events; <see langword="false" /> if the currently selected
+        /// control on the form receives key events.
+        /// The default is <see langword="false" />.
+        /// </returns>
         [DefaultValue(false)]
         public virtual bool KeyPreview
         {
@@ -292,6 +381,9 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
+
                 if (info.HasTitleBar == value)
                     return;
                 info.HasTitleBar = value;
@@ -304,7 +396,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets border style of the window.
         /// </summary>
-        public new ControlBorderStyle BorderStyle
+        [Browsable(true)]
+        public override ControlBorderStyle BorderStyle
         {
             get => base.BorderStyle;
             set => base.BorderStyle = value;
@@ -313,18 +406,30 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the window has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
             get => info.HasBorder;
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.HasBorder == value)
                     return;
                 info.HasBorder = value;
                 OnHasBorderChanged(EventArgs.Empty);
                 HasBorderChanged?.Invoke(this, EventArgs.Empty);
-                Handler.HasBorder = value;
+                base.Handler.HasBorder = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool VisibleOnScreen
+        {
+            get
+            {
+                return Visible;
             }
         }
 
@@ -337,6 +442,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.Resizable == value)
                     return;
                 info.Resizable = value;
@@ -347,16 +454,18 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public override string Title
+        public override object? TitleAsObject
         {
-            get => base.Title;
+            get => base.TitleAsObject;
 
             set
             {
-                if (Title == value)
+                if (DisposingOrDisposed)
                     return;
-                base.Title = value;
-                Handler.Title = value;
+                if (TitleAsObject == value)
+                    return;
+                base.TitleAsObject = value;
+                Handler.Title = value?.ToString() ?? string.Empty;
             }
         }
 
@@ -371,6 +480,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.IsToolWindow == value)
                     return;
                 info.IsToolWindow = value;
@@ -395,6 +506,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.IsPopupWindow == value)
                     return;
                 info.IsPopupWindow = value;
@@ -414,6 +527,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.HasSystemMenu == value)
                     return;
                 info.HasSystemMenu = value;
@@ -434,6 +549,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.AlwaysOnTop == value)
                     return;
                 info.AlwaysOnTop = value;
@@ -452,6 +569,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.CloseEnabled == value)
                     return;
                 info.CloseEnabled = value;
@@ -470,6 +589,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.MaximizeEnabled == value)
                     return;
                 info.MaximizeEnabled = value;
@@ -500,6 +621,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.ShowInTaskbar == value)
                     return;
                 info.ShowInTaskbar = value;
@@ -518,6 +641,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (info.MinimizeEnabled == value)
                     return;
                 info.MinimizeEnabled = value;
@@ -525,37 +650,6 @@ namespace Alternet.UI
                 MinimizeEnabledChanged?.Invoke(this, EventArgs.Empty);
                 Handler.MinimizeEnabled = value;
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the window that owns this window.
-        /// </summary>
-        /// <value>
-        /// A <see cref="Window"/> that represents the window that is the owner of this window.
-        /// </value>
-        /// <remarks>
-        /// When a window is owned by another window, it is closed or hidden with the owner window.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual Window? Owner
-        {
-            get => owner;
-
-            set
-            {
-                if (owner == value)
-                    return;
-                owner = value;
-                OnOwnerChanged(EventArgs.Empty);
-                OwnerChanged?.Invoke(this, EventArgs.Empty);
-                Handler.SetOwner(value);
-            }
-        }
-
-        IWindow? IWindow.Owner
-        {
-            get => Owner;
-            set => Owner = value as Window;
         }
 
         /// <summary>
@@ -576,7 +670,6 @@ namespace Alternet.UI
                 if (info.StartLocation == value)
                     return;
                 info.StartLocation = value;
-                Handler.StartLocation = value;
             }
         }
 
@@ -595,11 +688,91 @@ namespace Alternet.UI
         /// with the owner window.
         /// </remarks>
         [Browsable(false)]
-        public virtual IWindow[] OwnedWindows
+        public virtual Window[] OwnedWindows
         {
             get
             {
-                return Handler.OwnedWindows;
+                return OwnedWindowsCollection.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Gets a collection of <see cref="Window"/> objects that represent all windows that are
+        /// owned by this window.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Window"/> collection that represents the owned windows for this window.
+        /// </value>
+        /// <remarks>
+        /// This property returns a collection that contains all windows that are owned by this
+        /// window. To make a window owned by another window, set the
+        /// <see cref="Owner"/> property.
+        /// When a window is owned by another window, it is closed or hidden
+        /// with the owner window.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual IEnumerable<Window> OwnedWindowsCollection
+        {
+            get
+            {
+                if (App.HasApplication)
+                {
+                    var windows = App.Current.Windows.ToArray();
+
+                    foreach (var window in windows)
+                    {
+                        if (window.Owner == this)
+                            yield return window;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the window that owns this window.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Window"/> that represents the window that is the owner of this window.
+        /// </value>
+        /// <remarks>
+        /// When a window is owned by another window, it is closed or hidden with the owner window.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual Window? Owner
+        {
+            get => owner.Value;
+
+            set
+            {
+                if (value == this)
+                    return;
+                if (OwnersCollection.Contains(this))
+                    return;
+
+                if (Owner == value)
+                    return;
+                owner.Value = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets collection of all owner windows
+        /// (including those owning this window indirectly).
+        /// </summary>
+        [Browsable(false)]
+        public virtual IEnumerable<Window> OwnersCollection
+        {
+            get
+            {
+                if(Owner is not null)
+                {
+                    yield return Owner;
+
+                    foreach(var window in Owner.OwnersCollection)
+                    {
+                        yield return window;
+                    }
+                }
             }
         }
 
@@ -647,6 +820,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (State == value)
                     return;
 
@@ -673,6 +848,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (StatusBar == value)
                     return;
                 Handler.StatusBar = value;
@@ -709,6 +886,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (menu == value)
                     return;
 
@@ -718,8 +897,8 @@ namespace Alternet.UI
                 if (GetWindowKind() == WindowKind.Dialog)
                     return;
 
-                (oldValue as Control)?.SetParentInternal(null);
-                (menu as Control)?.SetParentInternal(this);
+                (oldValue as AbstractControl)?.SetParentInternal(null);
+                (menu as AbstractControl)?.SetParentInternal(this);
 
                 OnMenuChanged(EventArgs.Empty);
                 MenuChanged?.Invoke(this, EventArgs.Empty);
@@ -746,6 +925,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (icon == value)
                     return;
 
@@ -753,6 +934,58 @@ namespace Alternet.UI
                 Handler.SetIcon(value);
                 OnIconChanged(EventArgs.Empty);
                 IconChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets active control.
+        /// </summary>
+        /// <remarks>
+        /// When forms is shown active control becomes focused.
+        /// </remarks>
+        [Browsable(false)]
+        public virtual AbstractControl? ActiveControl
+        {
+            get
+            {
+                return activeControl.Value;
+            }
+
+            set
+            {
+                if (value is null)
+                {
+                    activeControl.Value = null;
+                    return;
+                }
+
+                if (activeControl.Value == value)
+                    return;
+
+                activeControl.Value = value;
+
+                if (Visible)
+                {
+                    value?.SetFocusIdle();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets whether <see cref="Owner"/> is null or visible.
+        /// </summary>
+        [Browsable(false)]
+        public virtual bool IsOwnerVisible
+        {
+            get
+            {
+                return Owner is null || Owner.Visible;
+            }
+
+            set
+            {
+                if (Owner is not null)
+                    Owner.Visible = value;
             }
         }
 
@@ -768,84 +1001,71 @@ namespace Alternet.UI
             {
                 if (Visible == value)
                     return;
-                if (value)
+
+                if (value && !DisposingOrDisposed)
                 {
-                    ApplyStartLocationOnce(Owner);
+                    ApplyStartLocationOnce(null);
+                    RaiseLoadedOnce();
                 }
 
                 base.Visible = value;
+
+                if (value)
+                {
+                    if (!DisposingOrDisposed)
+                        ActiveControl?.SetFocusIdle();
+                }
+                else
+                {
+                }
             }
         }
 
         /// <summary>
-        /// Gets the collection of input bindings associated with this window.
+        /// Gets or sets whether owned windows are visible.
         /// </summary>
         [Browsable(false)]
-        public virtual Collection<InputBinding> InputBindings
+        public virtual bool? OwnedWindowsVisible
         {
             get
             {
-                if (inputBindings is null)
+                bool? result = null;
+
+                foreach (var window in OwnedWindowsCollection)
                 {
-                    inputBindings = new();
-
-                    inputBindings.ItemRemoved += (sender, index, item) =>
+                    if (result is null)
+                        result = window.Visible;
+                    else
                     {
-                        Port.InheritanceContextHelper.RemoveContextFromObject(this, item);
-                        Handler.RemoveInputBinding(item);
-                    };
-
-                    inputBindings.ItemInserted += (sender, index, item) =>
-                    {
-                        Handler.AddInputBinding(item);
-                        Port.InheritanceContextHelper.ProvideContextForObject(this, item);
-                    };
+                        if (result != window.Visible)
+                            return null;
+                    }
                 }
 
-                return inputBindings;
+                return result;
+            }
+
+            set
+            {
+                foreach (var window in OwnedWindowsCollection)
+                {
+                    window.Visible = value ?? Visible;
+                    window.OwnedWindowsVisible = window.Visible;
+                }
             }
         }
+
+        /// <summary>
+        /// Gets or sets action which is performed when window is closed using
+        /// <see cref="Close()"/> method.
+        /// </summary>
+        public WindowCloseAction? CloseAction { get; set; }
 
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.Window;
 
-        /*/// <summary>
-        /// Gets the toolbar that is displayed in the window.
-        /// </summary>
-        /// <value>
-        /// A <see cref="ToolBar"/> that represents the toolbar to display in the window.
-        /// </value>
-        /// <remarks>
-        /// You can use this property to switch between complete toolbar sets at run time.
-        /// </remarks>
-        [Browsable(false)]
-        internal virtual object? ToolBar
-        {
-            get => toolbar;
-
-            set
-            {
-                if (toolbar == value)
-                    return;
-
-                var oldValue = toolbar;
-                toolbar = value;
-
-                if (GetWindowKind() == WindowKind.Dialog)
-                    return;
-
-                (oldValue as Control)?.SetParentInternal(null);
-                (toolbar as Control)?.SetParentInternal(this);
-
-                OnToolBarChanged(EventArgs.Empty);
-                ToolBarChanged?.Invoke(this, EventArgs.Empty);
-                Handler.SetToolBar(value);
-                PerformLayout();
-            }
-        }*/
-
         /// <inheritdoc />
-        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection
+        public override IEnumerable<FrameworkElement> LogicalChildrenCollection
         {
             get
             {
@@ -861,6 +1081,50 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Creates window with specified type and window kind.
+        /// </summary>
+        /// <typeparam name="T">Type of the window to create.</typeparam>
+        /// <param name="windowKind">Window kind to use when window is created.</param>
+        /// <returns></returns>
+        public static T CreateAs<T>(WindowKind windowKind)
+            where T : Window
+        {
+            globalWindowKindOverride = windowKind;
+            try
+            {
+                var result = Activator.CreateInstance<T>();
+                result.windowKindOverride = windowKind;
+                return result;
+            }
+            finally
+            {
+                globalWindowKindOverride = null;
+            }
+        }
+
+        /// <summary>
+        /// Adds <see cref="IControlNotification"/> object to the global list of window notifications.
+        /// </summary>
+        /// <param name="n">Notification object to add.</param>
+        public static void AddGlobalWindowNotification(IControlNotification n)
+        {
+            globalWindowNotifications ??= new();
+            globalWindowNotifications.Add(n);
+        }
+
+        /// <summary>
+        /// Removes <see cref="IControlNotification"/> object from the global
+        /// list of window notifications.
+        /// </summary>
+        /// <param name="n">Notification object to remove.</param>
+        public static void RemoveGlobalWindowNotification(IControlNotification n)
+        {
+            if (globalWindowNotifications is null)
+                return;
+            globalWindowNotifications.Remove(n);
+        }
+
+        /// <summary>
         /// Updates default control font after changes in <see cref="IncFontSizeHighDpi"/>
         /// or <see cref="IncFontSize"/>. You should not call this method directly.
         /// </summary>
@@ -869,16 +1133,37 @@ namespace Alternet.UI
             if (!App.Initialized)
                 return;
 
-            var dpi = Display.Primary.DPI;
-            var incFont = (dpi.Width > 96) ? Window.IncFontSizeHighDpi : Window.IncFontSize;
+            var incFont = SystemSettings.GetDefaultFontSizeIncrement();
 
             if (incFont > 0)
             {
                 FontInfo info = Font.Default;
                 info.SizeInPoints += incFont;
                 Font font = info;
-                Control.DefaultFont = font;
+                AbstractControl.DefaultFont = font;
+
+                info = Font.DefaultMono;
+                info.SizeInPoints += incFont;
+                font = info;
+                AbstractControl.DefaultMonoFont = font;
             }
+        }
+
+        /// <summary>
+        /// Raises the window to the top of the window hierarchy (Z-order).
+        /// This function only works for top level windows.
+        /// </summary>
+        /// <remarks>
+        /// Notice that this function only requests the window manager to raise this window
+        /// to the top of Z-order. Depending on its configuration, the window manager may
+        /// raise the window, not do it at all or indicate that a window requested to be
+        /// raised in some other way, e.g.by flashing its icon if it is minimized.
+        /// </remarks>
+        public virtual void Raise()
+        {
+            if (DisposingOrDisposed)
+                return;
+            base.Handler.Raise();
         }
 
         /// <summary>
@@ -888,6 +1173,9 @@ namespace Alternet.UI
         /// event to show the window.</param>
         public virtual void ShowAndFocus(bool useIdle = false)
         {
+            if (DisposingOrDisposed)
+                return;
+
             if (useIdle)
                 App.AddIdleTask(Fn);
             else
@@ -909,7 +1197,12 @@ namespace Alternet.UI
         /// Activating a window brings it to the front if this is the active application,
         /// or it flashes the window caption if this is not the active application.
         /// </remarks>
-        public virtual void Activate() => Handler.Activate();
+        public virtual void Activate()
+        {
+            if (DisposingOrDisposed)
+                return;
+            Handler.Activate();
+        }
 
         /// <summary>
         /// Gets default bounds assigned to the window.
@@ -918,6 +1211,16 @@ namespace Alternet.UI
         public virtual RectD GetDefaultBounds()
         {
             return DefaultBounds;
+        }
+
+        /// <summary>
+        /// Closes the window when application goes to the idle state.
+        /// </summary>
+        public void CloseIdle(WindowCloseAction? action = null)
+        {
+            if (DisposingOrDisposed)
+                return;
+            RunWhenIdle(() => Close(action));
         }
 
         /// <summary>
@@ -932,37 +1235,298 @@ namespace Alternet.UI
         /// a parameter to your event handler.
         /// If the window you are closing is the last open window of your application,
         /// your application ends.
-        /// The window is not disposed on <see cref="Close"/> when you have displayed the
+        /// The window is not disposed on close when you have displayed the
         /// window using <see cref="DialogWindow.ShowModal()"/>.
         /// In this case, you will need to call <see cref="IDisposable.Dispose"/> manually.
         /// </remarks>
-        public virtual void Close()
+        public virtual void Close(WindowCloseAction? action)
         {
-            Visible = false;
+            if (DisposingOrDisposed)
+                return;
 
-            CheckDisposed();
+            action ??= CloseAction ?? WindowCloseAction.Dispose;
 
-            Handler.Close();
+            switch (action)
+            {
+                default:
+                case WindowCloseAction.Dispose:
+                    if (CanClose(true))
+                        return;
+                    ignoreClosingEvent = true;
+                    Visible = false;
+                    Handler.Close();
+                    break;
+                case WindowCloseAction.Hide:
+                    Visible = false;
+                    break;
+                case WindowCloseAction.None:
+                    break;
+            }
         }
 
+        /// <inheritdoc cref="Close(WindowCloseAction?)"/>
+        public virtual void Close() => Close(null);
+
+        /// <summary>
+        /// Raises <see cref="StateChanged"/> event and <see cref="OnStateChanged"/> method.
+        /// </summary>
         public void RaiseStateChanged()
         {
+            if (DisposingOrDisposed)
+                return;
             OnStateChanged(EventArgs.Empty);
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void RaiseClosing(WindowClosingEventArgs e) => OnClosing(e);
+        /// <summary>
+        /// Returns whether window can be closed. Optionally checks whether
+        /// owned windows can be closed.
+        /// </summary>
+        public virtual bool CanClose(bool askOwned)
+        {
+            bool CanClose()
+            {
+                WindowClosingEventArgs e = new();
+                RaiseClosing(e);
+                if (e.Cancel)
+                    return false;
+                return true;
+            }
 
-        public void RaiseClosed(WindowClosedEventArgs e) => OnClosed(e);
+            var result = CanClose();
 
-        public virtual WindowKind GetWindowKind() => WindowKind.Window;
+            if (!result)
+                return false;
+
+            if (askOwned)
+            {
+                foreach (var window in OwnedWindowsCollection)
+                {
+                    if (!window.CanClose(true))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Raises <see cref="Closing"/> event and <see cref="OnClosing"/> method.
+        /// </summary>
+        /// <param name="e">Event arguments.</param>
+        public void RaiseClosing(WindowClosingEventArgs e)
+        {
+            if (DisposingOrDisposed || ignoreClosingEvent)
+                return;
+            OnClosing(e);
+            Closing?.Invoke(this, e);
+
+            if (e.Cancel)
+                return;
+
+            if (CloseAction == WindowCloseAction.Hide)
+            {
+                e.Cancel = true;
+                Visible = false;
+                return;
+            }
+
+            if (CloseAction == WindowCloseAction.None)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            Visible = false;
+        }
+
+        /// <summary>
+        /// Raises <see cref="Closed"/> event and <see cref="OnClosed"/> method.
+        /// </summary>
+        /// <param name="e">Event arguments.</param>
+        public void RaiseClosed(WindowClosedEventArgs? e = null)
+        {
+            if (ignoreClosedEvent)
+                return;
+            e ??= new();
+            OnClosed(e);
+            Closed?.Invoke(this, e);
+            if (!Modal)
+                Dispose();
+        }
+
+        /// <summary>
+        /// Sets relative location of this window on the specified display.
+        /// </summary>
+        /// <param name="relativePosition">New location of the window in pixels. This value is relative
+        /// to the top-left corner of the display's client area.</param>
+        /// <param name="display">Display which client area is used as a
+        /// container for the window.</param>
+        public virtual void SetLocationOnDisplay(PointI relativePosition, Display? display = null)
+        {
+            if (DisposingOrDisposed)
+                return;
+            display = Display.SafeDisplay(display);
+            var clientArea = display.ClientArea;
+            var position = clientArea.Location;
+            position.Offset(relativePosition);
+            LocationInPixels = position;
+        }
+
+        /// <inheritdoc/>
+        public override void RaiseNotifications(Action<IControlNotification> action)
+        {
+            base.RaiseNotifications(action);
+
+            var nn = GlobalWindowNotifications;
+
+            foreach (var n in nn)
+            {
+                action(n);
+            }
+        }
+
+        /// <summary>
+        /// Aligns control location inside the specified rectangle using given
+        /// horizontal and vertical alignment.
+        /// </summary>
+        /// <param name="horz">Horizontal alignment of the control inside container.</param>
+        /// <param name="vert">Vertical alignment of the window inside container.</param>
+        /// <param name="shrinkSize">Whether to shrink size of the control
+        /// to fit in the rectangle. Optional. Default is <c>true</c>.</param>
+        /// <param name="containerRect">Container rectangle.</param>
+        public virtual void SetLocationInRectI(
+            HorizontalAlignment? horz,
+            VerticalAlignment? vert,
+            RectI containerRect,
+            bool shrinkSize = true)
+        {
+            if (DisposingOrDisposed)
+                return;
+            var newBounds = AlignUtils.AlignRectInRect(
+                BoundsInPixels,
+                containerRect,
+                horz,
+                vert,
+                shrinkSize);
+            BoundsInPixels = newBounds.ToRect();
+        }
+
+        /// <summary>
+        /// Aligns control location inside the specified rectangle using given
+        /// horizontal and vertical alignment.
+        /// </summary>
+        /// <param name="horz">Horizontal alignment of the control inside container.</param>
+        /// <param name="vert">Vertical alignment of the window inside container.</param>
+        /// <param name="shrinkSize">Whether to shrink size of the control
+        /// to fit in the rectangle. Optional. Default is <c>true</c>.</param>
+        /// <param name="window">Window which bounds are used as a container rectangle.</param>
+        public virtual void SetLocationInWindow(
+            HorizontalAlignment? horz,
+            VerticalAlignment? vert,
+            AbstractControl? window,
+            bool shrinkSize = true)
+        {
+            if (DisposingOrDisposed)
+                return;
+            if (window is null)
+                SetLocationOnDisplay(horz, vert, null, shrinkSize);
+            else
+            {
+                SetLocationInRectI(
+                            horz,
+                            vert,
+                            window.BoundsInPixels,
+                            shrinkSize);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool CenterOnParent(GenericOrientation direction = GenericOrientation.Both)
+        {
+            if (DisposingOrDisposed)
+                return false;
+            var vert = HVAlignment.Center.VerticalOrNull(direction);
+            var horz = HVAlignment.Center.HorizontalOrNull(direction);
+            SetLocationOnDisplay(horz, vert);
+            return true;
+        }
+
+        /// <summary>
+        /// Aligns window location inside the specified display's client area using given
+        /// horizontal and vertical alignment.
+        /// </summary>
+        /// <param name="horz">Horizontal alignment of the window inside display's client area.</param>
+        /// <param name="vert">Vertical alignment of the window inside display's client area.</param>
+        /// <param name="display">Display which client area is used
+        /// as a container for the window.</param>
+        /// <param name="shrinkSize">Whether to shrink size of the window
+        /// to fit in the display client area. Optional. Default is <c>true</c>.</param>
+        public virtual void SetLocationOnDisplay(
+            HorizontalAlignment? horz,
+            VerticalAlignment? vert,
+            Display? display = null,
+            bool shrinkSize = true)
+        {
+            if (DisposingOrDisposed)
+                return;
+            display = Display.SafeDisplay(display);
+            var clientArea = display.ClientArea;
+            SetLocationInRectI(horz, vert, clientArea, shrinkSize);
+        }
+
+        /// <summary>
+        /// Gets window kind (window, dialog, control, miniframe).
+        /// </summary>
+        /// <returns></returns>
+        public virtual WindowKind GetWindowKind() => GetWindowKindOverride() ?? WindowKind.Window;
+
+        /// <summary>
+        /// Lowers the window to the bottom of the window hierarchy (Z-order).
+        /// This function only works for top level windows.
+        /// </summary>
+        public virtual void Lower()
+        {
+            if (DisposingOrDisposed)
+                return;
+            base.Handler.Lower();
+        }
+
+        /// <summary>
+        /// Raises <see cref="DisplayChanged"/> event if it is required.
+        /// </summary>
+        public virtual void RaiseDisplayChanged()
+        {
+            if (DisposingOrDisposed)
+                return;
+            if (DisplayChanged is null)
+                return;
+
+            var newDisplay = Display.GetFromControl(this);
+
+            if (oldDisplay is null)
+            {
+                oldDisplay = newDisplay;
+                return;
+            }
+
+            if (oldDisplay == newDisplay)
+                return;
+
+            DisplayChanged?.Invoke(this, EventArgs.Empty);
+
+            oldDisplay = newDisplay;
+        }
 
         /// <summary>
         /// Recreates all native controls in all windows.
         /// </summary>
         public virtual void RecreateAllHandlers()
         {
-            void GetAllChildren(Control control, List<Control> result)
+            if (DisposingOrDisposed)
+                return;
+
+            void GetAllChildren(AbstractControl control, List<AbstractControl> result)
             {
                 foreach (var child in control.Children)
                     GetAllChildren(child, result);
@@ -971,14 +1535,18 @@ namespace Alternet.UI
                     result.Add(control);
             }
 
-            var children = new List<Control>();
+            var children = new List<AbstractControl>();
             GetAllChildren(this, children);
 
             foreach (var child in children)
-                child.DetachHandler();
+            {
+                (child as Control)?.DetachHandler();
+            }
 
             foreach (var child in children.AsEnumerable().Reverse())
-                child.EnsureHandlerCreated();
+            {
+                (child as Control)?.EnsureHandlerCreated();
+            }
         }
 
         internal static Window? GetParentWindow(object dp)
@@ -986,7 +1554,7 @@ namespace Alternet.UI
             if (dp is Window w)
                 return w;
 
-            if (dp is not Control c)
+            if (dp is not AbstractControl c)
                 return null;
 
             if (c.Parent == null)
@@ -996,10 +1564,76 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (DisposingOrDisposed)
+                return;
+            base.OnKeyDown(e);
+
+            if (e.Key == Key.Enter)
+            {
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                if (SupressEsc)
+                {
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            ProcessShortcuts(e);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnAfterChildKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (DisposingOrDisposed)
+                return;
+            base.OnAfterChildKeyDown(sender, e);
+            e.Handled = e.Handled || ExecuteKeyBinding(e.Key, e.ModifierKeys, true);
+        }
+
+        /// <inheritdoc/>
+        protected override void DisposeManaged()
+        {
+            var ownedWindows = OwnedWindowsCollection.ToArray();
+            foreach(var window in ownedWindows)
+            {
+                window.RaiseClosed();
+                ignoreClosedEvent = true;
+                window.Dispose();
+            }
+
+            Visible = false;
+            App.Current.UnregisterWindow(this);
+            try
+            {
+                base.DisposeManaged();
+            }
+            finally
+            {
+                if (!App.HasVisibleForms)
+                {
+                    App.DoEvents();
+                    App.Handler.ExitMainLoop();
+                    App.Exit();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
         protected override IControlHandler CreateHandler()
             => ControlFactory.Handler.CreateWindowHandler(this);
 
-        protected void ApplyStartLocationOnce(Control? owner)
+        /// <summary>
+        /// Applies <see cref="StartLocation"/> to the window position
+        /// if <see cref="AbstractControl.StateFlags"/> has no
+        /// <see cref="ControlFlags.StartLocationApplied"/> flag.
+        /// </summary>
+        /// <param name="owner"></param>
+        protected virtual void ApplyStartLocationOnce(AbstractControl? owner)
         {
             if (!StateFlags.HasFlag(ControlFlags.StartLocationApplied))
             {
@@ -1015,7 +1649,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="WindowClosingEventArgs"/> that contains the event
         /// data.</param>
-        protected virtual void OnClosing(WindowClosingEventArgs e) => Closing?.Invoke(this, e);
+        protected virtual void OnClosing(WindowClosingEventArgs e)
+        {
+        }
 
         /// <summary>
         /// Called when the value of the <see cref="CloseEnabled"/> property changes.
@@ -1064,7 +1700,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="EventArgs"/> that contains the event
         /// data.</param>
-        protected virtual void OnClosed(EventArgs e) => Closed?.Invoke(this, e);
+        protected virtual void OnClosed(EventArgs e)
+        {
+        }
 
         /// <summary>
         /// Called when the value of the <see cref="Owner"/> property changes.
@@ -1072,24 +1710,6 @@ namespace Alternet.UI
         /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
         protected virtual void OnOwnerChanged(EventArgs e)
         {
-        }
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            if (IsDisposed)
-                return;
-
-            Visible = false;
-
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                App.Current.UnregisterWindow(this);
-                if (!App.Current.VisibleWindows.Any())
-                    App.Handler.ExitMainLoop();
-            }
         }
 
         /// <summary>
@@ -1135,6 +1755,8 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnIdle(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnIdle(e);
 
             if (needLayout)
@@ -1147,31 +1769,22 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnHandlerSizeChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnHandlerSizeChanged(e);
             PerformLayout();
             needLayout = true;
         }
 
-        /// <inheritdoc/>
-        protected override void OnKeyDown(KeyEventArgs e)
-        {
-            base.OnKeyDown(e);
-            if (e.Key == Key.Escape && SupressEsc)
-            {
-                e.Handled = true;
-                return;
-            }
-
-            ProcessShortcuts(e);
-        }
-
         /// <summary>
         /// Iterates through all child control's shortcuts and
-        /// calls shortcut action if it's key is pressed.
+        /// calls shortcut action if its key is pressed.
         /// </summary>
-        /// <param name="e"></param>
+        /// <param name="e">Event arguments.</param>
         protected virtual void ProcessShortcuts(KeyEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             var shortcuts = GetShortcuts();
             if (shortcuts is null)
                 return;
@@ -1209,55 +1822,62 @@ namespace Alternet.UI
         {
         }
 
+        /// <inheritdoc/>
         protected override void OnSystemColorsChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnSystemColorsChanged(e);
             SystemSettings.ResetColors();
         }
 
+        /// <inheritdoc/>
         protected override void OnDpiChanged(DpiChangedEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnDpiChanged(e);
-            Display.Reset();
             PerformLayoutAndInvalidate();
         }
 
         /// <summary>
         /// Applies <see cref="Window.StartLocation"/> to the location of the window.
         /// </summary>
-        protected virtual void ApplyStartLocation(Control? owner)
+        protected virtual void ApplyStartLocation(AbstractControl? owner)
         {
-            RectD displayRect = new Display(this).ClientAreaDip;
-            RectD parentRect = RectD.Empty;
-            bool center = true;
-
-            if (StartLocation == WindowStartLocation.CenterScreen)
+            if (DisposingOrDisposed)
+                return;
+            switch (StartLocation)
             {
-                parentRect = displayRect;
+                case WindowStartLocation.Default:
+                case WindowStartLocation.Manual:
+                    SetLocationOnDisplay(null, null);
+                    break;
+                case WindowStartLocation.ScreenTopRight:
+                    SetLocationOnDisplay(HorizontalAlignment.Right, VerticalAlignment.Top);
+                    break;
+                case WindowStartLocation.ScreenBottomRight:
+                    SetLocationOnDisplay(HorizontalAlignment.Right, VerticalAlignment.Bottom);
+                    break;
+                case WindowStartLocation.CenterScreen:
+                    SetLocationOnDisplay(HorizontalAlignment.Center, VerticalAlignment.Center);
+                    break;
+                case WindowStartLocation.CenterOwner:
+                    SetLocationInWindow(HorizontalAlignment.Center, VerticalAlignment.Center, owner);
+                    break;
+                case WindowStartLocation.CenterActiveWindow:
+                    SetLocationInWindow(
+                        HorizontalAlignment.Center,
+                        VerticalAlignment.Center,
+                        ActiveWindow);
+                    break;
+                case WindowStartLocation.CenterMainWindow:
+                    SetLocationInWindow(
+                        HorizontalAlignment.Center,
+                        VerticalAlignment.Center,
+                        App.MainWindow);
+                    break;
             }
-            else
-            if (StartLocation == WindowStartLocation.CenterOwner)
-            {
-                if (owner is null)
-                    parentRect = displayRect;
-                else
-                    parentRect = new(owner.ClientToScreen((0, 0)), owner.ClientSize);
-            }
-            else
-                center = false;
-
-            var bounds = Bounds;
-
-            var newWidth = Math.Min(bounds.Width, displayRect.Width);
-            var newHeight = Math.Min(bounds.Height, displayRect.Height);
-
-            bounds.Width = newWidth;
-            bounds.Height = newHeight;
-
-            if (center)
-                bounds = bounds.CenterIn(parentRect);
-
-            Bounds = bounds;
         }
 
         /// <summary>
@@ -1277,88 +1897,55 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Raised by the handler when it is going to be closed.
+        /// Gets window kind used instead of the default value.
         /// </summary>
-        /// <param name="e">Event arguments.</param>
-        public virtual void OnHandlerClosing(CancelEventArgs e)
-        {
-            // todo: add close reason/force parameter (see wxCloseEvent.CanVeto()).
-            var closingEventArgs = new WindowClosingEventArgs(e.Cancel);
-            RaiseClosing(closingEventArgs);
-            if (closingEventArgs.Cancel)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            RaiseClosed(new WindowClosedEventArgs());
-
-            if (!Modal)
-                Dispose();
-        }
-
-        protected virtual void OnHandlerInputBindingCommandExecuted(HandledEventArgs<string> e)
-        {
-            var binding = InputBindings.First(x => x.ManagedCommandId == e.Value);
-
-            e.Handled = false;
-
-            var command = binding.Command;
-            if (command == null)
-                return;
-
-            if (!command.CanExecute(binding.CommandParameter))
-                return;
-
-            command.Execute(binding.CommandParameter);
-            e.Handled = true;
-        }
-
-        /// <inheritdoc/>
-        protected override void BindHandlerEvents()
-        {
-            base.BindHandlerEvents();
-            Handler.StateChanged = RaiseStateChanged;
-            Handler.Closing = OnHandlerClosing;
-            Handler.InputBindingCommandExecuted = OnHandlerInputBindingCommandExecuted;
-        }
-
-        /// <inheritdoc/>
-        protected override void UnbindHandlerEvents()
-        {
-            base.UnbindHandlerEvents();
-            Handler.StateChanged = null;
-            Handler.Closing = null;
-            Handler.InputBindingCommandExecuted = null;
-        }
+        /// <returns></returns>
+        protected WindowKind? GetWindowKindOverride()
+            => globalWindowKindOverride ?? windowKindOverride;
 
         /// <inheritdoc/>
         protected override void OnHandlerLocationChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnHandlerLocationChanged(e);
 
             InsideTryCatch(RaiseDisplayChanged);
         }
 
-        private void RaiseDisplayChanged()
+        /// <summary>
+        /// Common initialization method which is called from all the constructors.
+        /// </summary>
+        private void Initialize()
         {
-            if (DisplayChanged is null)
-                return;
-
-            var newDisplay = Display.GetFromControl(this);
-
-            if (oldDisplay is null)
+            owner.Changed = () =>
             {
-                oldDisplay = newDisplay;
+                if (DisposingOrDisposed)
+                    return;
+                OnOwnerChanged(EventArgs.Empty);
+                OwnerChanged?.Invoke(this, EventArgs.Empty);
+            };
+
+            SetVisibleValue(false);
+            ProcessIdle = true;
+
+            if (GetWindowKind() != WindowKind.Control)
+                App.Current.RegisterWindow(this);
+
+            Bounds = GetDefaultBounds();
+
+            if (AbstractControl.DefaultFont != Font.Default)
+                Font = AbstractControl.DefaultFont;
+        }
+
+        private void RaiseLoadedOnce()
+        {
+            if (DisposingOrDisposed)
                 return;
-            }
-
-            if (oldDisplay == newDisplay)
+            if (loadedCalled)
                 return;
-
-            DisplayChanged?.Invoke(this, EventArgs.Empty);
-
-            oldDisplay = newDisplay;
+            loadedCalled = true;
+            Load?.Invoke(this, EventArgs.Empty);
         }
     }
 }

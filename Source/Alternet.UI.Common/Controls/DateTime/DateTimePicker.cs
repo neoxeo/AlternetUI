@@ -18,7 +18,17 @@ namespace Alternet.UI
     [ControlCategory("Common")]
     public partial class DateTimePicker : CustomDateEdit
     {
-        private DateTime value = DateTime.Now;
+        private DateTime val = DateTime.Now;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DateTimePicker"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public DateTimePicker(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DateTimePicker"/> class.
@@ -48,14 +58,16 @@ namespace Alternet.UI
         {
             get
             {
-                return value;
+                return val;
             }
 
             set
             {
-                if (value == this.value)
+                if (DisposingOrDisposed)
                     return;
-                this.value = value;
+                if (value == this.val)
+                    return;
+                this.val = value;
                 RaiseValueChanged(EventArgs.Empty);
             }
         }
@@ -68,14 +80,25 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.Kind;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.Kind = value;
             }
         }
+
+        /// <summary>
+        /// Gets control handler.
+        /// </summary>
+        [Browsable(false)]
+        public new IDateTimePickerHandler Handler =>
+            (IDateTimePickerHandler)base.Handler;
 
         /// <summary>
         /// Gets or sets whether to show calendar popup or edit date with spin control.
@@ -84,22 +107,17 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.PopupKind;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.PopupKind = value;
             }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the control has a border.
-        /// </summary>
-        internal bool HasBorder
-        {
-            get => Handler.HasBorder;
-            set => Handler.HasBorder = value;
         }
 
         [Browsable(false)]
@@ -109,9 +127,6 @@ namespace Alternet.UI
             set => base.Text = value;
         }
 
-        internal new IDateTimePickerHandler Handler =>
-            (IDateTimePickerHandler)base.Handler;
-
         /// <summary>
         /// Raises the <see cref="ValueChanged"/> event and calls
         /// <see cref="OnValueChanged(EventArgs)"/>.
@@ -120,6 +135,8 @@ namespace Alternet.UI
         /// event data.</param>
         public void RaiseValueChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             OnValueChanged(e);
             ValueChanged?.Invoke(this, e);
         }
@@ -142,6 +159,8 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void SetRange(DateTime min, DateTime max)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetRange(min, max, UseMinDate, UseMaxDate);
         }
     }

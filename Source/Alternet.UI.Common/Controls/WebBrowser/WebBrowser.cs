@@ -43,16 +43,39 @@ namespace Alternet.UI
     [ControlCategory("Common")]
     public partial class WebBrowser : Control, IWebBrowser
     {
+        /// <summary>
+        /// Gets "about:blank" url.
+        /// </summary>
+        public const string AboutBlankUrl = "about:blank";
+
         private static IWebBrowserFactoryHandler? factory;
 
-        private readonly string defaultUrl = "about:blank";
+        private readonly string defaultUrl = AboutBlankUrl;
 
         private IWebBrowserMemoryFS? fMemoryFS;
+
+        static WebBrowser()
+        {
+            // This call is here because current version of wxWidgets
+            // doesn't work with WebView2 browser properly.
+            IsEdgeBackendEnabled = false;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebBrowser"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public WebBrowser(Control parent)
+            : this(string.Empty)
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebBrowser"/> class.
         /// </summary>
         public WebBrowser()
+            : this(string.Empty)
         {
         }
 
@@ -61,7 +84,12 @@ namespace Alternet.UI
         /// </summary>
         public WebBrowser(string url)
         {
-            defaultUrl = url;
+            if (string.IsNullOrEmpty(url))
+            {
+                defaultUrl = AboutBlankUrl;
+            }
+            else
+                defaultUrl = url;
         }
 
         /// <summary>
@@ -107,7 +135,8 @@ namespace Alternet.UI
         /// </para>
         /// <para>
         ///  When the Navigated event occurs, the new web page has begun loading,
-        ///  which means you can access the loaded content through the WebBrowser properties and methods.
+        ///  which means you can access the loaded content through the WebBrowser
+        ///  properties and methods.
         /// </para>
         /// <para>
         ///  Handle the <see cref="Loaded"/> event to receive notification when the
@@ -257,6 +286,24 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether Edge backend which uses WebView2 is available.
+        /// </summary>
+        public static bool IsEdgeBackendEnabled
+        {
+            get
+            {
+                return App.IsWindowsOS && Factory.IsEdgeBackendEnabled;
+            }
+
+            set
+            {
+                if (IsEdgeBackendEnabled == value)
+                    return;
+                Factory.IsEdgeBackendEnabled = value;
+            }
+        }
+
+        /// <summary>
         /// Contains methods related to the memory scheme WebBrowser protocol.
         /// </summary>
         /// <returns>
@@ -295,7 +342,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return false;
                 return Handler.HasSelection;
             }
         }
@@ -320,13 +368,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.ZoomFactor;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.ZoomFactor = value;
             }
         }
@@ -334,18 +384,21 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the control has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
             get
             {
-                CheckDisposed();
-                return Handler.HasBorder;
+                if (DisposingOrDisposed)
+                    return default;
+                return base.Handler.HasBorder;
             }
 
             set
             {
-                CheckDisposed();
-                Handler.HasBorder = value;
+                if (DisposingOrDisposed)
+                    return;
+                base.Handler.HasBorder = value;
             }
         }
 
@@ -364,14 +417,30 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.ZoomType;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.ZoomType = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether backend is WebView2.
+        /// </summary>
+        [Browsable(false)]
+        public virtual bool IsEdgeBackend
+        {
+            get
+            {
+                if (DisposingOrDisposed)
+                    return default;
+                return App.IsWindowsOS && Handler.IsEdgeBackend;
             }
         }
 
@@ -404,7 +473,10 @@ namespace Alternet.UI
         /// otherwise, <see langword="false"/>.
         /// </returns>
         [Browsable(false)]
-        public virtual bool CanZoomIn { get => Zoom != WebBrowserZoom.Largest; }
+        public virtual bool CanZoomIn
+        {
+            get => Zoom != WebBrowserZoom.Largest;
+        }
 
         /// <summary>
         /// Gets a value indicating whether a previous page in navigation history
@@ -420,7 +492,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanGoBack;
             }
         }
@@ -438,7 +511,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanUndo;
             }
         }
@@ -456,7 +530,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanRedo;
             }
         }
@@ -476,13 +551,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.AccessToDevToolsEnabled;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.AccessToDevToolsEnabled = value;
             }
         }
@@ -491,7 +568,8 @@ namespace Alternet.UI
         /// Gets or sets the custom user agent string for the WebBrowser control.
         /// </summary>
         /// <returns>
-        /// A <see cref="string"/> representing the custom user agent string for the WebBrowser control.
+        /// A <see cref="string"/> representing the custom user agent string
+        /// for the WebBrowser control.
         /// </returns>
         /// <remarks>
         /// <para>
@@ -507,13 +585,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.UserAgent;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.UserAgent = value;
             }
         }
@@ -533,13 +613,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.ContextMenuEnabled;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.ContextMenuEnabled = value;
             }
         }
@@ -555,7 +637,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.Backend;
             }
         }
@@ -577,13 +660,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.Editable;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.Editable = value;
             }
         }
@@ -599,13 +684,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.Zoom;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.Zoom = value;
             }
         }
@@ -622,7 +709,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.IsBusy;
             }
         }
@@ -632,7 +720,8 @@ namespace Alternet.UI
         /// an empty string if no page is currently shown.
         /// </summary>
         /// <returns>
-        /// A <see cref="string"/> representing the HTML source code of the currently displayed document.
+        /// A <see cref="string"/> representing the HTML source code of the currently
+        /// displayed document.
         /// </returns>
         /// <seealso cref="PageText"/>
         [Browsable(false)]
@@ -640,7 +729,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.PageSource;
             }
         }
@@ -657,7 +747,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.PageText;
             }
         }
@@ -674,7 +765,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.SelectedText;
             }
         }
@@ -694,7 +786,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return string.Empty;
                 return Handler.SelectedSource;
             }
         }
@@ -712,7 +805,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanCut;
             }
         }
@@ -760,13 +854,15 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.PreferredColorScheme;
             }
 
             set
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return;
                 Handler.PreferredColorScheme = value;
             }
         }
@@ -784,7 +880,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanCopy;
             }
         }
@@ -803,7 +900,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanPaste;
             }
         }
@@ -822,7 +920,8 @@ namespace Alternet.UI
         {
             get
             {
-                CheckDisposed();
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanGoForward;
             }
         }
@@ -842,19 +941,7 @@ namespace Alternet.UI
         /// Gets handler for the control.
         /// </summary>
         [Browsable(false)]
-        internal new IWebBrowserHandler Handler => (IWebBrowserHandler)base.Handler;
-
-        /// <summary>
-        /// Returns type of the OS for which the WebBrowser was compiled.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="WebBrowserBackendOS"/> representing type of the
-        ///     OS for which the WebBrowser was compiled.
-        /// </returns>
-        public static WebBrowserBackendOS GetBackendOS()
-        {
-            return Factory.GetBackendOS();
-        }
+        public new IWebBrowserLite Handler => (IWebBrowserLite)base.Handler;
 
         /// <summary>
         /// Prepends filename with "file" url protocol prefix.
@@ -931,6 +1018,7 @@ namespace Alternet.UI
                 return string.Empty;
             }
 
+            /*
             if (cmdName == "Screenshot")
             {
                 string location = Assembly.GetExecutingAssembly().Location;
@@ -940,17 +1028,10 @@ namespace Alternet.UI
                 if (args.Length == 0)
                     return string.Empty;
                 Control? control = args[0] as Control;
-                control?.SaveScreenshot(screenshotFilename);
+                control?.Handler.SaveScreenshot(screenshotFilename);
                 return screenshotFilename;
             }
-
-            if (cmdName == "UIVersion")
-            {
-                Assembly thisAssembly = typeof(App).Assembly;
-                AssemblyName thisAssemblyName = thisAssembly.GetName();
-                Version? ver = thisAssemblyName?.Version;
-                return ver?.ToString();
-            }
+            */
 
             return Factory.DoCommand(cmdName, args);
         }
@@ -1000,7 +1081,7 @@ namespace Alternet.UI
             if (value == WebBrowserBackend.IE || value == WebBrowserBackend.IELatest
                 || value == WebBrowserBackend.Edge)
             {
-                if (WebBrowser.GetBackendOS() != WebBrowserBackendOS.Windows)
+                if (!App.IsWindowsOS)
                     value = WebBrowserBackend.Default;
             }
 
@@ -1177,7 +1258,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual string? DoCommand(string cmdName, params object?[] args)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.DoCommand(cmdName, args);
         }
 
@@ -1266,7 +1348,8 @@ namespace Alternet.UI
         {
             if (!CanGoBack)
                 return false;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GoBack();
         }
 
@@ -1282,7 +1365,8 @@ namespace Alternet.UI
         {
             if (!CanGoForward)
                 return false;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GoForward();
         }
 
@@ -1292,7 +1376,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Stop()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Stop();
         }
 
@@ -1304,7 +1389,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void ClearHistory()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.ClearHistory();
         }
 
@@ -1320,7 +1406,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void EnableHistory(bool enable = true)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.EnableHistory(enable);
         }
 
@@ -1330,7 +1417,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Reload()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Reload();
         }
 
@@ -1344,7 +1432,8 @@ namespace Alternet.UI
         /// </param>
         public virtual void Reload(bool noCache)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Reload(noCache);
         }
 
@@ -1367,7 +1456,8 @@ namespace Alternet.UI
         /// </param>
         public virtual void NavigateToString(string html, string? baseUrl = null)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             if (string.IsNullOrEmpty(html))
             {
                 LoadURL();
@@ -1415,7 +1505,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual bool CanSetZoomType(WebBrowserZoomType zoomType)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CanSetZoomType(zoomType);
         }
 
@@ -1428,6 +1519,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseScriptMessageReceived(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             ScriptMessageReceived?.Invoke(this, e);
             OnScriptMessageReceived(e);
         }
@@ -1441,6 +1534,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseFullScreenChanged(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             FullScreenChanged?.Invoke(this, e);
             OnFullScreenChanged(e);
         }
@@ -1454,6 +1549,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseScriptResult(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             ScriptResult?.Invoke(this, e);
             OnScriptResult(e);
         }
@@ -1467,6 +1564,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseNavigated(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             Navigated?.Invoke(this, e);
             OnNavigated(e);
         }
@@ -1480,6 +1579,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseDocumentTitleChanged(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             DocumentTitleChanged?.Invoke(this, e);
             OnDocumentTitleChanged(e);
         }
@@ -1493,6 +1594,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseBeforeBrowserCreate(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             BeforeBrowserCreate?.Invoke(this, e);
             OnBeforeBrowserCreate(e);
         }
@@ -1506,6 +1609,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseLoaded(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             Loaded?.Invoke(this, e);
             OnLoaded(e);
         }
@@ -1519,6 +1624,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseError(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             Error?.Invoke(this, e);
             OnError(e);
         }
@@ -1532,6 +1639,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseNavigating(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             Navigating?.Invoke(this, e);
             OnNavigating(e);
         }
@@ -1545,6 +1654,8 @@ namespace Alternet.UI
         /// </param>
         public void RaiseNewWindow(WebBrowserEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             NewWindow?.Invoke(this, e);
             OnNewWindow(e);
         }
@@ -1556,7 +1667,8 @@ namespace Alternet.UI
         /// <seealso cref="SelectedText"/>
         public virtual void SelectAll()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.SelectAll();
         }
 
@@ -1571,7 +1683,8 @@ namespace Alternet.UI
         /// <seealso cref="HasSelection"/>
         public virtual void DeleteSelection()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.DeleteSelection();
         }
 
@@ -1583,7 +1696,8 @@ namespace Alternet.UI
         {
             if (!CanUndo)
                 return;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Undo();
         }
 
@@ -1595,7 +1709,8 @@ namespace Alternet.UI
         {
             if (!CanRedo)
                 return;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Redo();
         }
 
@@ -1609,7 +1724,8 @@ namespace Alternet.UI
         /// <seealso cref="HasSelection"/>
         public virtual void ClearSelection()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.ClearSelection();
         }
 
@@ -1620,7 +1736,8 @@ namespace Alternet.UI
         {
             if (!CanCut)
                 return;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Cut();
         }
 
@@ -1631,7 +1748,8 @@ namespace Alternet.UI
         {
             if (!CanCopy)
                 return;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Copy();
         }
 
@@ -1643,7 +1761,8 @@ namespace Alternet.UI
         {
             if (!CanPaste)
                 return;
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Paste();
         }
 
@@ -1681,7 +1800,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual int Find(string text, WebBrowserFindParams? prm = null)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return -1;
             return Handler.Find(text, prm);
         }
 
@@ -1691,7 +1811,8 @@ namespace Alternet.UI
         /// <seealso cref="Find"/>
         public virtual void FindClearResult()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.FindClearResult();
         }
 
@@ -1701,7 +1822,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Print()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.Print();
         }
 
@@ -1710,7 +1832,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void RemoveAllUserScripts()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.RemoveAllUserScripts();
         }
 
@@ -1752,7 +1875,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool AddScriptMessageHandler(string name)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.AddScriptMessageHandler(name);
         }
 
@@ -1766,7 +1890,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual bool RemoveScriptMessageHandler(string name)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.RemoveScriptMessageHandler(name);
         }
 
@@ -1790,24 +1915,25 @@ namespace Alternet.UI
             string javascript,
             bool injectDocStart = true)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.AddUserScript(javascript, injectDocStart);
         }
 
         /// <summary>
-        ///     Converts the value into a JSON string. It is a simple convertor.
-        ///     It is better to use System.Text.Json.JsonSerializer.Serialize method.
+        /// Converts the value into a JSON string. It is a simple convertor.
+        /// It is better to use System.Text.Json.JsonSerializer.Serialize method.
         /// </summary>
         /// <param name="v">
-        ///     The value to convert.
+        /// The value to convert.
         /// </param>
         /// <returns>
-        ///     The JSON string representation of the value.
+        /// The JSON string representation of the value.
         /// </returns>
         /// <remarks>
-        ///     Do not call it for primitive values. It supposed to convert only
-        ///     TypeCode.Object values. Outputs result like this:
-        ///     {firstName:"John", lastName:"Doe", age:50, eyeColor:"blue"}
+        /// Do not call it for primitive values. It supposed to convert only
+        /// TypeCode.Object values. Outputs result like this:
+        /// {firstName:"John", lastName:"Doe", age:50, eyeColor:"blue"}
         /// </remarks>
         public virtual string ObjectToJSON(object? v)
         {
@@ -1983,8 +2109,9 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void LoadURL(string? url = null)
         {
-            url ??= "about:blank";
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
+            url ??= AboutBlankUrl;
             Handler.LoadURL(url);
         }
 
@@ -1999,7 +2126,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual string GetCurrentTitle()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetCurrentTitle();
         }
 
@@ -2011,7 +2139,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual string GetCurrentURL()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetCurrentURL();
         }
 
@@ -2052,7 +2181,8 @@ namespace Alternet.UI
             string folderPath,
             WebBrowserHostResourceAccessKind accessKind)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.SetVirtualHostNameToFolderMapping(hostName, folderPath, accessKind);
         }
 
@@ -2070,7 +2200,8 @@ namespace Alternet.UI
         /// </returns>
         public IntPtr GetNativeBackend()
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetNativeBackend();
         }
 
@@ -2130,7 +2261,8 @@ namespace Alternet.UI
             string javascript,
             IntPtr? clientData = null)
         {
-            CheckDisposed();
+            if (DisposingOrDisposed)
+                return;
             Handler.RunScriptAsync(javascript, clientData);
         }
 
@@ -2159,7 +2291,8 @@ namespace Alternet.UI
         ///     browser and has full access to DOM and other browser-provided functionality.
         ///   </para>
         ///   <para>
-        ///     Because of various potential issues it's recommended to use <see cref="RunScriptAsync"/>
+        ///     Because of various potential issues it's recommended to use
+        ///     <see cref="RunScriptAsync"/>
         ///     instead of this method.
         ///     This is especially true if you plan to run code from a WebBrowser event
         ///     and will also prevent unintended side effects on the UI outside of
@@ -2177,7 +2310,8 @@ namespace Alternet.UI
         ///   JavaScript code to execute.
         /// </param>
         /// <returns>
-        ///   <see langword="true"/> if there is a result, <see langword="false"/> if there is an error.
+        ///   <see langword="true"/> if there is a result,
+        ///   <see langword="false"/> if there is an error.
         /// </returns>
         internal virtual bool RunScript(string javascript)
         {
@@ -2200,9 +2334,8 @@ namespace Alternet.UI
         /// </param>
         internal virtual bool RunScript(string javascript, out string result)
         {
-            CheckDisposed();
-            throw new NotImplementedException();
-            /*return Handler.RunScript(javascript, out result);*/
+            result = string.Empty;
+            return false;
         }
 
         internal virtual string? InvokeScript(string scriptName)
@@ -2264,6 +2397,12 @@ namespace Alternet.UI
         /// </param>
         protected virtual void OnNavigated(WebBrowserEventArgs e)
         {
+        }
+
+        /// <inheritdoc/>
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
         }
 
         /// <summary>

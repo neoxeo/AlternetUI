@@ -24,6 +24,16 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="CardPanel"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public CardPanel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CardPanel"/> class.
+        /// </summary>
         public CardPanel()
         {
             Cards.ThrowOnNullAdd = true;
@@ -49,10 +59,29 @@ namespace Alternet.UI
         public Collection<CardPanelItem> Cards { get; } = new();
 
         /// <summary>
+        /// Gets the collection of the loaded cards.
+        /// </summary>
+        [Browsable(false)]
+        public IEnumerable<CardPanelItem> LoadedCards
+        {
+            get
+            {
+                foreach (var item in Cards)
+                {
+                    if (!item.ControlCreated)
+                        continue;
+                    var control = item.Control;
+                    if (control is not null)
+                        yield return item;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets selected card.
         /// </summary>
         [Browsable(false)]
-        public CardPanelItem? SelectedCard
+        public virtual CardPanelItem? SelectedCard
         {
             get
             {
@@ -81,7 +110,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets selected card index.
         /// </summary>
-        public int? SelectedCardIndex
+        public virtual int? SelectedCardIndex
         {
             get
             {
@@ -121,7 +150,7 @@ namespace Alternet.UI
         /// Gets card with the specified id.
         /// </summary>
         /// <param name="id">Card id.</param>
-        public CardPanelItem? Find(ObjectUniqueId? id)
+        public virtual CardPanelItem? Find(ObjectUniqueId? id)
         {
             if (id is null)
                 return null;
@@ -139,7 +168,7 @@ namespace Alternet.UI
         /// to <paramref name="control"/>.
         /// </summary>
         /// <param name="control">Control.</param>
-        public CardPanelItem? Find(Control? control)
+        public virtual CardPanelItem? Find(AbstractControl? control)
         {
             if (control is null)
                 return null;
@@ -156,7 +185,7 @@ namespace Alternet.UI
         /// Gets index of the specified card.
         /// </summary>
         /// <param name="item">Card.</param>
-        public int? IndexOf(CardPanelItem? item)
+        public virtual int? IndexOf(CardPanelItem? item)
         {
             if (item == null)
                 return null;
@@ -173,7 +202,7 @@ namespace Alternet.UI
         /// Sets active card by id.
         /// </summary>
         /// <param name="id">Card id.</param>
-        public CardPanel SelectCard(ObjectUniqueId? id)
+        public virtual CardPanel SelectCard(ObjectUniqueId? id)
         {
             var item = Find(id);
             SelectCard(item);
@@ -184,7 +213,7 @@ namespace Alternet.UI
         /// Sets active card.
         /// </summary>
         /// <param name="card">Card.</param>
-        public CardPanel SelectCard(CardPanelItem? card)
+        public virtual CardPanel SelectCard(CardPanelItem? card)
         {
             if (card is null)
                 return this;
@@ -208,8 +237,8 @@ namespace Alternet.UI
                 }
 
                 var control = card.Control;
-                control.Parent = this;
                 control.Visible = true;
+                control.Parent = this;
             }
             finally
             {
@@ -225,7 +254,7 @@ namespace Alternet.UI
         /// Sets active card by index.
         /// </summary>
         /// <param name="index">Card index.</param>
-        public CardPanel SelectCard(int? index)
+        public virtual CardPanel SelectCard(int? index)
         {
             if (index == null || index < 0 || index >= Cards.Count)
                 return this;
@@ -240,7 +269,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public int Add(string? title, Control control)
+        public virtual int Add(string? title, AbstractControl control)
         {
             var result = new CardPanelItem(title, control);
             Cards.Add(result);
@@ -255,7 +284,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public int Add(string? title, Func<Control> fnCreate)
+        public virtual int Add(string? title, Func<AbstractControl> fnCreate)
         {
             var result = new CardPanelItem(title, fnCreate);
             Cards.Add(result);

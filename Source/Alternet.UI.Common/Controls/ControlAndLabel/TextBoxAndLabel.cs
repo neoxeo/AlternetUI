@@ -10,22 +10,32 @@ using System.Threading.Tasks;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Implements <see cref="TextBox"/> with attached <see cref="Label"/>.
+    /// Implements <see cref="TextBox"/> with attached label.
     /// </summary>
     [ControlCategory("Editors")]
-    public partial class TextBoxAndLabel : ControlAndLabel
+    public partial class TextBoxAndLabel : ControlAndLabel<TextBox, Label>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TextBoxAndLabel"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public TextBoxAndLabel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TextBoxAndLabel"/> class.
         /// </summary>
         /// <param name="title">Label text.</param>
         /// <param name="text">Default value of the <see cref="Text"/> property.</param>
         public TextBoxAndLabel(string title, string? text = default)
+            : this()
         {
             Title = title;
             if (text is not null)
                 TextBox.Text = text;
-            Init();
         }
 
         /// <summary>
@@ -37,16 +47,61 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets main child control.
+        /// Gets or sets whether error reporter is automatically shown/hidden when
+        /// error state is changed.
         /// </summary>
-        [Browsable(false)]
-        public new TextBox MainControl => (TextBox)base.MainControl;
+        public virtual bool AutoShowError
+        {
+            get => MainControl.AutoShowError;
+
+            set
+            {
+                MainControl.AutoShowError = value;
+            }
+        }
 
         /// <summary>
-        /// Gets main child control, same as <see cref="MainControl"/>.
+        /// Gets or sets init arguments which are used when <see cref="InputType"/>
+        /// property is assigned.
         /// </summary>
         [Browsable(false)]
-        public TextBox TextBox => (TextBox)base.MainControl;
+        public virtual TextBoxInitializeEventArgs? InputTypeArgs
+        {
+            get => TextBox.InputTypeArgs;
+            set => TextBox.InputTypeArgs = value;
+        }
+
+        /// <summary>
+        /// Gets or sets input type. Default is Null.
+        /// </summary>
+        public virtual KnownInputType? InputType
+        {
+            get
+            {
+                return TextBox.InputType;
+            }
+
+            set
+            {
+                TextBox.InputType = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets main inner <see cref="TextBox"/> control.
+        /// </summary>
+        [Browsable(false)]
+        public TextBox TextBox => MainControl;
+
+        /// <summary>
+        /// <see cref="CustomTextBox.IsRequired"/>
+        /// </summary>
+        public virtual bool IsRequired
+        {
+            get => TextBox.IsRequired;
+
+            set => TextBox.IsRequired = value;
+        }
 
         /// <summary>
         /// Gets whether editor contains a valid e-mail address.
@@ -55,7 +110,7 @@ namespace Alternet.UI
         public virtual bool IsValidMail => ValidationUtils.IsValidMailAddress(Text);
 
         /// <summary>
-        /// Gets or sets <see cref="Control.Text"/> property of the main child control.
+        /// Gets or sets <see cref="AbstractControl.Text"/> property of the main child control.
         /// </summary>
         [Browsable(true)]
         public override string Text
@@ -72,6 +127,22 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether main inner control has border.
+        /// </summary>
+        public virtual bool HasInnerBorder
+        {
+            get
+            {
+                return TextBox.HasBorder;
+            }
+
+            set
+            {
+                TextBox.HasBorder = value;
+            }
+        }
+
+        /// <summary>
         /// Gets whether <see cref="Text"/> is null or empty.
         /// </summary>
         [Browsable(false)]
@@ -82,9 +153,6 @@ namespace Alternet.UI
         /// </summary>
         [Browsable(false)]
         public virtual bool IsNullOrWhiteSpace => string.IsNullOrWhiteSpace(Text);
-
-        /// <inheritdoc/>
-        protected override Control CreateControl() => new TextBox();
 
         /// <summary>
         /// Initializes main child control.
@@ -97,27 +165,26 @@ namespace Alternet.UI
         protected virtual void Init()
         {
             MainControl.ValidatorReporter = ErrorPicture;
-            MainControl.TextChanged += MainControl_TextChanged;
+            MainControl.AutoShowError = true;
+            MainControl.TextChanged += (s, e) =>
+            {
+                RaiseTextChanged(EventArgs.Empty);
+            };
+
+            MainControl.DelayedTextChanged += (s, e) =>
+            {
+                MainControlTextChanged();
+            };
         }
 
         /// <summary>
         /// Called when text is changed in the main child control.
         /// </summary>
+        /// <remarks>
+        /// This method is called after some delay and is suitable for the text validation.
+        /// </remarks>
         protected virtual void MainControlTextChanged()
         {
-            OnTextChanged(EventArgs.Empty);
-        }
-
-        /// <inheritdoc/>
-        protected override void BindHandlerEvents()
-        {
-            base.BindHandlerEvents();
-            Handler.TextChanged = null;
-        }
-
-        private void MainControl_TextChanged(object? sender, EventArgs e)
-        {
-            MainControlTextChanged();
         }
     }
 }

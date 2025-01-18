@@ -10,8 +10,7 @@ using Alternet.UI.Localization;
 namespace Alternet.UI
 {
     /// <summary>
-    /// <see cref="ImageSet"/> can be used for specifying several size representations of the
-    /// same picture.
+    /// <see cref="ImageSet"/> contains the same <see cref="Image"/> with different sizes.
     /// </summary>
     [TypeConverter(typeof(ImageSetConverter))]
     public class ImageSet : ImageContainer<IImageSetHandler>
@@ -71,7 +70,8 @@ namespace Alternet.UI
         /// <remarks>
         /// See <see cref="ImageSet.FromUrl(string)"/> for the details.
         /// </remarks>
-        /// <param name="baseUri">Base url. Optional. Used if <paramref name="url"/> is relative.</param>
+        /// <param name="baseUri">Base url. Optional. Used if <paramref name="url"/>
+        /// is relative.</param>
         public ImageSet(string? url, Uri? baseUri = null)
             : this()
         {
@@ -301,12 +301,21 @@ namespace Alternet.UI
         /// <summary>
         /// Gets first image.
         /// </summary>
-        public virtual Image AsImage(SizeI size) => new Bitmap(this, size);
+        public virtual Image AsImage(SizeI size)
+        {
+            var result = Handler.AsImage(size);
+            if (Immutable)
+                result.SetImmutable();
+            return result;
+        }
 
         /// <summary>
         /// Gets first image with size equal to <see cref="DefaultSize"/>.
         /// </summary>
-        public virtual Image AsImage() => new Bitmap(this, DefaultSize);
+        public virtual Image AsImage()
+        {
+            return AsImage(DefaultSize);
+        }
 
         /// <summary>
         /// Get the size that would be best to use for this <see cref="ImageSet"/> at the DPI
@@ -317,9 +326,9 @@ namespace Alternet.UI
         /// <remarks>
         /// This is just a convenient wrapper for
         /// <see cref="ImageSet.GetPreferredBitmapSizeAtScale"/> calling
-        /// that function with the result of <see cref="Control.ScaleFactor"/>.
+        /// that function with the result of <see cref="AbstractControl.ScaleFactor"/>.
         /// </remarks>
-        public virtual SizeI GetPreferredBitmapSizeFor(Control control)
+        public virtual SizeI GetPreferredBitmapSizeFor(AbstractControl control)
         {
             return Handler.GetPreferredBitmapSizeFor(control);
         }
@@ -333,7 +342,13 @@ namespace Alternet.UI
         /// be used at the DPI scaling of the provided control.
         /// </remarks>
         /// <param name="control">Control to get DPI scaling factor from.</param>
-        public virtual Image AsImageFor(Control control) => new Bitmap(this, control);
+        public virtual Image AsImageFor(AbstractControl control)
+        {
+            var result = new Bitmap(this, control);
+            if (Immutable)
+                result.SetImmutable();
+            return result;
+        }
 
         /// <summary>
         /// Get the size that would be best to use for this <see cref="ImageSet"/> at
@@ -358,7 +373,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override IImageSetHandler CreateHandler()
         {
-            return GraphicsFactory.Handler.CreateImageSetHandler() ?? DummyImageSetHandler.Default;
+            return GraphicsFactory.Handler.CreateImageSetHandler() ?? PlessImageSetHandler.Default;
         }
    }
 }

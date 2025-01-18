@@ -15,14 +15,15 @@ namespace Alternet.UI
     /// </summary>
     /// <remarks>
     /// A caret is always associated with a control and the current caret can be retrieved
-    /// using <see cref="Control"/> methods. The same caret can't be reused in two different controls.
+    /// using <see cref="AbstractControl"/> methods. The same caret can't be reused
+    /// in two different controls.
     /// </remarks>
     /// <remarks>
     /// Currently, the caret appears as a rectangle of the given size.
     /// </remarks>
     public class Caret : HandledObject<ICaretHandler>
     {
-        private readonly Control? control;
+        private WeakReferenceValue<AbstractControl>? control;
         private SizeI? size;
 
         /// <summary>
@@ -39,11 +40,17 @@ namespace Alternet.UI
         /// <param name="control">A control the caret is associated with.</param>
         /// <param name="width">Caret width in pixels.</param>
         /// <param name="height">Caret height in pixels.</param>
-        public Caret(Control control, int width, int height)
+        public Caret(AbstractControl control, int width, int height)
         {
-            this.control = control;
+            this.control = new(control);
             size = (width, height);
         }
+
+        /// <summary>
+        /// Occurs when caret position is changed. This event is called only for the carets
+        /// attached to the controls (<see cref="Control"/> property is not Null).
+        /// </summary>
+        public static event EventHandler? ControlPositionChanged;
 
         /// <summary>
         /// Time, in milliseconds, for how long a blinking caret should stay visible during a
@@ -63,6 +70,12 @@ namespace Alternet.UI
                 return SystemSettings.GetMetric(SystemSettingsMetric.CaretOnMSec);
             }
         }
+
+        /// <summary>
+        /// Gets or sets whether to use internal caret. This can be used for testing purposes.
+        /// Usage of this property depends on platform.
+        /// </summary>
+        public static bool UseGeneric { get; set; }
 
         /// <summary>
         /// Time, in milliseconds, for how long a blinking caret should stay invisible during
@@ -128,6 +141,17 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets control where caret is located.
+        /// </summary>
+        public virtual AbstractControl? Control
+        {
+            get
+            {
+                return control?.Value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the caret size.
         /// </summary>
         public virtual SizeI Size
@@ -155,7 +179,13 @@ namespace Alternet.UI
 
             set
             {
+                if (Position == value)
+                    return;
                 Handler.Position = value;
+                var sender = Control;
+                if (sender is null)
+                    return;
+                ControlPositionChanged?.Invoke(sender, EventArgs.Empty);
             }
         }
 
@@ -192,6 +222,49 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets caret's position in device-independent units.
+        /// This property returns Null and doesn't change caret's position
+        /// if caret is not attached to the control (<see cref="Control"/> property is Null).
+        /// </summary>
+        public virtual PointD? PositionDip
+        {
+            get
+            {
+                var owner = Control;
+                if (owner is null)
+                    return null;
+
+                var posI = Position;
+                var result = owner.PixelToDip(posI);
+                return result;
+            }
+
+            set
+            {
+                var owner = Control;
+                if (owner is null)
+                    return;
+                var posI = owner.PixelFromDip(value ?? PointD.Empty);
+                Position = posI;
+            }
+        }
+
+        /// <summary>
+        /// Gets caret position for the specified control.
+        /// </summary>
+        /// <param name="control">Control for which to get the caret position.</param>
+        /// <returns></returns>
+        public static PointD? GetPosition(AbstractControl? control)
+        {
+            if (control is null)
+                return null;
+
+            var caret = control.Caret;
+            var result = caret?.PositionDip;
+            return result;
+        }
+
+        /// <summary>
         ///  Hides the caret, same as Show(false).
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,12 +287,10 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override ICaretHandler CreateHandler()
         {
-            if(control is null || size is null)
+            var c = Control;
+            if(c is null || size is null)
                 return new PlessCaretHandler();
-            return App.Handler.CreateCaretHandler(
-                control,
-                size.Value.Width,
-                size.Value.Height);
+            return App.Handler.CreateCaretHandler(c, size.Value.Width, size.Value.Height);
         }
     }
 }

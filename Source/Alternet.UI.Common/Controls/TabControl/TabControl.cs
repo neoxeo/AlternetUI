@@ -26,35 +26,61 @@ namespace Alternet.UI
         /// </summary>
         public static SizeD DefaultMinTabSize = (0, 0);
 
-        private readonly TabControlCardPanel cardPanel = new();
-        private readonly CardPanelHeader cardPanelHeader = new();
+        private readonly TabControlCardPanel cardPanel = new()
+        {
+            ParentBackColor = true,
+            ParentForeColor = true,
+            ParentFont = true,
+        };
+
+        private readonly CardPanelHeader cardPanelHeader = new()
+        {
+        };
+
         private bool hasInteriorBorder = true;
         private TabSizeMode sizeMode = TabSizeMode.Normal;
         private TabAppearance tabAppearance = TabAppearance.Normal;
         private int addSuspended;
+        private TabAlignment? tabPaintAlignment;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TabControl"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public TabControl(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TabControl"/> class.
         /// </summary>
         public TabControl()
-            : base()
         {
+            ParentBackColor = true;
+            ParentForeColor = true;
+
             cardPanelHeader.UserPaint = true;
             cardPanelHeader.Paint += Header_Paint;
             UserPaint = true;
 
             base.Layout = LayoutStyle.Vertical;
             cardPanelHeader.TabHasBorder = false;
+            cardPanelHeader.BeforeTabClick += CardPanelHeader_BeforeTabClick;
             cardPanelHeader.TabClick += CardPanelHeader_TabClick;
             cardPanelHeader.ButtonSizeChanged += CardPanelHeader_ButtonSizeChanged;
             cardPanelHeader.VerticalAlignment = UI.VerticalAlignment.Top;
             cardPanelHeader.UpdateCardsMode = WindowSizeToContentMode.None;
             cardPanelHeader.Parent = this;
+
             cardPanel.Margin = 1;
             cardPanel.Parent = this;
             cardPanel.VerticalAlignment = UI.VerticalAlignment.Fill;
             cardPanel.HorizontalAlignment = UI.HorizontalAlignment.Fill;
+
             cardPanelHeader.CardPanel = cardPanel;
+
             cardPanel.Children.ItemInserted += Pages_ItemInserted;
             cardPanel.Children.ItemRemoved += Pages_ItemRemoved;
         }
@@ -62,7 +88,7 @@ namespace Alternet.UI
         /// <summary>
         /// Occurs when the size of the tab has changed.
         /// </summary>
-        public event EventHandler<BaseEventArgs<Control>>? TabSizeChanged;
+        public event EventHandler<BaseEventArgs<AbstractControl>>? TabSizeChanged;
 
         /// <summary>
         /// Occurs when the <see cref="SelectedIndex" /> property has changed.
@@ -85,7 +111,7 @@ namespace Alternet.UI
         /// <value>A <see cref="Collection{Control}"/> that contains pages
         /// in this <see cref="TabControl"/>.</value>
         [Content]
-        public Collection<Control> Pages
+        public Collection<AbstractControl> Pages
         {
             get
             {
@@ -94,13 +120,33 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets the collection of the loaded pages.
+        /// </summary>
+        [Browsable(false)]
+        public IEnumerable<AbstractControl> LoadedPages
+        {
+            get
+            {
+                return cardPanel.LoadedCards.Select(x => x.Control);
+            }
+        }
+
+        /// <summary>
         /// Gets or sets colors and styles theme of the tabs.
         /// </summary>
         public virtual SpeedButton.KnownTheme TabTheme
         {
-            get => Header.TabTheme;
+            get
+            {
+                if (DisposingOrDisposed)
+                    return SpeedButton.KnownTheme.None;
+                return Header.TabTheme;
+            }
+
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (TabTheme == value)
                     return;
                 Header.TabTheme = value;
@@ -122,6 +168,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return -1;
                 var result = Header.SelectedTabIndex;
                 if (result is null)
                     return -1;
@@ -130,9 +178,33 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Header.SelectedTabIndex = value;
                 Invalidate();
                 RaiseSelectedIndexChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether contents of the control is visible.
+        /// If contents is hidden only tab headers are shown.
+        /// </summary>
+        [Browsable(true)]
+        public virtual bool ContentVisible
+        {
+            get
+            {
+                return cardPanel.Visible;
+            }
+
+            set
+            {
+                if (DisposingOrDisposed)
+                    return;
+                if (ContentVisible == value)
+                    return;
+                cardPanel.Visible = value;
             }
         }
 
@@ -148,6 +220,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Header.Visible = value;
             }
         }
@@ -156,15 +230,19 @@ namespace Alternet.UI
         /// Gets selected tab page.
         /// </summary>
         [Browsable(false)]
-        public virtual Control? SelectedControl
+        public virtual AbstractControl? SelectedControl
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return null;
                 return GetControlAt(SelectedIndex);
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 SelectedPage = value;
             }
         }
@@ -176,10 +254,12 @@ namespace Alternet.UI
         [Category("Appearance")]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [Browsable(false)]
-        public Control? SelectedPage
+        public virtual AbstractControl? SelectedPage
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return null;
                 var index = Header.SelectedTabIndex;
                 var result = GetControlAt(index);
                 return result;
@@ -187,6 +267,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (TabCount == 0)
                     return;
                 var selectedPage = SelectedPage;
@@ -222,7 +304,7 @@ namespace Alternet.UI
                 if (sizeMode == value)
                     return;
                 sizeMode = value;
-                PerformLayout();
+                PerformLayoutAndInvalidate();
             }
         }
 
@@ -251,7 +333,7 @@ namespace Alternet.UI
                 if (tabAppearance == value)
                     return;
                 tabAppearance = value;
-                PerformLayout();
+                PerformLayoutAndInvalidate();
             }
         }
 
@@ -260,9 +342,15 @@ namespace Alternet.UI
         /// </summary>
         public virtual Thickness ContentPadding
         {
-            get => Contents.Padding;
+            get
+            {
+                return Contents.Padding;
+            }
 
-            set => Contents.Padding = value;
+            set
+            {
+                Contents.Padding = value;
+            }
         }
 
         /// <summary>
@@ -293,6 +381,25 @@ namespace Alternet.UI
             get
             {
                 return Header.Tabs.Count;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets alignment override used when tabs are painted.
+        /// </summary>
+        public virtual TabAlignment? TabPaintAlignment
+        {
+            get
+            {
+                return tabPaintAlignment;
+            }
+
+            set
+            {
+                if (tabPaintAlignment == value)
+                    return;
+                tabPaintAlignment = value;
+                Header.Invalidate();
             }
         }
 
@@ -328,6 +435,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (TabAlignment == value)
                     return;
                 DoInsideLayout(() =>
@@ -336,7 +445,7 @@ namespace Alternet.UI
 
                     if (isVertical)
                     {
-                        cardPanelHeader.HorizontalAlignment = UI.HorizontalAlignment.Stretch;
+                        Header.HorizontalAlignment = UI.HorizontalAlignment.Stretch;
 
                         base.Layout = LayoutStyle.Vertical;
                         Header.Layout = LayoutStyle.Horizontal;
@@ -347,7 +456,7 @@ namespace Alternet.UI
                     }
                     else
                     {
-                        cardPanelHeader.VerticalAlignment = UI.VerticalAlignment.Stretch;
+                        Header.VerticalAlignment = UI.VerticalAlignment.Stretch;
 
                         base.Layout = LayoutStyle.Horizontal;
                         Header.Layout = LayoutStyle.Vertical;
@@ -373,6 +482,7 @@ namespace Alternet.UI
         /// <see cref="ContentPadding"/> is not included in the result. This function
         /// returns client area of the control, except tab header buttons area.
         /// </remarks>
+        [Browsable(false)]
         public virtual RectD DisplayRectangle
         {
             get
@@ -401,6 +511,14 @@ namespace Alternet.UI
                     TabAlignment = TabAlignment.Left;
             }
         }
+
+        /// <inheritdoc/>
+        [Browsable(false)]
+        public override IReadOnlyList<FrameworkElement> ContentElements => Pages;
+
+        /// <inheritdoc />
+        [Browsable(false)]
+        public override IEnumerable<FrameworkElement> LogicalChildrenCollection => Pages;
 
         /// <inheritdoc/>
         [Browsable(false)]
@@ -440,6 +558,13 @@ namespace Alternet.UI
         }
 
         [Browsable(false)]
+        internal new string Text
+        {
+            get => base.Text;
+            set => base.Text = value;
+        }
+
+        [Browsable(false)]
         internal new Font? Font
         {
             get => base.Font;
@@ -463,27 +588,19 @@ namespace Alternet.UI
         [Browsable(false)]
         internal CardPanel Contents => cardPanel;
 
-        /// <inheritdoc/>
-        [Browsable(false)]
-        internal override IReadOnlyList<FrameworkElement> ContentElements => Pages;
-
         /// <summary>
         /// Gets internal control with tab labels.
         /// </summary>
         [Browsable(false)]
         internal CardPanelHeader Header => cardPanelHeader;
 
-        /// <inheritdoc />
-        [Browsable(false)]
-        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection => Pages;
-
         /// <summary>
-        /// Gets default interior border color as <see cref="LightDarkColor"/>.
+        /// Gets default interior border color as light/dark color pair.
         /// </summary>
         /// <returns></returns>
-        public static LightDarkColor GetDefaultInteriorBorderColor()
+        public static Color GetDefaultInteriorBorderColor()
         {
-            return new(
+            return Color.LightDark(
                 light: ColorUtils.GetTabControlInteriorBorderColor(false),
                 dark: ColorUtils.GetTabControlInteriorBorderColor(true));
         }
@@ -495,7 +612,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Add(NameValue<Control> page)
+        public virtual int Add(NameValue<AbstractControl> page)
         {
             return Add(page.Name, page.Value);
         }
@@ -507,7 +624,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Add(NameValue<Func<Control>> page)
+        public virtual int Add(NameValue<Func<AbstractControl>> page)
         {
             return Add(page.Name, page.Value);
         }
@@ -516,7 +633,7 @@ namespace Alternet.UI
         /// Adds new pages.
         /// </summary>
         /// <param name="pages">Collection of pages.</param>
-        public virtual void AddRange(IEnumerable<NameValue<Control>> pages)
+        public virtual void AddRange(IEnumerable<NameValue<AbstractControl>> pages)
         {
             foreach(var page in pages)
                 Add(page);
@@ -526,7 +643,7 @@ namespace Alternet.UI
         /// Adds new pages.
         /// </summary>
         /// <param name="pages">Collection of pages.</param>
-        public virtual void AddRange(IEnumerable<NameValue<Func<Control>>?> pages)
+        public virtual void AddRange(IEnumerable<NameValue<Func<AbstractControl>>?> pages)
         {
             foreach (var page in pages)
             {
@@ -565,7 +682,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Add(Control control)
+        public virtual int Add(AbstractControl control)
         {
             return Add(control.Title, control);
         }
@@ -578,7 +695,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Insert(int? index, Control control)
+        public virtual int Insert(int? index, AbstractControl control)
         {
             return Insert(index, control.Title, control);
         }
@@ -592,7 +709,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Insert(int? index, string title, Control? control = null)
+        public virtual int Insert(int? index, string title, AbstractControl? control = null)
         {
             addSuspended++;
 
@@ -626,7 +743,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Add(string title, Func<Control> fnCreate)
+        public virtual int Add(string title, Func<AbstractControl> fnCreate)
         {
             addSuspended++;
 
@@ -653,7 +770,7 @@ namespace Alternet.UI
         /// <returns>
         /// Created page index.
         /// </returns>
-        public virtual int Add(string title, Control? control = null)
+        public virtual int Add(string title, AbstractControl? control = null)
         {
             return Insert(Header.Tabs.Count, title, control);
         }
@@ -731,9 +848,9 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control"></param>
         /// <returns></returns>
-        public virtual int? GetTabIndex(Control? control)
+        public virtual int? GetTabIndex(AbstractControl? control)
         {
-            if (control is null)
+            if (control is null || DisposingOrDisposed)
                 return null;
 
             var tabs = Header.Tabs;
@@ -755,7 +872,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control">Control to remove</param>
         /// <returns></returns>
-        public virtual bool Remove(Control control)
+        public virtual bool Remove(AbstractControl control)
         {
             var index = GetTabIndex(control);
             return RemoveAt(index);
@@ -796,7 +913,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public virtual Control? GetControlAt(int? index)
+        public virtual AbstractControl? GetControlAt(int? index)
         {
             var headerTab = Header.GetTab(index);
             if (headerTab is null)
@@ -816,10 +933,12 @@ namespace Alternet.UI
 
         /// <inheritdoc/>
         public override void OnChildPropertyChanged(
-            Control child,
+            AbstractControl child,
             string propName,
             bool directChild = true)
         {
+            if (DisposingOrDisposed)
+                return;
             if (propName == nameof(Title))
             {
                 var index = GetTabIndex(child);
@@ -850,6 +969,8 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnPaint(PaintEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             if (!hasInteriorBorder || TabCount == 0 || !TabsVisible)
                 return;
             var r = Header.Bounds;
@@ -859,33 +980,51 @@ namespace Alternet.UI
                 ClientRectangle,
                 r,
                 GetInteriorBorderColor().AsBrush,
-                TabAlignment);
+                tabPaintAlignment ?? TabAlignment);
         }
 
-        private void CardPanelHeader_ButtonSizeChanged(object? sender, BaseEventArgs<Control> e)
+        private void CardPanelHeader_ButtonSizeChanged(
+            object? sender,
+            BaseEventArgs<AbstractControl> e)
         {
+            if (DisposingOrDisposed)
+                return;
             TabSizeChanged?.Invoke(this, e);
             Invalidate();
         }
 
+        private void CardPanelHeader_BeforeTabClick(object sender, BaseCancelEventArgs e)
+        {
+            if (DisposingOrDisposed)
+                return;
+            GrowMinSize(MinSizeGrowMode);
+        }
+
         private void CardPanelHeader_TabClick(object? sender, EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             RaiseSelectedIndexChanged();
         }
 
         private void RaiseSelectedIndexChanged()
         {
+            if (DisposingOrDisposed)
+                return;
             SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
             SelectedPageChanged?.Invoke(this, EventArgs.Empty);
+            GrowMinSize(MinSizeGrowMode);
         }
 
-        private void Pages_ItemRemoved(object? sender, int index, Control item)
+        private void Pages_ItemRemoved(object? sender, int index, AbstractControl item)
         {
             Remove(item);
         }
 
-        private void Pages_ItemInserted(object? sender, int index, Control item)
+        private void Pages_ItemInserted(object? sender, int index, AbstractControl item)
         {
+            if (DisposingOrDisposed)
+                return;
             if (addSuspended > 0)
                 return;
             if (Contents.Find(item) is not null)
@@ -895,6 +1034,8 @@ namespace Alternet.UI
 
         private void Header_Paint(object? sender, PaintEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             if (!hasInteriorBorder || TabCount == 0 || !TabsVisible)
                 return;
             var r = e.ClipRectangle;
@@ -908,17 +1049,34 @@ namespace Alternet.UI
                 e.Graphics,
                 r,
                 GetInteriorBorderColor().AsBrush,
-                TabAlignment);
+                tabPaintAlignment ?? TabAlignment);
         }
 
         private class TabControlCardPanel : CardPanel
         {
+            public bool IsVisibleInParent
+            {
+                get
+                {
+                    return ((TabControl?)Parent)?.ContentVisible ?? false;
+                }
+            }
+
+            /// <inheritdoc/>
+            public override bool Visible
+            {
+                get => base.Visible;
+                set => base.Visible = value && IsVisibleInParent;
+            }
+
             /// <inheritdoc/>
             public override void OnChildPropertyChanged(
-                Control child,
+                AbstractControl child,
                 string propName,
                 bool directChild = true)
             {
+                if (DisposingOrDisposed)
+                    return;
                 Parent?.OnChildPropertyChanged(child, propName, false);
             }
         }

@@ -3,7 +3,6 @@ using System.Diagnostics;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
-using SharpHook;
 
 using CommunityToolkit.Maui.Core.Platform;
 
@@ -14,21 +13,35 @@ namespace SpinPaint;
 
 public partial class MainPage : ContentPage
 {
-    private readonly Alternet.UI.SkiaSampleControl skiaSample;
-
+    internal readonly Alternet.UI.PaintActionsControl customDrawControl;
+    
     static MainPage()
     {
+        Alternet.UI.DebugUtils.DebugCallIf(true, () =>
+        {
+            Alternet.UI.PlessMouse.ShowTestMouseInControl = true;
+        });
     }
 
-    public MainPage()
+    public MainPage()    
     {
+        Alternet.UI.DebugUtils.RegisterExceptionsLogger();
+
         InitializeComponent();
 
-        skiaSample = new();
+        customDrawControl = new();
+        customDrawControl.Name = "customDrawControl";
+
+        customDrawControl.SetPaintAction((control, canvas, rect) =>
+        {
+        });
 
         skiaContainer.BackgroundColor = Colors.Cornsilk;
 
-        skiaContainer.Control = skiaSample;
+        skiaContainer.Interior.Required();
+        skiaContainer.Interior.HorzScrollBar?.SetVisible(false);
+
+        skiaContainer.Control = customDrawControl;
 
         panel.BackgroundColor = Colors.CornflowerBlue;
         panel.Padding = new(10);
@@ -47,21 +60,39 @@ public partial class MainPage : ContentPage
         vo.Expands = true;
         vo.Alignment = LayoutAlignment.Fill;
         skiaContainer.VerticalOptions = vo;
-
         button1.Clicked += Button1_Clicked;
         button2.Clicked += Button2_Clicked;
 
         skiaContainer.HandlerChanged += SkiaContainer_HandlerChanged;
-        skiaContainer.Focused += GraphicsView_Focused;
-        skiaContainer.Unfocused += GraphicsView_Unfocused;
+
+        Alternet.UI.AbstractControl.FocusedControlChanged += Control_FocusedControlChanged;
+
+        colorPicker.SelectedColor = Alternet.Drawing.Color.LightBlue;
+        colorPicker.SelectedIndexChanged += (s, e) =>
+        {
+            Log($"Color changed: {colorPicker.SelectedColor?.NameLocalized}, {colorPicker.SelectedColor}");
+        };
+
+        labelView.Control.Text = "Hello";
+        PropertyGridSample.ObjectInit.SetBackgrounds(labelView.Control);
+
+        pictureBoxView.Control.Image = Alternet.UI.KnownSvgImages.ImgFileSave.AsImage(64);
+        pictureBoxView.UseUnscaledDrawImage = true;
+        pictureBoxView.Control.ImageStretch = false;
+        pictureBoxView.Control.HasBorder = true;
+        PropertyGridSample.ObjectInit.SetBackgrounds(pictureBoxView.Control);
+    }
+
+    private void Control_FocusedControlChanged(object? sender, EventArgs e)
+    {
+        var name = Alternet.UI.AbstractControl.FocusedControl?.Name ?? "null";
+        Log($"FocusedControlChanged: {name}");
     }
 
     private void SkiaContainer_HandlerChanged(object? sender, EventArgs e)
     {
 #if WINDOWS
-        var platformView = skiaContainer.Handler?.PlatformView as SkiaSharp.Views.Windows.SKXamlCanvas;
-
-        if (platformView is null)
+        if (skiaContainer.Handler?.PlatformView is not SkiaSharp.Views.Windows.SKXamlCanvas platformView)
             return;
 
         platformView.AllowFocusOnInteraction = true;
@@ -88,12 +119,12 @@ public partial class MainPage : ContentPage
         };
         platformView.CharacterReceived += (s, e) =>
         {
-            var alternetArgs = Alternet.UI.MauiKeyboardHandler.Convert(null!, e);
+            var alternetArgs = Alternet.UI.MauiKeyboardHandler.Default.Convert(null!, e);
             Log($" KeyPress => {alternetArgs.KeyChar}");
         };
         platformView.KeyDown += (s, e) =>
         {
-            var alternetArgs = Alternet.UI.MauiKeyboardHandler.Convert(null!, e);
+            var alternetArgs = Alternet.UI.MauiKeyboardHandler.Default.Convert(null!, e);
             var isPressed = Alternet.UI.Keyboard.IsKeyDown(alternetArgs.Key);
             Log($"KeyDown {e.Key} => {alternetArgs.Key} {isPressed}");
             Window.Title = alternetArgs.ToString();
@@ -120,16 +151,6 @@ public partial class MainPage : ContentPage
         Alternet.UI.App.Log(s);
     }
 
-    private void GraphicsView_Unfocused(object? sender, FocusEventArgs e)
-    {
-        Log("GraphicsView_Unfocused");
-    }
-
-    private void GraphicsView_Focused(object? sender, FocusEventArgs e)
-    {
-        Log("GraphicsView_Focused");
-    }
-
     private void Button2_Clicked(object? sender, EventArgs e)
     {
         Alternet.UI.MauiUtils.EnumViewsToLog(panel);
@@ -143,8 +164,11 @@ public partial class MainPage : ContentPage
         */
     }
 
-    private void Button1_Clicked(object? sender, EventArgs e)
+    private async void Button1_Clicked(object? sender, EventArgs e)
     {
+        await Alternet.UI.Clipboard.SetDataObjectAsync(new Alternet.UI.DataObject("Hello"));
+        var result = await Alternet.UI.Clipboard.GetDataObjectAsync();
+        var test = result?.ToString();
     }
 
     public ObservableCollection<SimpleItem> MyItems { get; set; } = new();
@@ -155,6 +179,8 @@ public partial class MainPage : ContentPage
         OneNewitem.Text = e;
         MyItems.Add(OneNewitem);
         logControl.SelectedItem = MyItems[MyItems.Count - 1];
+
+        this.Title = e;
     }
 
     public class SimpleItem

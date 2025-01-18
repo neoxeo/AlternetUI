@@ -13,22 +13,44 @@ namespace Alternet.UI
     /// The tabs in a <see cref="TabControl"/> are part of the <see cref="TabControl"/> but
     /// not parts of the individual <see cref="TabPage"/> controls.
     /// </remarks>
+    /// <remarks>
+    /// You can add any control descendant to the <see cref="TabControl"/>, not only
+    /// <see cref="TabPage"/>.
+    /// </remarks>
     [ControlCategory("Hidden")]
     public partial class TabPage : ContainerControl
     {
         private int? index;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="TabPage"/> class.
+        /// </summary>
+        /// <param name="title">Page title.</param>
+        /// <param name="parent">Parent of the control.</param>
+        public TabPage(Control parent, string? title = null)
+            : this(title)
+        {
+            if (parent is TabControl tabControl)
+                tabControl.Add(this);
+            else
+                Parent = parent;
+        }
+
+        /// <summary>
         /// Initializes a new instance of <see cref="TabPage"/> class.
         /// </summary>
         public TabPage()
         {
+            ParentBackColor = true;
+            ParentForeColor = true;
         }
 
         /// <summary>
         /// Initializes a new instance of <see cref="TabPage"/> class with the specified title.
         /// </summary>
+        /// <param name="title">Page title.</param>
         public TabPage(string? title)
+            : this()
         {
             Title = title ?? string.Empty;
         }

@@ -10,8 +10,20 @@ namespace Alternet.UI
     /// <summary>
     ///     XamlGridLengthSerializer is used to persist a GridLength structure in Baml files
     /// </summary>
-    internal class XamlGridLengthSerializer : XamlSerializer
+    internal class XamlGridLengthSerializer
     {
+        // Used to emit Definitions namespace prefix
+        internal const string DefNamespacePrefix = "x";
+
+        // Used to emit Definitions namespace
+        internal const string DefNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+        // Used to emit the x:Array tag
+        internal const string ArrayTag = "Array";
+
+        // Used to emit the x:Type attribute for Array
+        internal const string ArrayTagTypeAttribute = "Type";
+
         #region Construction
 
         /// <summary>
@@ -37,7 +49,7 @@ namespace Alternet.UI
         static internal void FromString(
                 string s,
                 CultureInfo cultureInfo,
-            out double value,
+            out Coord value,
             out GridUnitType unit)
         {
             string goodString = s.Trim().ToLowerInvariant();
@@ -48,7 +60,7 @@ namespace Alternet.UI
             int i;
             int strLen = goodString.Length;
             int strLenUnit = 0;
-            double unitFactor = 1.0f;
+            Coord unitFactor = 1.0f;
 
             //  this is where we would handle trailing whitespace on the input string.
             //  peel [unit] off the end of the string
@@ -104,11 +116,11 @@ namespace Alternet.UI
             else
             {
                 Debug.Assert(unit == GridUnitType.Pixel
-                            || DoubleUtils.AreClose(unitFactor, 1.0));
+                            || CoordUtils.AreClose(unitFactor, 1.0));
 
 //                ReadOnlySpan<char> valueString = goodString.AsSpan(0, strLen - strLenUnit);
                 var valueString = goodString.Substring(0, strLen - strLenUnit);
-                value = double.Parse(valueString, provider: cultureInfo) * unitFactor;
+                value = Coord.Parse(valueString, provider: cultureInfo) * unitFactor;
             }
         }
 
@@ -122,7 +134,7 @@ namespace Alternet.UI
 
         //  this array contains strings for unit types that are not present in the GridUnitType enum
         static private string[] PixelUnitStrings = { "in", "cm", "pt" };
-        static private double[] PixelUnitFactors =
+        static private Coord[] PixelUnitFactors =
         {
             96.0f,             // Pixels per Inch
             96.0f / 2.54f,      // Pixels per Centimeter

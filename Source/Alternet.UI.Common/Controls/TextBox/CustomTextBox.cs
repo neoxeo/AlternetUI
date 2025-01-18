@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Alternet.Drawing;
@@ -15,15 +16,122 @@ namespace Alternet.UI
     /// Base class for text editors.
     /// </summary>
     [ControlCategory("Hidden")]
-    public abstract class CustomTextBox
+    public abstract partial class CustomTextBox
         : Control, ICustomTextBox, IReadOnlyStrings, IValidatorReporter, IObjectToStringOptions,
         INotifyDataErrorInfo
     {
-        private int oldErrorCount;
-        private StringSearch? search;
+        private const TextBoxOptions DefaultOptions = TextBoxOptions.IntRangeInError;
+        private const bool DefaultAllowEmptyText = true;
+
+        [DefaultValue(DefaultAllowEmptyText)]
+        [AutoReset]
+        private bool allowEmptyText = DefaultAllowEmptyText;
+
+        [AutoReset]
+        [DefaultValue(DefaultOptions)]
+        private TextBoxOptions options = DefaultOptions;
+
+        [AutoReset]
+        private CultureInfo? culture;
+
+        [AutoReset]
+        private TypeConverter? typeConverter;
+
+        [AutoReset]
+        private ITypeDescriptorContext? context;
+
+        [AutoReset]
+        private IObjectToString? converter;
+
+        [AutoReset]
+        private string? defaultFormat;
+
+        [AutoReset]
+        private NumberStyles? numberStyles;
+
+        [AutoReset(false)]
+        private IValidatorReporter? validatorReporter;
+
+        [AutoReset]
+        private string? validatorErrorText;
+
+        [AutoReset]
+        private object? emptyTextValue;
+
+        [AutoReset]
         private int minLength;
+
+        [AutoReset]
         private int maxLength;
-        private TextBoxOptions options = TextBoxOptions.IntRangeInError;
+
+        [AutoReset]
+        private KnownInputType? inputType;
+
+        [AutoReset]
+        private object? minValue;
+
+        [AutoReset]
+        private object? maxValue;
+
+        [AutoReset]
+        private Type? dataType;
+
+        [AutoReset]
+        private string? defaultText;
+
+        [AutoReset]
+        private int reportedErrorCount;
+
+        [AutoReset]
+        private StringSearch? search;
+
+        [AutoReset]
+        private Exception? textAsValueError;
+
+        [AutoReset]
+        private TrimTextRules trimTextRules;
+
+        [AutoReset]
+        private TextBoxInitializeEventArgs? inputTypeArgs;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomTextBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public CustomTextBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomTextBox"/> class.
+        /// </summary>
+        public CustomTextBox()
+        {
+        }
+
+        /// <summary>
+        /// Occurs when <see cref="string"/> is converted to value. This is static event
+        /// and is called for all the editors.
+        /// </summary>
+        public static event EventHandler<StringToObjectEventArgs>? GlobalStringToValue;
+
+        /// <summary>
+        /// Occurs when value is converted to <see cref="string"/>. This is static event
+        /// and is called for all the editors.
+        /// </summary>
+        public static event EventHandler<ObjectToStringEventArgs>? GlobalValueToString;
+
+        /// <summary>
+        /// Occurs when <see cref="string"/> is converted to value in this control.
+        /// </summary>
+        public static event EventHandler<StringToObjectEventArgs>? StringToValue;
+
+        /// <summary>
+        /// Occurs when value is converted to <see cref="string"/> in this control.
+        /// </summary>
+        public static event EventHandler<ObjectToStringEventArgs>? ValueToString;
 
         /// <summary>
         /// Occurs when <see cref="ReportValidatorError"/> is called.
@@ -44,14 +152,15 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default <see cref="Color"/> that can be used
         /// as a background color for the <see cref="TextBox"/> in cases when
-        /// application needs to report user an error in <see cref="Control.Text"/> property.
+        /// application needs to report user an error in
+        /// <see cref="AbstractControl.Text"/> property.
         /// </summary>
         public static Color DefaultErrorBackgroundColor { get; set; } = Color.Red;
 
         /// <summary>
         /// Gets or sets default <see cref="Color"/> that can be used
         /// as a foreground color for the <see cref="TextBox"/> in cases when
-        /// application needs to report user an error in <see cref="Control.Text"/> property.
+        /// application needs to report user an error in <see cref="AbstractControl.Text"/> property.
         /// </summary>
         public static Color DefaultErrorForegroundColor { get; set; } = Color.White;
 
@@ -79,13 +188,15 @@ namespace Alternet.UI
         /// Gets or sets default value for the <see cref="ResetErrorBackgroundMethod"/>
         /// property.
         /// </summary>
-        public static ResetColorType DefaultResetErrorBackgroundMethod { get; set; } = ResetColorType.Auto;
+        public static ResetColorType DefaultResetErrorBackgroundMethod { get; set; }
+            = ResetColorType.Auto;
 
         /// <summary>
         /// Gets or sets default value for the <see cref="ResetErrorForegroundMethod"/>
         /// property.
         /// </summary>
-        public static ResetColorType DefaultResetErrorForegroundMethod { get; set; } = ResetColorType.Auto;
+        public static ResetColorType DefaultResetErrorForegroundMethod { get; set; }
+            = ResetColorType.Auto;
 
         /// <inheritdoc/>
         public override bool HasErrors
@@ -96,44 +207,15 @@ namespace Alternet.UI
             }
         }
 
-        /// <inheritdoc cref="IObjectToStringOptions.NumberStyles"/>
-        /// <remarks>
-        /// Default value is <c>null</c>. <see cref="TextBox"/> behavior is not affected
-        /// by this property, you can use it if <see cref="TextBox"/> edits a number value or
-        /// for any other purposes.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual NumberStyles? NumberStyles { get; set; }
-
-        /// <inheritdoc cref="IObjectToStringOptions.FormatProvider"/>
-        /// <remarks>
-        /// Default value is <c>null</c>. <see cref="TextBox"/> behavior is not affected
-        /// by this property, you can use it for any purposes.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual IFormatProvider? FormatProvider { get; set; }
-
-        /// <inheritdoc cref="IObjectToStringOptions.DefaultFormat"/>
-        public virtual string? DefaultFormat { get; set; }
-
-        /// <inheritdoc cref="IObjectToStringOptions.Converter"/>
-        [Browsable(false)]
-        public virtual IObjectToString? Converter { get; set; }
-
         /// <summary>
-        /// Gets or sets default value for the <see cref="Control.Text"/> property.
+        /// Gets or sets default value for the <see cref="AbstractControl.Text"/> property.
         /// </summary>
-        public virtual string? DefaultText { get; set; }
-
-        /// <summary>
-        /// Gets or sets <see cref="Type"/> of the <see cref="Control.Text"/> property.
-        /// </summary>
-        /// <remarks>
-        /// Default value is <c>null</c>. <see cref="TextBox"/> behavior is not affected
-        /// by this property, you can use it for any purposes.
-        /// </remarks>
         [Browsable(false)]
-        public virtual Type? DataType { get; set; }
+        public virtual string? DefaultText
+        {
+            get => defaultText;
+            set => defaultText = value;
+        }
 
         /// <summary>
         /// Gets or sets the maximum number of characters
@@ -166,7 +248,8 @@ namespace Alternet.UI
 
             set
             {
-                if (maxLength == value || value < 0)
+                value = Math.Max(0, value);
+                if (maxLength == value)
                     return;
                 maxLength = value;
             }
@@ -181,7 +264,11 @@ namespace Alternet.UI
         /// this is a <see cref="PictureBox"/> with error image.
         /// </remarks>
         [Browsable(false)]
-        public virtual IValidatorReporter? ValidatorReporter { get; set; }
+        public virtual IValidatorReporter? ValidatorReporter
+        {
+            get => validatorReporter;
+            set => validatorReporter = value;
+        }
 
         /// <summary>
         /// Gets or sets a text string that can be used as validator error message.
@@ -190,20 +277,30 @@ namespace Alternet.UI
         /// Default value is <c>null</c>. <see cref="TextBox"/> behavior is not affected
         /// by this property, you can use it for any purposes.
         /// </remarks>
-        public virtual string? ValidatorErrorText { get; set; }
+        public virtual string? ValidatorErrorText
+        {
+            get => validatorErrorText;
+            set => validatorErrorText = value;
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating whether empty string is allowed in <see cref="Control.Text"/>.
+        /// Gets or sets a value indicating whether empty string
+        /// is allowed in <see cref="AbstractControl.Text"/>.
         /// </summary>
         /// <remarks>
         /// Default value is <c>true</c>. <see cref="TextBox"/> behavior is not affected
         /// by this property, you can use it for any purposes.
         /// </remarks>
         [Browsable(false)]
-        public virtual bool AllowEmptyText { get; set; } = true;
+        public virtual bool AllowEmptyText
+        {
+            get => allowEmptyText;
+            set => allowEmptyText = value;
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating whether <see cref="Control.Text"/> is required to be not empty.
+        /// Gets or sets a value indicating whether
+        /// <see cref="AbstractControl.Text"/> is required to be not empty.
         /// This is an opposite of <see cref="AllowEmptyText"/> property.
         /// </summary>
         /// <remarks>
@@ -225,14 +322,25 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets data value in cases when <see cref="Control.Text"/> property is empty.
+        /// Gets or sets whether error reporter is automatically shown/hidden when
+        /// error state is changed.
+        /// </summary>
+        public virtual bool AutoShowError { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets data value in cases when <see cref="AbstractControl.Text"/>
+        /// property is empty.
         /// </summary>
         /// <remarks>
         /// Default value is <c>null</c>. <see cref="TextBox"/> behavior is not affected
         /// by this property, you can use it for any purposes.
         /// </remarks>
         [Browsable(false)]
-        public virtual object? EmptyTextValue { get; set; }
+        public virtual object? EmptyTextValue
+        {
+            get => emptyTextValue;
+            set => emptyTextValue = value;
+        }
 
         /// <summary>
         /// Gets or sets string search provider.
@@ -255,91 +363,165 @@ namespace Alternet.UI
         /// if error backround color is used for reporting it.
         /// </summary>
         [Browsable(false)]
-        public ResetColorType? ResetErrorBackgroundMethod { get; set; }
+        public virtual ResetColorType? ResetErrorBackgroundMethod { get; set; }
 
         /// <summary>
         /// Gets or sets method which is used to clear error state
         /// if error foreground color is used for reporting it.
         /// </summary>
         [Browsable(false)]
-        public ResetColorType? ResetErrorForegroundMethod { get; set; }
+        public virtual ResetColorType? ResetErrorForegroundMethod { get; set; }
 
         /// <summary>
-        /// Gets whether <see cref="Control.Text"/> is null or empty.
+        /// Gets whether <see cref="AbstractControl.Text"/> is null or empty.
         /// </summary>
         [Browsable(false)]
         public bool IsNullOrEmpty => string.IsNullOrEmpty(Text);
 
         /// <summary>
-        /// Gets whether <see cref="Control.Text"/> is null or white space.
+        /// Gets whether <see cref="AbstractControl.Text"/> is null or white space.
         /// </summary>
         [Browsable(false)]
         public bool IsNullOrWhiteSpace => string.IsNullOrWhiteSpace(Text);
 
+        bool? IObjectToStringOptions.UseInvariantCulture
+        {
+            get => Options.HasFlag(TextBoxOptions.UseInvariantCulture);
+
+            set
+            {
+                if (value ?? false)
+                    Options |= TextBoxOptions.UseInvariantCulture;
+                else
+                    Options &= ~TextBoxOptions.UseInvariantCulture;
+            }
+        }
+
         /// <summary>
-        /// Gets or sets <see cref="Control.Text"/> property value as <see cref="object"/> of a number type.
+        /// Gets last error occured inside <see cref="TextAsValue"/> property getter or setter.
+        /// </summary>
+        [Browsable(false)]
+        public virtual Exception? TextAsValueError
+        {
+            get => textAsValueError;
+            private set => textAsValueError = value;
+        }
+
+        /// <summary>
+        /// Gets or sets text trimming rules used in <see cref="TextAsValue"/> setter and some
+        /// other places.
+        /// </summary>
+        public virtual TrimTextRules TrimTextRules
+        {
+            get => trimTextRules;
+            set => trimTextRules = value;
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="AbstractControl.Text"/>
+        /// as <see cref="object"/> using <see cref="DataType"/>, <see cref="TypeConverter"/>
+        /// and other properties which define text to/from value conversion rules.
+        /// </summary>
+        [Browsable(false)]
+        public virtual object? TextAsValue
+        {
+            get
+            {
+                TextAsValueError = null;
+
+                try
+                {
+                    if (TextToValueWithEvent(out object? result))
+                        return result;
+
+                    if (DataType is null || DataType == typeof(string))
+                        return Text;
+
+                    var typeConverter = TypeConverter ??
+                        StringConverters.Default.GetTypeConverter(DataType);
+
+                    if (typeConverter is null)
+                        return null;
+
+                    var isBaseTypeConverter = typeConverter.GetType() == typeof(TypeConverter);
+
+                    if (isBaseTypeConverter)
+                        return null;
+
+                    result = StringUtils.ParseWithTypeConverter(
+                                Text,
+                                typeConverter,
+                                Context,
+                                Culture,
+                                Options.HasFlag(TextBoxOptions.UseInvariantCulture));
+
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    TextAsValueError = e;
+                    return EmptyTextValue;
+                }
+            }
+
+            set
+            {
+                TextAsValueError = null;
+
+                try
+                {
+                    var s = ObjectToString(value, Options | TextBoxOptions.UseTypeConverter);
+
+                    var trimmed = StringUtils.Trim(s, TrimTextRules);
+
+                    Text = trimmed ?? string.Empty;
+                }
+                catch (Exception e)
+                {
+                    Text = string.Empty;
+                    TextAsValueError = e;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="AbstractControl.Text"/> property value
+        /// as <see cref="object"/> of a number type.
         /// </summary>
         /// <remarks>
-        /// If <see cref="Control.Text"/> property doesn't contain a number value, <c>null</c> is returned.
+        /// If <see cref="AbstractControl.Text"/> property doesn't contain
+        /// a number value, <c>null</c> is returned.
         /// </remarks>
         [Browsable(false)]
         public virtual object? TextAsNumber
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(Text))
-                    return this.EmptyTextValue;
+                if (TextToValueWithEvent(out object? convertedValue))
+                    return convertedValue;
 
-                var typeCode = GetDataTypeCode();
-                if (!AssemblyUtils.IsTypeCodeNumber(typeCode))
-                    return SmartTextAsNumber();
+                if (!IsNumber)
+                {
+                    var converted = StringUtils.TryParseNumberWithDelegates(
+                                Text,
+                                NumberStyles ?? System.Globalization.NumberStyles.Any,
+                                FormatProvider,
+                                out var result,
+                                StringUtils.TryParseNumberDelegates);
+                    if (converted)
+                        return result;
+                }
 
                 var isOk = StringUtils.TryParseNumber(
-                    typeCode,
+                    GetDataTypeCode(),
                     Text,
                     NumberStyles,
                     FormatProvider,
-                    out var result);
+                    out convertedValue);
                 if (isOk)
-                    return result;
+                    return convertedValue;
                 else
                     return null;
-
-                object? UseDelegate(TryParseNumberDelegate proc)
-                {
-                    var numberStyles = NumberStyles ?? System.Globalization.NumberStyles.Any;
-                    var isOk = proc(
-                        Text,
-                        numberStyles,
-                        FormatProvider,
-                        out result);
-                    if (isOk)
-                        return result;
-                    else
-                        return null;
-                }
-
-                object? SmartTextAsNumber()
-                {
-                    TryParseNumberDelegate[] procs =
-                    {
-                        StringUtils.TryParseInt32,
-                        StringUtils.TryParseUInt32,
-                        StringUtils.TryParseInt64,
-                        StringUtils.TryParseUInt64,
-                        StringUtils.TryParseDouble,
-                        StringUtils.TryParseDecimal,
-                    };
-
-                    foreach (var proc in procs)
-                    {
-                        object? result = UseDelegate(proc);
-                        if (result is not null)
-                            return result;
-                    }
-
-                    return null;
-                }
             }
 
             set
@@ -361,7 +543,49 @@ namespace Alternet.UI
         /// by this property, you can use it for any purposes.
         /// </remarks>
         [Browsable(false)]
-        public virtual object? MinValue { get; set; }
+        public virtual object? MinValue
+        {
+            get => minValue;
+
+            set
+            {
+                minValue = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets init arguments which are used when <see cref="InputType"/>
+        /// property is assigned.
+        /// </summary>
+        [Browsable(false)]
+        public virtual TextBoxInitializeEventArgs? InputTypeArgs
+        {
+            get => inputTypeArgs;
+            set => inputTypeArgs = value;
+        }
+
+        /// <summary>
+        /// Gets or sets input type. Default is Null.
+        /// </summary>
+        public virtual KnownInputType? InputType
+        {
+            get
+            {
+                return inputType;
+            }
+
+            set
+            {
+                if (inputType == value)
+                    return;
+                inputType = value;
+                TextBoxInitializers.Default.Initialize(
+                    this,
+                    value ?? KnownInputType.None,
+                    InputTypeArgs);
+                inputType = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the maximum value that can be
@@ -376,7 +600,11 @@ namespace Alternet.UI
         /// by this property, you can use it for any purposes.
         /// </remarks>
         [Browsable(false)]
-        public virtual object? MaxValue { get; set; }
+        public virtual object? MaxValue
+        {
+            get => maxValue;
+            set => maxValue = value;
+        }
 
         /// <summary>
         /// Gets or sets flags which customize behavior and visual style of the control.
@@ -429,13 +657,6 @@ namespace Alternet.UI
             set => base.Layout = value;
         }
 
-        [Browsable(false)]
-        internal new string Title
-        {
-            get => base.Title;
-            set => base.Title = value;
-        }
-
         string? IReadOnlyStrings.this[int index]
         {
             get
@@ -462,7 +683,10 @@ namespace Alternet.UI
             picture.ImageVisible = false;
             picture.ImageStretch = false;
             picture.TabStop = false;
+            picture.Margin = (KnownMetrics.ControlLabelDistance, 1, 1, 1);
+            picture.ParentBackColor = true;
 
+            picture.MouseLeftButtonUp -= Picture_MouseLeftButtonUp;
             picture.MouseLeftButtonUp += Picture_MouseLeftButtonUp;
 
             static void Picture_MouseLeftButtonUp(object? sender, MouseEventArgs e)
@@ -472,40 +696,65 @@ namespace Alternet.UI
 
                 pictureBox.HideToolTip();
 
-                RichToolTip.Show(
-                    ErrorMessages.Default.ErrorTitle,
-                    pictureBox.ToolTip,
+                ToolTipFactory.ShowToolTip(
                     pictureBox,
-                    RichToolTipKind.None,
+                    null,
+                    pictureBox.ToolTip,
                     MessageBoxIcon.Error);
             }
         }
 
         /// <summary>
-        /// Returns the number of lines in the text control buffer.
+        /// Sets <see cref="CustomTextBox.ValidatorErrorText"/> property
+        /// to <paramref name="knownError"/>.
         /// </summary>
-        /// <returns></returns>
-        /// <remarks>
-        /// The returned number is the number of logical lines, i.e. just the count of
-        /// the number of newline characters in the control + 1, for GTK
-        /// and OSX/Cocoa ports while it is the number of physical lines,
-        /// i.e. the count of
-        /// lines actually shown in the control, in MSW and OSX/Carbon. Because of
-        /// this discrepancy, it is not recommended to use this function.
-        /// </remarks>
-        /// <remarks>
-        /// Note that even empty text controls have one line (where the
-        /// insertion point is), so this function never returns 0.
-        /// </remarks>
-        public abstract int GetNumberOfLines();
+        /// <param name="knownError">Known error identifier.</param>
+        public virtual void SetErrorText(ValueValidatorKnownError knownError)
+        {
+            ValidatorErrorText = GetKnownErrorText(knownError);
+        }
 
         /// <summary>
-        /// Returns the contents of a given line in the text control, not
-        /// including any trailing newline character(s).
+        /// Sets <see cref="CustomTextBox.ValidatorErrorText"/>
+        /// with default error text for the data type specified in <see cref="DataType"/>.
         /// </summary>
-        /// <param name="lineNo">Line number (starting from zero).</param>
-        /// <returns>The contents of the line.</returns>
-        public abstract string GetLineText(long lineNo);
+        public virtual void SetErrorTextFromDataType()
+        {
+            if(DataType is null)
+            {
+                ValidatorErrorText = null;
+                return;
+            }
+
+            if (IsHexNumber)
+            {
+                SetErrorText(ValueValidatorKnownError.HexNumberIsExpected);
+                return;
+            }
+
+            if (IsFloat)
+            {
+                if (IsSignedNumber)
+                    SetErrorText(ValueValidatorKnownError.FloatIsExpected);
+                else
+                    SetErrorText(ValueValidatorKnownError.UnsignedFloatIsExpected);
+                return;
+            }
+
+            if (IsUnsignedInt)
+            {
+                SetErrorText(ValueValidatorKnownError.UnsignedNumberIsExpected);
+                return;
+            }
+
+            if (IsSignedInt)
+            {
+                SetErrorText(ValueValidatorKnownError.NumberIsExpected);
+                return;
+            }
+
+            SetErrorText(ValueValidatorKnownError.None);
+        }
 
         void IValidatorReporter.SetErrorStatus(object? sender, bool showError, string? errorText)
         {
@@ -520,6 +769,16 @@ namespace Alternet.UI
         {
             var typeCode = GetDataTypeCode();
             var result = MathUtils.Max(AssemblyUtils.GetMinValue(typeCode), MinValue);
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public override bool IsValidInputChar(char ch)
+        {
+            if (ch == CharUtils.BackspaceChar)
+                return true;
+
+            var result = base.IsValidInputChar(ch);
             return result;
         }
 
@@ -565,7 +824,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Reports an error if <see cref="Control.Text"/> property is empty
+        /// Reports an error if <see cref="AbstractControl.Text"/> property is empty
         /// and it is not allowed (<see cref="CustomTextBox.AllowEmptyText"/> is <c>false</c>).
         /// </summary>
         public virtual bool ReportErrorEmptyText(Action<string>? errorEnumerator = null)
@@ -587,10 +846,13 @@ namespace Alternet.UI
         /// validation is ok and error was not reported.</returns>
         /// <remarks>
         /// <see cref="ReportValidatorError"/> is used to report the error. If
-        /// <see cref="CustomTextBox.DataType"/> is assigned, it is also used to get possible min and max
+        /// <see cref="CustomTextBox.DataType"/> is assigned, it is also used
+        /// to get possible min and max
         /// values.
         /// </remarks>
-        public virtual bool ReportErrorMinMaxValue(object? value, Action<string>? errorEnumerator = null)
+        public virtual bool ReportErrorMinMaxValue(
+            object? value,
+            Action<string>? errorEnumerator = null)
         {
             if (value is null)
                 return false;
@@ -679,7 +941,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Reports an error if length of the <see cref="Control.Text"/> property value
+        /// Reports an error if length of the <see cref="AbstractControl.Text"/> property value
         /// is less than <see cref="MinLength"/> or greater than <see cref="MaxLength"/>.
         /// </summary>
         /// <returns><c>true</c> if validation error was reported; <c>false</c> if
@@ -739,7 +1001,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Runs default validation of the <see cref="Control.Text"/> property.
+        /// Runs default validation of the <see cref="AbstractControl.Text"/> property.
         /// </summary>
         /// <remarks>
         /// Validation errors are reported using <see cref="ReportValidatorError"/>.
@@ -764,9 +1026,9 @@ namespace Alternet.UI
 
             void RaiseErrorsChanged()
             {
-                if (errorCount != oldErrorCount)
+                if (errorCount != reportedErrorCount)
                 {
-                    oldErrorCount = errorCount;
+                    reportedErrorCount = errorCount;
                     BubbleErrorsChanged(new DataErrorsChangedEventArgs(null));
                 }
             }
@@ -896,8 +1158,51 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Sets <see cref="CustomTextBox.DataType"/> property to <typeparamref name="T"/>
+        /// and <see cref="CharValidator"/> to the appropriate validator provider.
+        /// </summary>
+        /// <typeparam name="T">New <see cref="CustomTextBox.DataType"/> property value.</typeparam>
+        public virtual void UseCharValidator<T>()
+        {
+            DataType = typeof(T);
+            CharValidator = Alternet.UI.CharValidator.CreateValidator(typeof(T));
+        }
+
+        /// <summary>
+        /// Sets <see cref="DataType"/> to the specified type and
+        /// and <see cref="CharValidator"/> to the appropriate validator provider.
+        /// </summary>
+        /// <param name="type">New <see cref="CustomTextBox.DataType"/> property value.</param>
+        /// <param name="charValidator">Whether to create and assign
+        /// appropriate char validator or assign <see cref="CharValidator"/> to Null.</param>
+        public virtual void SetValidator(Type? type, bool charValidator)
+        {
+            DataType = type;
+            SetErrorTextFromDataType();
+
+            if (charValidator)
+                CharValidator = Alternet.UI.CharValidator.CreateValidator(type);
+            else
+                CharValidator = null;
+        }
+
+        /// <summary>
+        /// Sets text as value (using <see cref="SetTextAsObject"/>)
+        /// and assigns appropriate char and value validators.
+        /// </summary>
+        /// <param name="value">Object which will be converted to string and assigned
+        /// to <see cref="AbstractControl.Text"/> property.</param>
+        /// <param name="charValidator">Whether to set char validator.</param>
+        public virtual void SetValueAndValidator(object? value, bool charValidator)
+        {
+            SetValidator(value?.GetType(), charValidator);
+            Options |= TextBoxOptions.DefaultValidation;
+            SetTextAsObject(value);
+        }
+
+        /// <summary>
         /// Converts <paramref name="value"/> to <see cref="string"/> and assigns
-        /// <see cref="Control.Text"/>
+        /// <see cref="AbstractControl.Text"/>
         /// property with the converted value.
         /// </summary>
         /// <param name="value">Value.</param>
@@ -913,48 +1218,103 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void SetTextAsObject(object? value)
         {
+            Text = ObjectToString(value) ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Converts the specified object to string using conversion
+        /// rules specified in the control.
+        /// </summary>
+        /// <param name="value">Value to convert.</param>
+        /// <param name="optionsOverride">Conversion options. If not specified,
+        /// <see cref="Options"/> is used.</param>
+        /// <returns></returns>
+        public virtual string? ObjectToString(
+            object? value,
+            TextBoxOptions? optionsOverride = null)
+        {
             if (value is null)
+                return null;
+
+            optionsOverride ??= options;
+
+            var valueToString = ValueToString ?? GlobalValueToString;
+
+            if (valueToString is not null)
             {
-                Text = string.Empty;
-                return;
+                var e = new ValueConvertEventArgs<object?, string?>(value);
+                valueToString(this, e);
+                if (e.Handled)
+                    return e.Result;
             }
 
             var type = value.GetType();
             DataType ??= type;
-            var typeCode = AssemblyUtils.GetRealTypeCode(type);
+            var converter = Converter;
+            bool usedTypeConverter = false;
 
-            var converter = Converter ??
-                ObjectToStringFactory.Default.GetConverter(typeCode);
+            if (converter is null && optionsOverride.Value.HasFlag(TextBoxOptions.UseTypeConverter))
+            {
+                converter = StringConverters.Default.CreateAdapter(TypeConverter);
+
+                if (converter is null)
+                {
+                    converter = StringConverters.Default.CreateAdapterForTypeConverter(type);
+                }
+
+                usedTypeConverter = converter is not null;
+            }
+
             if (converter is null)
             {
-                Text = value.ToString() ?? string.Empty;
-                return;
+                var typeCode = AssemblyUtils.GetRealTypeCode(type);
+                converter = StringConverters.Default.GetConverter(typeCode);
+            }
+
+            if (converter is null)
+            {
+                return value.ToString();
+            }
+
+            var converted = converter.TryConvert(
+                this,
+                value,
+                this,
+                out var conversionResult);
+
+            if (converted)
+            {
+                return conversionResult;
+            }
+
+            if (usedTypeConverter)
+            {
+                return converter.ToString(
+                    this,
+                    value,
+                    Context,
+                    Culture,
+                    optionsOverride.Value.HasFlag(TextBoxOptions.UseInvariantCulture));
             }
 
             if (DefaultFormat is null)
             {
                 if (FormatProvider is null)
-                {
-                    Text = converter.ToString(value) ?? string.Empty;
-                    return;
-                }
+                    return converter.ToString(this, value);
                 else
-                {
-                    Text = converter.ToString(value, FormatProvider) ?? string.Empty;
-                    return;
-                }
+                    return converter.ToString(this, value, FormatProvider);
             }
             else
             {
                 if (FormatProvider is null)
-                {
-                    Text = converter.ToString(value, DefaultFormat) ?? string.Empty;
-                    return;
-                }
+                    return converter.ToString(this, value, DefaultFormat);
                 else
                 {
-                    Text = converter.ToString(value, DefaultFormat, FormatProvider) ?? string.Empty;
-                    return;
+                    return converter.ToString(
+                        this,
+                        value,
+                        DefaultFormat,
+                        FormatProvider);
                 }
             }
         }
@@ -987,9 +1347,16 @@ namespace Alternet.UI
             if (!showError)
             {
                 if (DefaultErrorUseBackgroundColor)
-                    ResetBackgroundColor(ResetErrorBackgroundMethod ?? DefaultResetErrorBackgroundMethod);
+                {
+                    ResetBackgroundColor(ResetErrorBackgroundMethod
+                        ?? DefaultResetErrorBackgroundMethod);
+                }
+
                 if (DefaultErrorUseForegroundColor)
-                    ResetForegroundColor(ResetErrorForegroundMethod ?? DefaultResetErrorForegroundMethod);
+                {
+                    ResetForegroundColor(ResetErrorForegroundMethod
+                        ?? DefaultResetErrorForegroundMethod);
+                }
             }
             else
             {
@@ -1011,15 +1378,55 @@ namespace Alternet.UI
 
             void Report(IValidatorReporter? reporter)
             {
+                if (AutoShowError && reporter is Control reporterControl)
+                {
+                    if(reporterControl != this)
+                    {
+                        this.RunWhenIdle(() =>
+                        {
+                            reporterControl.Visible = showError;
+                        });
+                    }
+                }
+
                 reporter?.SetErrorStatus(this, showError, hint);
             }
+        }
+
+        /// <summary>
+        /// Resets fields and properties before editing new value with the different data type.
+        /// You can call this method in order to reset members related to data type, formatting
+        /// and value conversion.
+        /// </summary>
+        public virtual void ResetInputSettings()
+        {
+            allowEmptyText = DefaultAllowEmptyText;
+            options = DefaultOptions;
+            culture = null;
+            typeConverter = null;
+            context = null;
+            converter = null;
+            defaultFormat = null;
+            numberStyles = null;
+            validatorErrorText = null;
+            emptyTextValue = null;
+            minLength = default;
+            maxLength = default;
+            inputType = null;
+            minValue = null;
+            maxValue = null;
+            dataType = null;
+            defaultText = null;
+            search = null;
+            textAsValueError = null;
+            trimTextRules = default;
         }
 
         /// <summary>
         /// Gets known error text.
         /// </summary>
         /// <param name="kind">Error kind.</param>
-        public virtual string GetKnownErrorText(ValueValidatorKnownError kind)
+        public virtual string? GetKnownErrorText(ValueValidatorKnownError kind)
         {
             string AddRangeSuffix(string s)
             {
@@ -1034,6 +1441,8 @@ namespace Alternet.UI
 
             switch (kind)
             {
+                case ValueValidatorKnownError.None:
+                    return null;
                 case ValueValidatorKnownError.NumberIsExpected:
                     return AddRangeSuffix(ErrorMessages.Default.ValidationNumberIsExpected);
                 case ValueValidatorKnownError.UnsignedNumberIsExpected:

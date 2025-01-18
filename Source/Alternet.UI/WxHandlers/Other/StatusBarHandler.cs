@@ -13,25 +13,25 @@ namespace Alternet.UI
         private readonly StatusBar control;
         private bool sizingGripVisible = true;
         private TextEllipsizeType textEllipsize = TextEllipsizeType.End;
-        private Window? window;
+        private AbstractControl? attachedTo;
 
         public StatusBarHandler(StatusBar control)
         {
             this.control = control;
         }
 
-        public Window? Window
+        public AbstractControl? AttachedTo
         {
             get
             {
-                return window;
+                return attachedTo;
             }
 
             set
             {
-                if (window == value)
+                if (attachedTo == value)
                     return;
-                window = value;
+                attachedTo = value;
                 RecreateWidget();
             }
         }
@@ -71,24 +71,27 @@ namespace Alternet.UI
         {
             get
             {
-                var window = control.Window;
+                var window = control.AttachedTo;
 
                 if (window is null || window.IsDisposed)
                 {
                     return default;
                 }
 
-                return ((WindowHandler)window.Handler).NativeControl.WxStatusBar;
+                return UI.Native.NativeObject.GetNativeWindow(window as Window)?.WxStatusBar ?? default;
             }
 
             set
             {
-                var window = control.Window;
+                var window = control.AttachedTo;
 
                 if (window is null || window.IsDisposed)
                     return;
 
-                ((WindowHandler)window.Handler).NativeControl.WxStatusBar = value;
+                var nativeWindow = UI.Native.NativeObject.GetNativeWindow(window as Window);
+
+                if(nativeWindow is not null)
+                    nativeWindow.WxStatusBar = value;
             }
         }
 
@@ -182,7 +185,7 @@ namespace Alternet.UI
             const int FULLREPAINTONRESIZE = 0x00010000;
 
             var handle = StatusBarHandle;
-            var window = control.Window;
+            var window = control.AttachedTo;
 
             if (window != null)
             {

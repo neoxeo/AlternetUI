@@ -32,6 +32,30 @@ namespace Alternet.UI
         private Coord? maxTextWidth;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Label"/> class
+        /// with the specified parent control.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public Label(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Label"/> class.
+        /// with the specified text and parent control.
+        /// </summary>
+        /// <param name="text">Text displayed on this label.</param>
+        /// <param name="parent">Parent of the control.</param>
+        public Label(Control parent, string text)
+            : this()
+        {
+            Text = text ?? string.Empty;
+            Parent = parent;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Label"/> class with specified text.
         /// </summary>
         /// <param name="text">Text displayed on this label.</param>
@@ -46,6 +70,12 @@ namespace Alternet.UI
         /// </summary>
         public Label()
         {
+            HorizontalAlignment = HorizontalAlignment.Left;
+            ParentBackColor = true;
+            ParentForeColor = true;
+            CanSelect = false;
+            TabStop = false;
+            SuspendHandlerTextChange();
         }
 
         /// <inheritdoc/>
@@ -55,7 +85,7 @@ namespace Alternet.UI
         /// Gets or sets maximal width of text in the control.
         /// </summary>
         /// <remarks>
-        /// Wraps <see cref="Control.Text"/> so that each of its lines becomes at most width
+        /// Wraps <see cref="AbstractControl.Text"/> so that each of its lines becomes at most width
         /// dips wide if possible (the lines are broken at words boundaries so it
         /// might not be the case if words are too long).
         /// </remarks>
@@ -64,7 +94,7 @@ namespace Alternet.UI
         /// necessarily the total width of the control, since a padding for the
         /// border (depending on the controls border style) may be added.
         /// </remarks>
-        public double? MaxTextWidth
+        public virtual Coord? MaxTextWidth
         {
             get
             {
@@ -93,7 +123,8 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Wraps <see cref="Control.Text"/> so that each of its lines becomes at most width
+        /// Wraps <see cref="AbstractControl.Text"/> so that each of its
+        /// lines becomes at most width
         /// dips wide if possible (the lines are broken at words boundaries so it
         /// might not be the case if words are too long).
         /// </summary>
@@ -108,22 +139,27 @@ namespace Alternet.UI
             MaxTextWidth = value;
         }
 
+        /// <summary>
+        /// Sets <see cref="MaxTextWidth"/> to the parent's client width.
+        /// </summary>
+        public virtual void WrapToParent()
+        {
+            if (Parent is not null)
+                MaxTextWidth = Parent.ClientSize.Width - Parent.Padding.Horizontal;
+        }
+
         /// <inheritdoc/>
         protected override string CoerceTextForHandler(string s)
         {
             if(maxTextWidth is null)
                 return s;
+            var mw = maxTextWidth.Value;
             var result = DrawingUtils.WrapTextToMultipleLines(
                 s,
-                maxTextWidth.Value,
-                Font ?? Control.DefaultFont,
-                ScaleFactor);
+                ref mw,
+                Font ?? AbstractControl.DefaultFont,
+                MeasureCanvas);
             return result;
-        }
-
-        /// <inheritdoc/>
-        protected override void OnHandlerTextChanged()
-        {
         }
 
         /// <inheritdoc/>

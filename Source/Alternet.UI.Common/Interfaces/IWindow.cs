@@ -239,7 +239,7 @@ namespace Alternet.UI
         /// <remarks>
         /// When a window is owned by another window, it is closed or hidden with the owner window.
         /// </remarks>
-        IWindow? Owner { get; set; }
+        Window? Owner { get; set; }
 
         /// <summary>
         /// Gets or sets the position of the window when first shown.
@@ -267,7 +267,7 @@ namespace Alternet.UI
         /// When a window is owned by another window, it is closed or hidden
         /// with the owner window.
         /// </remarks>
-        IWindow[] OwnedWindows { get; }
+        Window[] OwnedWindows { get; }
 
         /// <summary>
         /// Gets or sets a value that indicates whether window is minimized,
@@ -293,5 +293,11 @@ namespace Alternet.UI
         /// most fitting size is selected automatically.
         /// </remarks>
         IconSet? Icon { get; set; }
+
+        /// <summary>
+        /// Gets window kind (window, dialog, etc.).
+        /// </summary>
+        /// <returns></returns>
+        WindowKind GetWindowKind();
     }
 }

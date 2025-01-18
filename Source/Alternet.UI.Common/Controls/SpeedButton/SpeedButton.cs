@@ -12,17 +12,38 @@ namespace Alternet.UI
     /// Implements speed button control.
     /// </summary>
     [ControlCategory("Other")]
-    public partial class SpeedButton : GraphicControl
+    public partial class SpeedButton : GraphicControl, ICommandSource
     {
+        /// <summary>
+        /// Gets or sets default click repeat delay used when
+        /// <see cref="SpeedButton.IsClickRepeated"/> is True.
+        /// </summary>
+        /// <remarks>
+        /// The default value of delay is 50 milliseconds. This means
+        /// the first event is initiated after 250 milliseconds (5 times the specified value).
+        /// Each subsequent event is initiated after 50 milliseconds delay.
+        /// </remarks>
+        public static int DefaultClickRepeatDelay = 50;
+
         /// <summary>
         /// Gets or sets default image and label distance in the <see cref="SpeedButton"/>.
         /// </summary>
-        public static double DefaultImageLabelDistance = 4;
+        public static Coord DefaultImageLabelDistance = 4;
+
+        /// <summary>
+        /// Gets or sets default padding in the <see cref="SpeedButton"/>.
+        /// </summary>
+        public static Coord DefaultPadding = 4;
 
         /// <summary>
         /// Gets ot sets default value of <see cref="UseTheme"/> property.
         /// </summary>
         public static KnownTheme DefaultUseTheme = KnownTheme.Default;
+
+        /// <summary>
+        /// Gets ot sets default value of <see cref="UseThemeForSticky"/> property.
+        /// </summary>
+        public static KnownTheme DefaultUseThemeForSticky = KnownTheme.StickyBorder;
 
         /// <summary>
         /// Gets or sets default color and style settings
@@ -41,6 +62,13 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default color and style settings
         /// for all <see cref="SpeedButton"/> controls
+        /// which have <see cref="UseTheme"/> equal to <see cref="KnownTheme.StickyBorder"/>.
+        /// </summary>
+        public static ControlColorAndStyle StickyBorderTheme;
+
+        /// <summary>
+        /// Gets or sets default color and style settings
+        /// for all <see cref="SpeedButton"/> controls
         /// which have <see cref="UseTheme"/> equal to <see cref="KnownTheme.Custom"/>.
         /// </summary>
         public static ControlColorAndStyle? DefaultCustomTheme = null;
@@ -52,43 +80,68 @@ namespace Alternet.UI
         /// </summary>
         public static ControlColorAndStyle? TabControlTheme = DefaultTheme;
 
-        private readonly PictureBox picture = new()
+        private readonly Spacer picture = new()
         {
-            ImageStretch = false,
             Visible = false,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Alignment = HVAlignment.Center,
         };
 
-        private readonly Control spacer = new Panel()
+        private readonly Spacer spacer = new()
         {
             SuggestedSize = DefaultImageLabelDistance,
             Visible = false,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Alignment = HVAlignment.Center,
         };
 
-        private readonly GenericLabel label = new()
+        private readonly GenericTextControl label = new()
         {
             Visible = false,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Alignment = HVAlignment.Center,
         };
+
+        private readonly ImageDrawable drawable = new();
 
         private Action? clickAction;
         private bool sticky;
+        private bool stickyToggleOnClick;
         private ShortcutInfo? shortcut;
         private bool textVisible = false;
         private bool imageVisible = true;
         private KnownTheme useTheme = DefaultUseTheme;
+        private KnownTheme useThemeForSticky = DefaultUseThemeForSticky;
         private ControlColorAndStyle? customTheme;
+        private bool isClickRepeated;
+        private bool subscribedClickRepeated;
+        private VisualControlState stickyVisualState = VisualControlState.Normal;
+        private Color? borderColor;
+        private Timer? repeatTimer;
+        private Timer? firstClickTimer;
+        private int clickRepeatDelay = DefaultClickRepeatDelay;
+        private CommandSourceStruct commandSource;
 
         static SpeedButton()
         {
             InitThemeLight(DefaultTheme.Light);
             InitThemeDark(DefaultTheme.Dark);
+
             StaticBorderTheme = DefaultTheme.Clone();
             StaticBorderTheme.NormalBorderAsHovered();
+
+            StickyBorderTheme = DefaultTheme.Clone();
+            StickyBorderTheme
+                .SetBorderFromBorder(VisualControlState.Normal, VisualControlState.Hovered);
+            StickyBorderTheme.SetBorderWidth(2);
+            StickyBorderTheme.SetBorderColor(ColorUtils.GetTabControlInteriorBorderColor());
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SpeedButton"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public SpeedButton(Control parent)
+            : this()
+        {
+            Parent = parent;
         }
 
         /// <summary>
@@ -96,16 +149,20 @@ namespace Alternet.UI
         /// </summary>
         public SpeedButton()
         {
-            Padding = 4;
+            commandSource = new(this);
+
+            ParentBackColor = true;
+            ParentForeColor = true;
+            Padding = DefaultPadding;
             Layout = LayoutStyle.Horizontal;
-            picture.Parent = this;
-            picture.InputTransparent = true;
-            spacer.Parent = this;
-            label.Parent = this;
-            label.InputTransparent = true;
 
             IsGraphicControl = true;
             RefreshOptions = ControlRefreshOptions.RefreshOnState;
+
+            commandSource.Changed = () =>
+            {
+                Enabled = commandSource.CanExecute;
+            };
         }
 
         /// <summary>
@@ -114,7 +171,7 @@ namespace Alternet.UI
         public enum KnownTheme
         {
             /// <summary>
-            /// An empty theme. Settings from <see cref="Control.StateObjects"/> are used.
+            /// An empty theme. Settings from <see cref="AbstractControl.StateObjects"/> are used.
             /// </summary>
             None,
 
@@ -137,6 +194,11 @@ namespace Alternet.UI
             /// Theme <see cref="StaticBorderTheme"/> is used.
             /// </summary>
             StaticBorder,
+
+            /// <summary>
+            /// Theme <see cref="StickyBorderTheme"/> is used.
+            /// </summary>
+            StickyBorder,
         }
 
         /// <summary>
@@ -146,6 +208,180 @@ namespace Alternet.UI
         /// Default value is "({0})".
         /// </remarks>
         public static string DefaultShortcutToolTipTemplate { get; set; } = "({0})";
+
+        /// <summary>
+        /// Gets or sets distance between image and label.
+        /// </summary>
+        public virtual Coord ImageLabelDistance
+        {
+            get
+            {
+                return spacer.SuggestedWidth;
+            }
+
+            set
+            {
+                if (ImageLabelDistance == value)
+                    return;
+                spacer.SuggestedSize = value;
+                if(HasImage && TextVisible)
+                    PerformLayoutAndInvalidate();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets horizontal alignment of the image.
+        /// </summary>
+        public virtual HorizontalAlignment ImageHorizontalAlignment
+        {
+            get
+            {
+                return picture.HorizontalAlignment;
+            }
+
+            set
+            {
+                if (ImageHorizontalAlignment == value)
+                    return;
+                picture.HorizontalAlignment = value;
+                PerformLayoutAndInvalidate(null, false);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets vertical alignment of the image.
+        /// </summary>
+        public virtual VerticalAlignment ImageVerticalAlignment
+        {
+            get
+            {
+                return picture.VerticalAlignment;
+            }
+
+            set
+            {
+                if (ImageVerticalAlignment == value)
+                    return;
+                picture.VerticalAlignment = value;
+                PerformLayoutAndInvalidate(null, false);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets horizontal alignment of the label.
+        /// </summary>
+        public virtual HorizontalAlignment LabelHorizontalAlignment
+        {
+            get
+            {
+                return label.HorizontalAlignment;
+            }
+
+            set
+            {
+                if (LabelHorizontalAlignment == value)
+                    return;
+                label.HorizontalAlignment = value;
+                PerformLayoutAndInvalidate(null, false);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets vertical alignment of the label.
+        /// </summary>
+        public virtual VerticalAlignment LabelVerticalAlignment
+        {
+            get
+            {
+                return label.VerticalAlignment;
+            }
+
+            set
+            {
+                if (LabelVerticalAlignment == value)
+                    return;
+                label.VerticalAlignment = value;
+                PerformLayoutAndInvalidate(null, false);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets click repeat delay used when
+        /// <see cref="SpeedButton.IsClickRepeated"/> is True.
+        /// </summary>
+        /// <remarks>
+        /// The default value of delay is 50 milliseconds. This means
+        /// the first event is initiated after 250 milliseconds (5 times the specified value).
+        /// Each subsequent event is initiated after 50 milliseconds delay.
+        /// </remarks>
+        public virtual int ClickRepeatDelay
+        {
+            get
+            {
+                return clickRepeatDelay;
+            }
+
+            set
+            {
+                if (clickRepeatDelay == value)
+                    return;
+                clickRepeatDelay = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether mouse clicks are repeated continiously while left mouse
+        /// button is pressed.
+        /// </summary>
+        public virtual bool IsClickRepeated
+        {
+            get
+            {
+                return isClickRepeated;
+            }
+
+            set
+            {
+                if (isClickRepeated == value)
+                    return;
+                isClickRepeated = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override Font? Font
+        {
+            get => base.Font;
+            set => base.Font = value;
+        }
+
+        /// <inheritdoc/>
+        public override bool IsBold
+        {
+            get => base.IsBold;
+            set => base.IsBold = value;
+        }
+
+        /// <summary>
+        /// Gets or sets border color override. Currently is not implemented.
+        /// Added for the compatibility with legacy code.
+        /// </summary>
+        [Browsable(false)]
+        public virtual Color? BorderColor
+        {
+            get
+            {
+                return borderColor;
+            }
+
+            set
+            {
+                if (borderColor == value)
+                    return;
+                borderColor = value;
+                Invalidate();
+            }
+        }
 
         /// <summary>
         /// Gets or sets default color and style settings
@@ -205,6 +441,49 @@ namespace Alternet.UI
             }
         }
 
+        /// <inheritdoc/>
+        public virtual ICommand? Command
+        {
+            get
+            {
+                return commandSource.Command;
+            }
+
+            set
+            {
+                commandSource.Command = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public virtual object? CommandParameter
+        {
+            get
+            {
+                return commandSource.CommandParameter;
+            }
+
+            set
+            {
+                commandSource.CommandParameter = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        [Browsable(false)]
+        public virtual object? CommandTarget
+        {
+            get
+            {
+                return commandSource.CommandParameter;
+            }
+
+            set
+            {
+                commandSource.CommandParameter = value;
+            }
+        }
+
         /// <summary>
         /// Gets or sets a value indicating the associated shortcut key.
         /// </summary>
@@ -224,10 +503,28 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets whether <see cref="Control.ToolTip"/> will be hidden
+        /// Gets or sets whether <see cref="AbstractControl.ToolTip"/> will be hidden
         /// when control is clicked. Default is <c>true</c>.
         /// </summary>
-        public bool HideToolTipOnClick { get; set; } = true;
+        public virtual bool HideToolTipOnClick { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating the associated shortcut key.
+        /// </summary>
+        [Browsable(false)]
+        public virtual ShortcutInfo? ShortcutInfo
+        {
+            get
+            {
+                return shortcut;
+            }
+
+            set
+            {
+                shortcut = value;
+                UpdateToolTip();
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating the associated shortcut key.
@@ -267,6 +564,21 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets color theme when <see cref="Sticky"/> is True.
+        /// </summary>
+        public virtual KnownTheme UseThemeForSticky
+        {
+            get => useThemeForSticky;
+            set
+            {
+                if (useThemeForSticky == value)
+                    return;
+                useThemeForSticky = value;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets whether to use <see cref="DefaultTheme"/>.
         /// </summary>
         public virtual KnownTheme UseTheme
@@ -300,27 +612,38 @@ namespace Alternet.UI
             }
         }
 
-        /// <inheritdoc/>
-        public override IReadOnlyList<Control> AllChildrenInLayout
+        /// <summary>
+        /// Gets whether control has image and it is visible.
+        /// </summary>
+        [Browsable(false)]
+        public virtual bool HasImage
         {
             get
             {
                 bool hasImage = (Image is not null) || (ImageSet is not null);
                 var img = ImageVisible && hasImage;
+                return img;
+            }
+        }
 
+        /// <inheritdoc/>
+        public override IReadOnlyList<AbstractControl> AllChildrenInLayout
+        {
+            get
+            {
                 if (TextVisible)
                 {
-                    if (img)
-                        return Children;
+                    if (HasImage)
+                        return new AbstractControl[] { PictureBox, spacer, Label };
                     else
-                        return new Control[] { Label };
+                        return new AbstractControl[] { Label };
                 }
                 else
                 {
-                    if (img)
-                        return new Control[] { PictureBox };
+                    if (HasImage)
+                        return new AbstractControl[] { PictureBox };
                     else
-                        return Array.Empty<Control>();
+                        return Array.Empty<AbstractControl>();
                 }
             }
         }
@@ -345,8 +668,7 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Gets or sets a value which specifies display modes for
-        /// item image and text.
+        /// Gets or sets a value which specifies label and control alignment.
         /// </summary>
         public virtual ImageToText ImageToText
         {
@@ -403,6 +725,25 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets or sets whether <see cref="Sticky"/> is toggled
+        /// when control is clicked.
+        /// </summary>
+        public virtual bool StickyToggleOnClick
+        {
+            get
+            {
+                return stickyToggleOnClick;
+            }
+
+            set
+            {
+                if (stickyToggleOnClick == value)
+                    return;
+                stickyToggleOnClick = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the image that is displayed by the control.
         /// </summary>
         [DefaultValue(null)]
@@ -410,14 +751,15 @@ namespace Alternet.UI
         {
             get
             {
-                return PictureBox.Image;
+                return drawable.Image;
             }
 
             set
             {
                 PerformLayoutAndInvalidate(() =>
                 {
-                    PictureBox.Image = value;
+                    drawable.Image = value;
+                    PictureSizeChanged();
                 });
             }
         }
@@ -449,14 +791,15 @@ namespace Alternet.UI
         {
             get
             {
-                return PictureBox.DisabledImage;
+                return drawable.DisabledImage;
             }
 
             set
             {
                 PerformLayoutAndInvalidate(() =>
                 {
-                    PictureBox.DisabledImage = value;
+                    drawable.DisabledImage = value;
+                    PictureSizeChanged();
                 });
             }
         }
@@ -469,14 +812,15 @@ namespace Alternet.UI
         {
             get
             {
-                return PictureBox.DisabledImageSet;
+                return drawable.DisabledImageSet;
             }
 
             set
             {
                 PerformLayoutAndInvalidate(() =>
                 {
-                    PictureBox.DisabledImageSet = value;
+                    drawable.DisabledImageSet = value;
+                    PictureSizeChanged();
                 });
             }
         }
@@ -489,15 +833,33 @@ namespace Alternet.UI
         {
             get
             {
-                return PictureBox.ImageSet;
+                return drawable.ImageSet;
             }
 
             set
             {
                 PerformLayoutAndInvalidate(() =>
                 {
-                    PictureBox.ImageSet = value;
+                    drawable.ImageSet = value;
+                    PictureSizeChanged();
                 });
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets override for <see cref="VisualState"/>
+        /// when <see cref="Sticky"/> is True.
+        /// </summary>
+        [Browsable(false)]
+        public VisualControlState StickyVisualStateOverride
+        {
+            get => stickyVisualState;
+            set
+            {
+                if (stickyVisualState == value)
+                    return;
+                stickyVisualState = value;
+                Invalidate();
             }
         }
 
@@ -512,7 +874,7 @@ namespace Alternet.UI
                 {
                     if (result == VisualControlState.Normal
                         || result == VisualControlState.Focused)
-                        result = VisualControlState.Pressed;
+                        result = StickyVisualStateOverride;
                 }
 
                 return result;
@@ -529,11 +891,7 @@ namespace Alternet.UI
             get => clickAction;
             set
             {
-                if (clickAction != null)
-                    Click -= OnClickAction;
                 clickAction = value;
-                if (clickAction != null)
-                    Click += OnClickAction;
             }
         }
 
@@ -543,17 +901,24 @@ namespace Alternet.UI
             set => base.Layout = value;
         }
 
+        [Browsable(false)]
+        internal new string Title
+        {
+            get => base.Title;
+            set => base.Title = value;
+        }
+
         /// <summary>
         /// Gets inner <see cref="PictureBox"/> control.
         /// </summary>
         [Browsable(false)]
-        internal PictureBox PictureBox => picture;
+        internal Spacer PictureBox => picture;
 
         /// <summary>
         /// Gets inner <see cref="GenericLabel"/> control.
         /// </summary>
         [Browsable(false)]
-        internal GenericLabel Label => label;
+        internal GenericTextControl Label => label;
 
         /// <summary>
         /// Initializes default colors and styles for the <see cref="SpeedButton"/>
@@ -610,20 +975,24 @@ namespace Alternet.UI
         /// <returns></returns>
         public static ControlStateBorders CreateBorders(Color color)
         {
-            BorderSettings border = new()
+            BorderSettings hoveredBorder = new()
             {
                 Width = 1,
-                UniformRadiusIsPercent = false,
-                UniformCornerRadius = 3,
                 Color = color,
             };
 
             ControlStateBorders borders = new();
-            var hoveredBorder = border;
             var pressedBorder = hoveredBorder.Clone();
             borders.SetObject(hoveredBorder, VisualControlState.Hovered);
             borders.SetObject(pressedBorder, VisualControlState.Pressed);
             return borders;
+        }
+
+        /// <inheritdoc/>
+        public override void RaiseFontChanged(EventArgs e)
+        {
+            Label.Font = RealFont;
+            base.RaiseFontChanged(e);
         }
 
         /// <inheritdoc/>
@@ -647,22 +1016,6 @@ namespace Alternet.UI
             return s;
         }
 
-        /*/// <summary>
-        /// Initializes solid border in the normal state.
-        /// Also border width in hovered and pressed states
-        /// is made larger than in the normal state.
-        /// </summary>
-        public virtual void InitSolidBorder()
-        {
-            Borders ??= new();
-            Borders.Normal = new(Borders.Hovered ?? BorderSettings.Default);
-            Borders.Disabled = Borders.Normal;
-            BorderSettings doubleBorder = new(Borders.Hovered ?? BorderSettings.Default);
-            doubleBorder.SetWidth(doubleBorder.Top.Width + 1);
-            Borders.Pressed = doubleBorder;
-            Borders.Hovered = doubleBorder;
-        }*/
-
         /// <summary>
         /// Loads normal and disabled image from the specified file or resource url.
         /// Loaded images assigned to <see cref="ImageSet"/> and
@@ -678,8 +1031,8 @@ namespace Alternet.UI
         /// </remarks>
         /// <remarks>
         /// This method updates Svg default fill colors using
-        /// <see cref="Control.GetSvgColor"/>.
-        /// If you need to load Svg without updating it's colors, use
+        /// <see cref="AbstractControl.GetSvgColor"/>.
+        /// If you need to load Svg without updating its colors, use
         /// <see cref="ImageSet.FromSvgUrl(string, int, int, Color?)"/> without
         /// defining the last parameter.
         /// </remarks>
@@ -692,14 +1045,26 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public override void DefaultPaint(Graphics dc, RectD rect)
+        public override void DefaultPaint(PaintEventArgs e)
         {
-            DrawDefaultBackground(dc, rect);
-            if(ImageVisible)
-                PictureBox.DrawDefaultImage(dc, PictureBox.Bounds);
+            var state = VisualState;
+
+            if(state == VisualControlState.Hovered)
+            {
+            }
+
+            DrawDefaultBackground(e);
+            if (HasImage)
+            {
+                drawable.VisualState = Enabled
+                    ? VisualControlState.Normal : VisualControlState.Disabled;
+
+                drawable.Bounds = PictureBox.Bounds;
+                drawable.Draw(this, e.Graphics);
+            }
+
             if (TextVisible)
             {
-                var state = VisualState;
                 var foreColor = StateObjects?.Colors?.GetObjectOrNull(state)?.ForegroundColor;
                 if(foreColor is null)
                 {
@@ -707,14 +1072,20 @@ namespace Alternet.UI
                     foreColor ??= theme?.Colors?.GetObjectOrNull(state)?.ForegroundColor;
                 }
 
-                Label.DrawDefaultText(dc, Label.Bounds, foreColor);
+                Label.ForegroundColor = foreColor;
+                TemplateUtils.RaisePaintRecursive(Label, e.Graphics, Label.Location);
             }
         }
 
         /// <inheritdoc/>
         protected override ControlColorAndStyle? GetDefaultTheme()
         {
-            switch (UseTheme)
+            var theme = UseTheme;
+
+            if (Sticky)
+                theme = UseThemeForSticky;
+
+            switch (theme)
             {
                 case KnownTheme.None:
                     return null;
@@ -722,6 +1093,8 @@ namespace Alternet.UI
                     return CustomTheme ?? DefaultCustomTheme;
                 case KnownTheme.StaticBorder:
                     return StaticBorderTheme;
+                case KnownTheme.StickyBorder:
+                    return StickyBorderTheme;
                 case KnownTheme.Default:
                 default:
                     return DefaultTheme;
@@ -731,6 +1104,11 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnMouseDown(MouseEventArgs e)
         {
+            if (StickyToggleOnClick && e.ChangedButton == MouseButton.Left)
+            {
+                Sticky = !Sticky;
+            }
+
             base.OnMouseDown(e);
             if (HideToolTipOnClick)
                 HideToolTip();
@@ -746,21 +1124,80 @@ namespace Alternet.UI
 
             void Fn()
             {
-                RaiseClick();
+                RaiseClick(EventArgs.Empty);
                 ShowDropDownMenu();
             }
         }
 
-        private void OnClickAction(object? sender, EventArgs? e)
+        /// <inheritdoc/>
+        protected override void OnVisualStateChanged(EventArgs e)
         {
-            clickAction?.Invoke();
+            base.OnVisualStateChanged(e);
+            if (VisualState == VisualControlState.Pressed)
+                SubscribeClickRepeated();
+            else
+                UnsubscribeClickRepeated();
         }
 
-        private void UpdateToolTip()
+        /// <inheritdoc/>
+        protected override void DisposeManaged()
         {
-            var s = ToolTip;
-            ToolTip = null;
-            ToolTip = s;
+            commandSource.Changed = null;
+            UnsubscribeClickRepeated();
+            base.DisposeManaged();
+        }
+
+        /// <inheritdoc />
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            clickAction?.Invoke();
+            commandSource.Execute();
+        }
+
+        private void OnClickRepeatTimerEvent()
+        {
+            if (VisualState != VisualControlState.Pressed)
+                return;
+            RaiseClick(EventArgs.Empty);
+        }
+
+        private void UnsubscribeClickRepeated()
+        {
+            if (subscribedClickRepeated)
+            {
+                SafeDispose(ref repeatTimer);
+                SafeDispose(ref firstClickTimer);
+                subscribedClickRepeated = false;
+            }
+        }
+
+        private void PictureSizeChanged()
+        {
+            PictureBox.SuggestedSize = drawable.GetPreferredSize(this);
+        }
+
+        private void SubscribeClickRepeated()
+        {
+            if (!subscribedClickRepeated && IsClickRepeated)
+            {
+                SafeDispose(ref repeatTimer);
+                firstClickTimer ??= new();
+                firstClickTimer.Stop();
+                firstClickTimer.Interval = ClickRepeatDelay * 5;
+                firstClickTimer.AutoReset = false;
+                firstClickTimer.TickAction = () =>
+                {
+                    repeatTimer ??= new();
+                    repeatTimer.Stop();
+                    repeatTimer.Interval = ClickRepeatDelay;
+                    repeatTimer.AutoReset = true;
+                    repeatTimer.TickAction = OnClickRepeatTimerEvent;
+                    repeatTimer.Start();
+                };
+                firstClickTimer.Start();
+                subscribedClickRepeated = true;
+            }
         }
     }
 }

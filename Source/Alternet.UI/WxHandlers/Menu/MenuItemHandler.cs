@@ -19,7 +19,10 @@ namespace Alternet.UI
         internal Native.Menu EnsureNativeSubmenuCreated()
         {
             if (NativeControl.Submenu == null)
+            {
                 NativeControl.Submenu = new Native.Menu();
+                NativeControl.Submenu.OwnerHandler = this;
+            }
 
             return NativeControl.Submenu;
         }
@@ -33,15 +36,14 @@ namespace Alternet.UI
         {
             base.OnDetach();
 
+            if (Control is null)
+                return;
             Control.CheckedChanged -= Control_CheckedChanged;
             Control.TextChanged -= Control_TextChanged;
             Control.ShortcutChanged -= Control_ShortcutChanged;
             Control.RoleChanged -= Control_RoleChanged;
             Control.ImageChanged -= Control_ImageChanged;
             Control.DisabledImageChanged -= Control_DisabledImageChanged;
-
-            NativeControl.Click = null;
-
             Control.Items.ItemInserted -= Items_ItemInserted;
             Control.Items.ItemRemoved -= Items_ItemRemoved;
         }
@@ -50,6 +52,8 @@ namespace Alternet.UI
         {
             base.OnAttach();
 
+            if (Control is null)
+                return;
             ApplyText();
             ApplyChecked();
             ApplyItems();
@@ -65,20 +69,24 @@ namespace Alternet.UI
             Control.ImageChanged += Control_ImageChanged;
             Control.DisabledImageChanged += Control_DisabledImageChanged;
 
-            NativeControl.Click = NativeControl_Click;
-
             Control.Items.ItemInserted += Items_ItemInserted;
             Control.Items.ItemRemoved += Items_ItemRemoved;
         }
 
         private void ApplyDisabledImage()
         {
-            NativeControl.DisabledImage = (UI.Native.ImageSet?)Control.DisabledImage?.Handler;
+            if (Control is null)
+                return;
+            var image = Control.GetRealImage(VisualControlState.Disabled);
+            NativeControl.DisabledImage = (UI.Native.ImageSet?)image?.Handler;
         }
 
         private void ApplyImage()
         {
-            NativeControl.NormalImage = (UI.Native.ImageSet?)Control.Image?.Handler;
+            if (Control is null)
+                return;
+            var image = Control.GetRealImage(VisualControlState.Normal);
+            NativeControl.NormalImage = (UI.Native.ImageSet?)image?.Handler;
         }
 
         private void Control_DisabledImageChanged(object? sender, EventArgs e)
@@ -108,17 +116,29 @@ namespace Alternet.UI
 
         private void ApplyItems()
         {
+            if (Control is null)
+                return;
             for (var i = 0; i < Control.Items.Count; i++)
                 InsertItem(Control.Items[i], i);
         }
 
         private void ApplyText()
         {
+            if (Control is null)
+                return;
             NativeControl.Text = Control.Text;
         }
 
         private void ApplyShortcut()
         {
+            if (Control is null)
+                return;
+            if (!Control.IsShortcutEnabled)
+            {
+                NativeControl.SetShortcut(Key.None, ModifierKeys.None);
+                return;
+            }
+
             var shortcut = Control.Shortcut;
 
             Key key;
@@ -140,11 +160,15 @@ namespace Alternet.UI
 
         private void ApplyRole()
         {
+            if (Control is null)
+                return;
             NativeControl.Role = Control.Role?.Name ?? string.Empty;
         }
 
         private void ApplyChecked()
         {
+            if (Control is null)
+                return;
             NativeControl.Checked = Control.Checked;
         }
 
@@ -166,15 +190,19 @@ namespace Alternet.UI
             EnsureNativeSubmenuCreated().InsertItemAt(index, handler.NativeControl);
         }
 
-        private void NativeControl_Click()
-        {
-            Control.Checked = NativeControl.Checked;
-            Control.RaiseClick();
-        }
-
         private void Control_TextChanged(object? sender, EventArgs e)
         {
             ApplyText();
+        }
+
+        protected override void DisposeManaged()
+        {
+            if(NativeControl.Submenu is not null)
+            {
+                NativeControl.Submenu.OwnerHandler = null;
+            }
+
+            base.DisposeManaged();
         }
     }
 }

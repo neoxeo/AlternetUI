@@ -12,7 +12,7 @@ namespace Alternet.UI
 {
     /// <summary>
     /// Provides resizing of docked elements. You can dock some control to an edge of a
-    /// container using <see cref="Control.Dock"/> property,
+    /// container using <see cref="AbstractControl.Dock"/> property,
     /// and then dock the splitter to the same edge.
     /// The splitter resizes the control that is previous in the docking order.
     /// </summary>
@@ -23,7 +23,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets default splitter width.
         /// </summary>
-        public static double DefaultWidth = 5;
+        public static Coord DefaultWidth = 5;
 
         /// <summary>
         /// Gets or sets default splitter background and line color for the light color scheme.
@@ -35,15 +35,25 @@ namespace Alternet.UI
         /// </summary>
         public static IReadOnlyFontAndColor? DefaultDarkColors;
 
-        private double minSize = 25;
-        private double minExtra = 25;
+        private Coord minSize = 25;
+        private Coord minExtra = 25;
         private PointD anchor = PointD.Empty;
-        private Control? splitTarget;
-        private double splitSize = -1;
-        private double splitterThickness = DefaultWidth;
-        private double initTargetSize;
-        private double lastDrawSplit = -1;
-        private double maxSize;
+        private AbstractControl? splitTarget;
+        private Coord splitSize = -1;
+        private Coord splitterThickness = DefaultWidth;
+        private Coord initTargetSize;
+        private Coord lastDrawSplit = -1;
+        private Coord maxSize;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Splitter"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public Splitter(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Splitter"/> class.
@@ -51,8 +61,11 @@ namespace Alternet.UI
         public Splitter()
         {
             TabStop = false;
+            CanSelect = false;
             Size = (DefaultWidth, DefaultWidth);
             Dock = DockStyle.Left;
+            ParentBackColor = true;
+            ParentForeColor = true;
         }
 
         /// <summary>
@@ -82,7 +95,7 @@ namespace Alternet.UI
         /// If this property is not assigned, <see cref="DefaultDarkColors"/>
         /// and <see cref="DefaultLightColors"/> are used in order to get colors.
         /// </remarks>
-        public IReadOnlyFontAndColor? NormalColors
+        public virtual IReadOnlyFontAndColor? NormalColors
         {
             get
             {
@@ -136,7 +149,7 @@ namespace Alternet.UI
         /// <remarks>
         /// Default value is 10.
         /// </remarks>
-        public int SizeDelta { get; set; } = 10;
+        public virtual int SizeDelta { get; set; } = 10;
 
         /// <summary>
         /// Gets whether the splitter is horizontal.
@@ -153,7 +166,7 @@ namespace Alternet.UI
         [Category("Behavior")]
         [Localizable(true)]
         [DefaultValue(25)]
-        public double MinExtra
+        public virtual Coord MinExtra
         {
             get
             {
@@ -174,7 +187,7 @@ namespace Alternet.UI
         [Category("Behavior")]
         [Localizable(true)]
         [DefaultValue(25)]
-        public double MinSize
+        public virtual Coord MinSize
         {
             get
             {
@@ -197,7 +210,7 @@ namespace Alternet.UI
         [Category("Layout")]
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public double SplitPosition
+        public virtual Coord SplitPosition
         {
             get
             {
@@ -301,8 +314,11 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public override void DefaultPaint(Graphics dc, RectD rect)
+        public override void DefaultPaint(PaintEventArgs e)
         {
+            var dc = e.Graphics;
+            var rect = e.ClipRectangle;
+
             var colors = NormalColors;
             Color defaultColor;
             if (IsDarkBackground)
@@ -466,7 +482,7 @@ namespace Alternet.UI
         /// Calculates the bounding rect of the split line. minWeight refers
         /// to the minimum height or width of the splitline.
         /// </summary>
-        private RectD CalcSplitLine(double splitSize, double minWeight)
+        private RectD CalcSplitLine(Coord splitSize, Coord minWeight)
         {
             if (splitTarget is null)
                 return RectD.Empty;
@@ -500,7 +516,7 @@ namespace Alternet.UI
         /// Calculates the current size of the splitter-target.
         /// </summary>
         /// <returns></returns>
-        private double CalcSplitSize()
+        private Coord CalcSplitSize()
         {
             var target = FindTarget();
             if (target is null) return -1;
@@ -538,10 +554,10 @@ namespace Alternet.UI
                     initTargetSize = target.Bounds.Height;
                 var children = parent.Children;
                 int count = children.Count;
-                double dockWidth = 0, dockHeight = 0;
+                Coord dockWidth = 0, dockHeight = 0;
                 for (int i = 0; i < count; i++)
                 {
-                    Control ctl = children[i];
+                    AbstractControl ctl = children[i];
                     if (ctl != target)
                     {
                         switch (ctl.Dock)
@@ -574,7 +590,7 @@ namespace Alternet.UI
         /// Draws the splitter line at the requested location.
         /// </summary>
         /// <param name="splitSize"></param>
-        private void DrawSplitHelper(double splitSize)
+        private void DrawSplitHelper(Coord splitSize)
         {
         }
 
@@ -583,7 +599,7 @@ namespace Alternet.UI
         /// is docked right, the target is the control that is just to the right
         /// of the splitter.
         /// </summary>
-        private Control? FindTarget()
+        private AbstractControl? FindTarget()
         {
             return NextSibling;
         }
@@ -591,17 +607,17 @@ namespace Alternet.UI
         /// <summary>
         /// Calculates the split size based on the mouse position (x, y).
         /// </summary>
-        private double GetSplitSize(double x, double y)
+        private Coord GetSplitSize(Coord x, Coord y)
         {
             if (splitTarget is null)
                 return 0;
 
-            double delta;
+            Coord delta;
             if (Horizontal)
                 delta = x - anchor.X;
             else
                 delta = y - anchor.Y;
-            double size = 0;
+            Coord size = 0;
             switch (Dock)
             {
                 case DockStyle.Top:
@@ -624,7 +640,7 @@ namespace Alternet.UI
         /// <summary>
         /// Begins the splitter moving.
         /// </summary>
-        private void SplitBegin(double x, double y)
+        private void SplitBegin(Coord x, Coord y)
         {
             var spd = CalcSplitBounds();
             if (spd.Target != null && (minSize < maxSize))
@@ -674,7 +690,7 @@ namespace Alternet.UI
         /// <summary>
         /// Moves the splitter line to the splitSize for the mouse position (x, y).
         /// </summary>
-        private bool SplitMove(double x, double y)
+        private bool SplitMove(Coord x, Coord y)
         {
             var size = GetSplitSize(x - Left + anchor.X, y - Top + anchor.Y);
             if (Math.Abs(splitSize - size) > SizeDelta)
@@ -689,9 +705,9 @@ namespace Alternet.UI
 
         private class SplitData
         {
-            public double DockWidth = -1;
-            public double DockHeight = -1;
-            public Control? Target;
+            public Coord DockWidth = -1;
+            public Coord DockHeight = -1;
+            public AbstractControl? Target;
         }
     }
 }

@@ -10,21 +10,40 @@ namespace Alternet.UI
 {
     public partial class PropertyGrid : Control
     {
+        /// <summary>
+        /// Dictionary used to get type related information.
+        /// </summary>
         public static readonly AdvDictionaryCached<Type, IPropertyGridTypeRegistry>
             TypeRegistry = new();
 
         private static AdvDictionary<Type, IPropertyGridChoices>? choicesCache = null;
         private static StaticStateFlags staticStateFlags;
 
+        /// <summary>
+        /// Occurs when collection editor is called in the property grid.
+        /// </summary>
         public static event EventHandler? EditWithListEdit;
 
+        /// <summary>
+        /// Defines static states for <see cref="PropertyGrid"/> class.
+        /// </summary>
         [Flags]
         public enum StaticStateFlags
         {
+            /// <summary>
+            /// Collection editors were registered.
+            /// </summary>
             CollectionEditorsRegistered = 1,
+
+            /// <summary>
+            /// Known colors were added.
+            /// </summary>
             KnownColorsAdded = 2,
         }
 
+        /// <summary>
+        /// Gets or sets static states for <see cref="PropertyGrid"/> class.
+        /// </summary>
         public static StaticStateFlags StaticFlags
         {
             get => staticStateFlags;
@@ -39,14 +58,15 @@ namespace Alternet.UI
         /// <param name="value"><c>true</c> to show ellipsis button, <c>false</c> to hide it.</param>
         /// <returns><see cref="IPropertyGridPropInfoRegistry"/> item for the property
         /// specified in <paramref name="propName"/>.</returns>
-        public static IPropertyGridPropInfoRegistry ShowEllipsisButton(
+        public static IPropertyGridPropInfoRegistry? ShowEllipsisButton(
             Type type,
             string propName,
             bool value = true)
         {
             var typeRegistry = PropertyGrid.GetTypeRegistry(type);
             var propRegistry = typeRegistry.GetPropRegistry(propName);
-            propRegistry.NewItemParams.HasEllipsis = value;
+            if(propRegistry is not null)
+                propRegistry.NewItemParams.HasEllipsis = value;
             return propRegistry;
         }
 
@@ -59,18 +79,22 @@ namespace Alternet.UI
         /// <see cref="IListEditSource"/> interface.</param>
         /// <returns><see cref="IPropertyGridPropInfoRegistry"/> item for the property
         /// specified in <paramref name="propName"/>.</returns>
-        public static IPropertyGridPropInfoRegistry RegisterCollectionEditor(
+        public static IPropertyGridPropInfoRegistry? RegisterCollectionEditor(
             Type type,
             string propName,
             Type? editType)
         {
             var propRegistry = ShowEllipsisButton(type, propName);
-            propRegistry.NewItemParams.OnlyTextReadOnly = true;
-            propRegistry.ListEditSourceType = editType;
-            propRegistry.NewItemParams.ButtonClick += (s, e) =>
+
+            if(propRegistry is not null)
             {
-                EditWithListEdit?.Invoke(s, e);
-            };
+                propRegistry.NewItemParams.OnlyTextReadOnly = true;
+                propRegistry.ListEditSourceType = editType;
+                propRegistry.NewItemParams.ButtonClick += (s, e) =>
+                {
+                    EditWithListEdit?.Invoke(s, e);
+                };
+            }
 
             return propRegistry;
         }
@@ -122,19 +146,14 @@ namespace Alternet.UI
                 typeof(ListEditSourceListViewCell));
 
             RegisterCollectionEditor(
-                typeof(ListBox),
-                nameof(ListBox.Items),
+                typeof(VirtualListBox),
+                nameof(VirtualListBox.Items),
                 typeof(ListEditSourceListBox));
 
             RegisterCollectionEditor(
                 typeof(StatusBar),
                 nameof(StatusBar.Panels),
                 typeof(ListEditSourceStatusBar));
-
-            RegisterCollectionEditor(
-                typeof(CheckListBox),
-                nameof(CheckListBox.Items),
-                typeof(ListEditSourceListBox));
 
             RegisterCollectionEditor(
                 typeof(ComboBox),
@@ -263,11 +282,11 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="type">Object type.</param>
         /// <param name="propName">Property name.</param>
-        public static IPropertyGridNewItemParams GetNewItemParams(Type type, string propName)
+        public static IPropertyGridNewItemParams? GetNewItemParams(Type type, string propName)
         {
             var registry = GetTypeRegistry(type);
             var propRegistry = registry.GetPropRegistry(propName);
-            return propRegistry.NewItemParams;
+            return propRegistry?.NewItemParams;
         }
 
         /// Gets <see cref="IPropertyGridNewItemParams"/> for the given
@@ -341,7 +360,7 @@ namespace Alternet.UI
         public static string? GetCustomLabel<T>(string propName)
             where T : class
         {
-            var propInfo = typeof(T).GetProperty(propName);
+            var propInfo = AssemblyUtils.GetPropertySafe(typeof(T), propName);
             if (propInfo == null)
                 return null;
 
@@ -436,6 +455,12 @@ namespace Alternet.UI
             return result;
         }
 
+        /// <summary>
+        /// Creates default <see cref="IPropertyGridNewItemParams"/> provider.
+        /// </summary>
+        /// <param name="owner">Object owner.</param>
+        /// <param name="propInfo">Property information.</param>
+        /// <returns></returns>
         public static IPropertyGridNewItemParams CreateNewItemParams(
            IPropertyGridPropInfoRegistry? owner, PropertyInfo? propInfo = null)
         {

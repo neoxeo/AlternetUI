@@ -31,28 +31,36 @@ namespace Alternet.Drawing
         /// <summary>
         /// Gets <see cref="SizeD"/> with width and height equal to -1.
         /// </summary>
-        public static readonly SizeD Default = new(-1d, -1d);
+        public static readonly SizeD Default = new(CoordD.MinusOne, CoordD.MinusOne);
 
         /// <summary>
         /// Gets <see cref="SizeD"/> with width and height equal to -1.
         /// </summary>
-        public static readonly SizeD MinusOne = new(-1d, -1d);
+        public static readonly SizeD MinusOne = new(CoordD.MinusOne, CoordD.MinusOne);
 
         /// <summary>
         /// Gets <see cref="SizeD"/> with width and height equal to 1.
         /// </summary>
-        public static readonly SizeD One = new(1d, 1d);
+        public static readonly SizeD One = new(CoordD.One, CoordD.One);
 
         /// <summary>
-        /// Gets <see cref="SizeD"/> with width and height equal to <see cref="Coord.PositiveInfinity"/>.
+        /// Gets <see cref="SizeD"/> with width and height equal
+        /// to <see cref="Coord.PositiveInfinity"/>.
         /// </summary>
-        public static readonly SizeD PositiveInfinity = new(Coord.PositiveInfinity, Coord.PositiveInfinity);
+        public static readonly SizeD PositiveInfinity
+            = new(Coord.PositiveInfinity, Coord.PositiveInfinity);
 
         /// <summary>
         /// Gets <see cref="SizeD"/> with width and height equal to
         /// (<see cref="Coord.NaN"/>, <see cref="Coord.NaN"/>).
         /// </summary>
         public static readonly SizeD NaN = new(Coord.NaN, Coord.NaN);
+
+        /// <summary>
+        /// Gets or sets coerce function used in <see cref="Coerce()"/> method.
+        /// Default is Null. You can assign here for example <see cref="Math.Ceiling(Coord)"/>.
+        /// </summary>
+        public static Func<Coord, Coord>? CoerceCoordFunc = null;
 
         private Coord width; // Do not rename (binary serialization)
         private Coord height; // Do not rename (binary serialization)
@@ -107,7 +115,8 @@ namespace Alternet.Drawing
         /// <summary>
         /// Initializes a new instance of the <see cref="SizeD"/> struct.
         /// </summary>
-        /// <param name="widthAndHeight"><see cref="Width"/> and <see cref="Height"/> values.</param>
+        /// <param name="widthAndHeight"><see cref="Width"/>
+        /// and <see cref="Height"/> values.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SizeD(Coord widthAndHeight)
         {
@@ -116,16 +125,92 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets minimal of width and height.
+        /// </summary>
+        [Browsable(false)]
+        public readonly Coord MinWidthHeight
+        {
+            get
+            {
+                return Math.Min(width, height);
+            }
+        }
+
+        /// <summary>
+        /// Gets maximal of width and height.
+        /// </summary>
+        [Browsable(false)]
+        public readonly Coord MaxWidthHeight
+        {
+            get
+            {
+                return Math.Max(width, height);
+            }
+        }
+
+        /// <summary>
+        /// Gets diagonal of the rectangle with height and width specified in this object.
+        /// </summary>
+        [Browsable(false)]
+        public readonly Coord Diagonal
+        {
+            get
+            {
+                var result = Math.Pow(Width, CoordD.Two) + Math.Pow(Height, CoordD.Two);
+                result = Math.Sqrt(result);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Tests whether both <see cref='Width'/> and <see cref="Height"/> are not numbers
+        /// (equal to <see cref="Coord.NaN"/>).
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool IsNanWidthAndHeight => Coord.IsNaN(width) && Coord.IsNaN(height);
+
+        /// <summary>
+        /// Tests whether <see cref='Width'/> or <see cref="Height"/> is not a number
+        /// (equals <see cref="Coord.NaN"/>).
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool IsNanWidthOrHeight => Coord.IsNaN(width) || Coord.IsNaN(height);
+
+        /// <summary>
+        /// Tests whether <see cref='Width'/> is not a number (equals <see cref="Coord.NaN"/>).
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool IsNanWidth => Coord.IsNaN(width);
+
+        /// <summary>
+        /// Tests whether <see cref='Height'/> is not a number (equals <see cref="Coord.NaN"/>).
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool IsNanHeight => Coord.IsNaN(height);
+
+        /// <summary>
         /// Tests whether this <see cref='Drawing.SizeD'/> has zero width and height.
         /// </summary>
         [Browsable(false)]
-        public readonly bool IsEmpty => width == 0 && height == 0;
+        public readonly bool IsEmpty => width == CoordD.Empty && height == CoordD.Empty;
+
+        /// <summary>
+        /// Gets <see cref="SizeD"/> with absolute values of (Width, Height).
+        /// </summary>
+        [Browsable(false)]
+        public readonly SizeD Abs => new(Math.Abs(width), Math.Abs(height));
 
         /// <summary>
         /// Tests whether this <see cref='SizeD'/> has zero width or height.
         /// </summary>
         [Browsable(false)]
-        public readonly bool AnyIsEmpty => width == 0 || height == 0;
+        public readonly bool AnyIsEmpty => width == CoordD.Empty || height == CoordD.Empty;
+
+        /// <summary>
+        /// Tests whether this <see cref='SizeD'/> has zero (or negative) width or height.
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool AnyIsEmptyOrNegative => width <= CoordD.Empty || height <= CoordD.Empty;
 
         /// <summary>
         /// Represents the horizontal component of this <see cref='Drawing.SizeD'/>.
@@ -134,6 +219,21 @@ namespace Alternet.Drawing
         {
             readonly get => width;
             set => width = value;
+        }
+
+        /// <summary>
+        /// Gets <see cref="Coord.PositiveInfinity"/> instead of width or height
+        /// if their value is 0.
+        /// </summary>
+        [Browsable(false)]
+        public readonly SizeD InfinityIfEmpty
+        {
+            get
+            {
+                var w = width == CoordD.Empty ? Coord.PositiveInfinity : width;
+                var h = height == CoordD.Empty ? Coord.PositiveInfinity : height;
+                return (w, h);
+            }
         }
 
         /// <summary>
@@ -265,33 +365,10 @@ namespace Alternet.Drawing
         /// the culture "en-US"
         /// <param name="source"> string with Size data </param>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeD Parse(string source)
         {
-            IFormatProvider formatProvider = App.InvariantEnglishUS;
-
-            TokenizerHelper th = new(source, formatProvider);
-
-            SizeD value;
-
-            string firstToken = th.NextTokenRequired();
-
-            // The token will already have had whitespace trimmed so we can do a
-            // simple string compare.
-            if (firstToken == "Empty")
-            {
-                value = Empty;
-            }
-            else
-            {
-                value = new SizeD(
-                    Convert.ToSingle(firstToken, formatProvider),
-                    Convert.ToSingle(th.NextTokenRequired(), formatProvider));
-            }
-
-            // There should be no more tokens in this string.
-            th.LastTokenRequired();
-
-            return value;
+            return ConversionUtils.ParseTwoFloats(source);
         }
 
         /// <summary>
@@ -343,6 +420,36 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets sum of the each element of the specified <see cref="SizeD"/> array.
+        /// </summary>
+        /// <param name="sizes">Array of <see cref="SizeD"/>.</param>
+        /// <returns></returns>
+        public static SizeD Sum(SizeD[] sizes)
+        {
+            var length = sizes.Length;
+            SizeD result = SizeD.Empty;
+
+            for (int i = 0; i < length; i++)
+            {
+                result.Width += sizes[i].Width;
+                result.Height += sizes[i].Height;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Multiplies <see cref="SizeD"/> by a value
+        /// producing <see cref="SizeD"/>.
+        /// </summary>
+        /// <param name="size">Multiplicand of type <see cref="SizeD"/>.</param>
+        /// <param name="multiplier">Multiplier.</param>
+        /// <returns>Product of type SizeF.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SizeD Multiply(SizeD size, Coord multiplier) =>
+            new(size.width * multiplier, size.height * multiplier);
+
+        /// <summary>
         /// Returns an array filled with heights of the specified <see cref="SizeD"/> values.
         /// </summary>
         /// <param name="sizes">Array of <see cref="SizeD"/> values.</param>
@@ -360,7 +467,7 @@ namespace Alternet.Drawing
         /// <param name="sizes">Array of <see cref="SizeD"/> values.</param>
         /// <exception cref="ArgumentOutOfRangeException">if <paramref name="sizes"/> is
         /// an empty array.</exception>
-        public static SizeD MaxWidthHeight(SizeD[] sizes)
+        public static SizeD MaxWidthHeights(SizeD[] sizes)
         {
             var widths = GetWidths(sizes);
             var heights = GetHeights(sizes);
@@ -427,9 +534,9 @@ namespace Alternet.Drawing
         public readonly SizeD ApplyMin(SizeD min)
         {
             var result = this;
-            if (min.Width > 0 && result.Width < min.Width)
+            if (min.Width >= CoordD.Empty && result.Width < min.Width)
                 result.Width = min.Width;
-            if (min.Height > 0 && result.Height < min.Height)
+            if (min.Height >= CoordD.Empty && result.Height < min.Height)
                 result.Height = min.Height;
             return result;
         }
@@ -443,9 +550,9 @@ namespace Alternet.Drawing
         public readonly SizeD ApplyMax(SizeD max)
         {
             var result = this;
-            if (max.Width > 0 && result.Width > max.Width)
+            if (max.Width > CoordD.Empty && result.Width > max.Width)
                 result.Width = max.Width;
-            if (max.Height > 0 && result.Height > max.Height)
+            if (max.Height > CoordD.Empty && result.Height > max.Height)
                 result.Height = max.Height;
             return result;
         }
@@ -480,6 +587,10 @@ namespace Alternet.Drawing
         /// <see cref="Height"/>. Uses <see cref="Math.Ceiling(Coord)"/> on values.
         /// </summary>
         /// <returns></returns>
+        /// <remarks>
+        /// Ceiling operation returns the smallest integer that is greater than or equal
+        /// to the specified floating-point number.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly SizeD Ceiling()
         {
@@ -492,6 +603,81 @@ namespace Alternet.Drawing
         /// <returns>A <see cref="PointD"/> structure.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly PointD ToPointF() => (PointD)this;
+
+        /// <summary>
+        /// Get this object with applied min and max constraints.
+        /// </summary>
+        /// <param name="maxWidth">Maximal width.</param>
+        /// <param name="maxHeight">Maximal height.</param>
+        /// <returns></returns>
+        public readonly SizeD Shrink(Coord? maxWidth, Coord? maxHeight)
+        {
+            var result = this;
+
+            if (maxWidth is not null)
+            {
+                result.Width = Math.Min(result.Width, maxWidth.Value);
+            }
+
+            if (maxHeight is not null)
+            {
+                result.Height = Math.Min(result.Height, maxHeight.Value);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Returns this size (in pixels) converted to device-independent units.
+        /// </summary>
+        /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
+        /// If not specified, default value is used.</param>
+        /// <returns></returns>
+        public readonly SizeD PixelToDip(Coord? scaleFactor = null)
+        {
+            return GraphicsFactory.PixelToDip(this.ToSize(), scaleFactor);
+        }
+
+        /// <summary>
+        /// Returns this size (in inches) converted to device-independent units.
+        /// </summary>
+        /// <returns></returns>
+        public readonly SizeD InchesToDips()
+        {
+            var result = GraphicsUnitConverter.ConvertSize(
+                GraphicsUnit.Inch,
+                GraphicsUnit.Dip,
+                0,
+                this);
+            return result;
+        }
+
+        /// <summary>
+        /// Returns this size (in millimeters) converted to device-independent units.
+        /// </summary>
+        /// <returns></returns>
+        public readonly SizeD MillimetersToDips()
+        {
+            var result = GraphicsUnitConverter.ConvertSize(
+                GraphicsUnit.Millimeter,
+                GraphicsUnit.Dip,
+                0,
+                this);
+            return result;
+        }
+
+        /// <summary>
+        /// Shrinks the specified size coordinate.
+        /// </summary>
+        /// <param name="vert">Whether to shrink vertical or horizontal size.</param>
+        /// <param name="maxSize">Maximal possible value.</param>
+        /// <returns></returns>
+        public readonly SizeD Shrink(bool vert, Coord maxSize)
+        {
+            var result = this;
+            result.SetSize(vert, Math.Min(result.GetSize(vert), maxSize));
+            return result;
+        }
 
         /// <summary>
         /// Converts a <see cref="SizeD"/> structure to a
@@ -514,7 +700,7 @@ namespace Alternet.Drawing
             string[] names = { PropNameStrings.Default.Width, PropNameStrings.Default.Height };
             Coord[] values = { width, height };
 
-            return StringUtils.ToString<Coord>(names, values);
+            return StringUtils.ToStringWithOrWithoutNames<Coord>(names, values);
         }
 
         /// <summary>
@@ -546,21 +732,50 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Calls <paramref name="coerceFunc"/> for the height.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CoerceHeight(Func<Coord, Coord> coerceFunc)
+        {
+            height = coerceFunc(height);
+        }
+
+        /// <summary>
+        /// Calls <paramref name="coerceFunc"/> for the width and height.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Coerce(Func<Coord, Coord> coerceFunc)
+        {
+            width = coerceFunc(width);
+            height = coerceFunc(height);
+        }
+
+        /// <summary>
+        /// Calls <see cref="CoerceCoordFunc"/> for the width and height.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Coerce()
+        {
+            if (CoerceCoordFunc is null)
+                return;
+            Coerce(CoerceCoordFunc);
+        }
+
+        /// <summary>
+        /// Calls <see cref="CoerceCoordFunc"/> for the height.
+        /// </summary>
+        public void CoerceHeight()
+        {
+            if (CoerceCoordFunc is null)
+                return;
+            CoerceHeight(CoerceCoordFunc);
+        }
+
+        /// <summary>
         /// Creates a new <see cref="System.Numerics.Vector2"/> from this object.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Vector2 ToVector2()
             => new(RectD.CoordToFloat(width), RectD.CoordToFloat(height));
-
-        /// <summary>
-        /// Multiplies <see cref="SizeD"/> by a value
-        /// producing <see cref="SizeD"/>.
-        /// </summary>
-        /// <param name="size">Multiplicand of type <see cref="SizeD"/>.</param>
-        /// <param name="multiplier">Multiplier.</param>
-        /// <returns>Product of type SizeF.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static SizeD Multiply(SizeD size, Coord multiplier) =>
-            new(size.width * multiplier, size.height * multiplier);
     }
 }

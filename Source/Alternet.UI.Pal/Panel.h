@@ -12,10 +12,7 @@ namespace Alternet::UI
         wxWindow* CreateWxWindowCore(wxWindow* parent) override;
         wxWindow* CreateWxWindowUnparented() override;
 
+    protected:
     private:
-        bool _wantChars = false;
-        bool _showVertScrollBar = false;
-        bool _showHorzScrollBar = false;
-        bool _scrollBarAlwaysVisible = false;
     };
 }

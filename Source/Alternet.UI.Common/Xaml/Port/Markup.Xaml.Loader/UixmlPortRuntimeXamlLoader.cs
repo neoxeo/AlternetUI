@@ -18,11 +18,17 @@ namespace Alternet.UI.Markup.Xaml
         /// </summary>
         /// <param name="xaml">The string containing the XAML.</param>
         /// <param name="localAssembly">Default assembly for clr-namespace:.</param>
-        /// <param name="rootInstance">The optional instance into which the XAML should be loaded.</param>
+        /// <param name="rootInstance">The optional instance into which
+        /// the XAML should be loaded.</param>
         /// <param name="uri">The URI of the XAML being loaded.</param>
         /// <param name="designMode">Indicates whether the XAML is being loaded in design mode.</param>
         /// <returns>The loaded object.</returns>
-        public static object Load(string xaml, Assembly localAssembly = null, object rootInstance = null, Uri uri = null, bool designMode = false)
+        public static object Load(
+            string xaml,
+            Assembly localAssembly = null,
+            object rootInstance = null,
+            Uri uri = null,
+            bool designMode = false)
         {
             Contract.Requires<ArgumentNullException>(xaml != null);
 
@@ -37,7 +43,8 @@ namespace Alternet.UI.Markup.Xaml
         /// </summary>
         /// <param name="stream">The stream containing the XAML.</param>
         /// <param name="localAssembly">Default assembly for clr-namespace:</param>
-        /// <param name="rootInstance">The optional instance into which the XAML should be loaded.</param>
+        /// <param name="rootInstance">The optional instance into which the
+        /// XAML should be loaded.</param>
         /// <param name="uri">The URI of the XAML being loaded.</param>
         /// <param name="designMode">Indicates whether the XAML is being loaded in design mode.</param>
         /// <returns>The loaded object.</returns>

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using Alternet.Drawing;
 
 namespace Alternet.UI
@@ -92,32 +93,56 @@ namespace Alternet.UI
         public static string ToDebugString(IDataObject value)
         {
             var result = new StringBuilder();
+
+            var allFormats = string.Join(", ", value.GetFormats());
+
+            result
+                .AppendLine("All Formats: " + allFormats)
+                .AppendLine();
+
             if (value.GetDataPresent(DataFormats.Text))
-                result.AppendLine("Text: " + value.GetData(DataFormats.Text));
+                result.AppendLine("[Text]: " + value.GetData(DataFormats.Text));
+
             if (value.GetDataPresent(DataFormats.Files))
             {
-                result.AppendLine("Files: "
-                    + string.Join("\n", (string[])value.GetData(DataFormats.Files)!));
+                var data = value.GetData(DataFormats.Files);
+
+                if (data is not string[] files || files.Length == 0)
+                    result.AppendLine("[Files]: EMPTY");
+                else
+                {
+                    result.AppendLine("[Files]:");
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        result.AppendLine($"    [{i}] => {files[i]}");
+                    }
+                }
             }
 
             if (value.GetDataPresent(DataFormats.Bitmap))
             {
                 var data = value.GetData(DataFormats.Bitmap);
                 var bitmap = data as Image;
-                result.AppendLine($"Bitmap: {bitmap?.Size}");
+                result.AppendLine($"[Bitmap]: {bitmap?.Size}");
             }
 
-            result.AppendLine().AppendLine("All formats: "
-                + string.Join(";", value.GetFormats()));
-
             return result.ToString();
+        }
+
+        /// <summary>
+        /// Gets this object properties formatted for debug purposes.
+        /// </summary>
+        /// <returns></returns>
+        public string ToDebugString()
+        {
+            return ToDebugString(this);
         }
 
         /// <inheritdoc/>
         public virtual object? GetData(string format)
         {
             if (format is null)
-                throw new ArgumentNullException(nameof(format));
+                return null;
 
             if (!data.TryGetValue(format, out var value))
                 return null;
@@ -128,7 +153,7 @@ namespace Alternet.UI
         public virtual bool GetDataPresent(string format)
         {
             if (format is null)
-                throw new ArgumentNullException(nameof(format));
+                return false;
 
             return data.ContainsKey(format);
         }
@@ -153,9 +178,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public virtual void SetData(object data)
         {
-            if (data is null)
-                throw new ArgumentNullException(nameof(data));
-
+            data ??= string.Empty;
             SetData(ClipboardUtils.DetectFormatFromData(data), data);
         }
 
@@ -163,42 +186,59 @@ namespace Alternet.UI
         /// Retrieves an array of file names from the data object in the
         /// <see cref="DataFormats.Files"/> format.
         /// </summary>
-        public virtual string[]? GetFiles() => GetData(DataFormats.Files) as string[];
+        public virtual string[]? GetFiles()
+        {
+            return GetData(DataFormats.Files) as string[];
+        }
 
         /// <summary>
         /// Retrieves bitmap data from the data object in the
         /// <see cref="DataFormats.Bitmap"/> format.
         /// </summary>
-        public virtual Image? GetBitmap() => GetData(DataFormats.Bitmap) as Image;
+        public virtual Image? GetBitmap()
+        {
+            return GetData(DataFormats.Bitmap) as Image;
+        }
 
         /// <summary>
         /// Retrieves text data from the data object in the
         /// <see cref="DataFormats.Text"/> format.
         /// </summary>
-        public virtual string? GetText() => GetData(DataFormats.Text) as string;
+        public virtual string? GetText()
+        {
+            return GetData(DataFormats.Text) as string;
+        }
 
         /// <summary>
         /// Adds an array of file names to the data object in the
         /// <see cref="DataFormats.Files"/> format.
         /// </summary>
-        public virtual void SetFiles(params string[] value) =>
+        public virtual void SetFiles(params string[] value)
+        {
             SetData(DataFormats.Files, value);
+        }
 
         /// <summary>
         /// Adds a bitmap to the data object in the
         /// <see cref="DataFormats.Bitmap"/> format.
         /// </summary>
-        public virtual void SetBitmap(Image value) =>
+        public virtual void SetBitmap(Image value)
+        {
             SetData(DataFormats.Bitmap, value);
+        }
 
         /// <summary>
         /// Adds a text string to the data object in the
         /// <see cref="DataFormats.Text"/> format.
         /// </summary>
-        public virtual void SetText(string value) => SetData(DataFormats.UnicodeText, value);
+        public virtual void SetText(string value)
+        {
+            SetData(DataFormats.UnicodeText, value);
+        }
 
         /// <summary>
-        /// Stores text data in this data object. The format of the text data to store is specified
+        /// Stores text data in this data object. The format of the text
+        /// data to store is specified
         /// with a member of <see cref="TextDataFormat" />.</summary>
         /// <param name="textData">A string that contains the text data to store
         /// in the data object.</param>
@@ -206,19 +246,71 @@ namespace Alternet.UI
         /// text data format to store.</param>
         /// <exception cref="ArgumentNullException">
         ///   <paramref name="textData" /> is <see langword="null" />.</exception>
-        public void SetText(string textData, TextDataFormat format)
+        public virtual void SetText(string textData, TextDataFormat format)
         {
-            if (textData == null)
-            {
-                throw new ArgumentNullException(nameof(textData));
-            }
+            textData ??= string.Empty;
 
             if (!DataFormats.IsValidTextDataFormat(format))
             {
-                throw new InvalidEnumArgumentException(nameof(format), (int)format, typeof(TextDataFormat));
+                throw new InvalidEnumArgumentException(
+                    nameof(format),
+                    (int)format,
+                    typeof(TextDataFormat));
             }
 
             SetData(DataFormats.ConvertToDataFormats(format), textData);
+        }
+
+        /// <inheritdoc/>
+        public virtual bool HasFormat(ClipboardDataFormatId format)
+        {
+            switch (format)
+            {
+                case ClipboardDataFormatId.UnicodeText:
+                case ClipboardDataFormatId.Text:
+                case ClipboardDataFormatId.OemText:
+                    return ContainsText;
+                case ClipboardDataFormatId.Filename:
+                    return ContainsFiles;
+                case ClipboardDataFormatId.Dib:
+                    return ContainsBitmap || GetDataPresent(DataFormats.Dib);
+                case ClipboardDataFormatId.Bitmap:
+                    return ContainsBitmap;
+                case ClipboardDataFormatId.EnhMetaFile:
+                    return GetDataPresent(DataFormats.EnhancedMetafile);
+                case ClipboardDataFormatId.MetaFile:
+                    return GetDataPresent(DataFormats.MetafilePicture);
+                case ClipboardDataFormatId.Dif:
+                    return GetDataPresent(DataFormats.Dif);
+                case ClipboardDataFormatId.Tiff:
+                    return GetDataPresent(DataFormats.Tiff);
+                case ClipboardDataFormatId.Palette:
+                    return GetDataPresent(DataFormats.Palette);
+                case ClipboardDataFormatId.PenData:
+                    return GetDataPresent(DataFormats.PenData);
+                case ClipboardDataFormatId.Riff:
+                    return GetDataPresent(DataFormats.Riff);
+                case ClipboardDataFormatId.Wave:
+                    return GetDataPresent(DataFormats.WaveAudio);
+                case ClipboardDataFormatId.Locale:
+                    return GetDataPresent(DataFormats.Locale);
+                case ClipboardDataFormatId.Html:
+                    return GetDataPresent(DataFormats.Html);
+                case ClipboardDataFormatId.Png:
+                    return ContainsBitmap;
+                case ClipboardDataFormatId.Sylk:
+                    return GetDataPresent(DataFormats.SymbolicLink);
+                case ClipboardDataFormatId.Private:
+                    return data.Keys.Count > 0;
+                default:
+                    return false;
+            }
+        }
+
+        /// <inheritdoc/>
+        public virtual bool HasFormat(string format)
+        {
+            return GetDataPresent(format);
         }
 
         internal class EmptyDataObject : DataObject

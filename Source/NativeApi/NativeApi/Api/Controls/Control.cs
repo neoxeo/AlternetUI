@@ -10,6 +10,22 @@ namespace NativeApi.Api
 
     public abstract class Control
     {
+        public static IntPtr CreateControl() => default;
+
+        // Returns true if this window can have a scroll bar in this orientation.
+        // wxHORIZONTAL = 0x0004,  wxVERTICAL = 0x0008,
+        public bool CanScroll(int orient) => default;
+
+        // Returns true if this window currently has a scroll bar for this orientation.
+        public bool HasScrollbar(int orient) => default;
+
+        public bool WantChars { get; set; }
+        public bool ShowVertScrollBar { get; set; }
+        public bool ShowHorzScrollBar { get; set; }
+        public bool ScrollBarAlwaysVisible { get; set; }
+
+        public bool EnableTouchEvents(int flag) => default;
+
         public bool BindScrollEvents { get; set; }
         public bool BeginRepositioningChildren() => default;
         public void EndRepositioningChildren() { }
@@ -37,9 +53,12 @@ namespace NativeApi.Api
         public Color GetDefaultAttributesBgColor() => default;
         public Color GetDefaultAttributesFgColor() => default;
         public Font GetDefaultAttributesFont() => default;
-        public static Color GetClassDefaultAttributesBgColor(int controlType, int windowVariant) => default;
-        public static Color GetClassDefaultAttributesFgColor(int controlType, int windowVariant) => default;
-        public static Font GetClassDefaultAttributesFont(int controlType, int windowVariant) => default;
+        public static Color GetClassDefaultAttributesBgColor(int controlType, int windowVariant)
+            => default;
+        public static Color GetClassDefaultAttributesFgColor(int controlType, int windowVariant)
+            => default;
+        public static Font GetClassDefaultAttributesFont(int controlType, int windowVariant)
+            => default;
 
         public static int DrawingFromDip(Coord value, IntPtr window) => default;
         public static Coord DrawingDPIScaleFactor(IntPtr window) => default;
@@ -65,6 +84,8 @@ namespace NativeApi.Api
 
         public SizeI EventNewDpi { get; }
 
+        public Control? EventFocusedControl { get; }
+
         public event EventHandler? Idle;
         public event EventHandler? Paint;
         public event EventHandler? MouseEnter;
@@ -74,9 +95,7 @@ namespace NativeApi.Api
         public event EventHandler? MouseCaptureLost;
         public event EventHandler? DpiChanged;
 
-        [NativeEvent(cancellable: true)]
         public event EventHandler? Destroyed;
-
         public event EventHandler? TextChanged;
         public event EventHandler? GotFocus;
         public event EventHandler? LostFocus;
@@ -113,6 +132,7 @@ namespace NativeApi.Api
         public SizeD Size { get; set; }
         public PointD Location { get; set; }
         public RectD Bounds { get; set; }
+        public RectI BoundsI { get; set; }
         public RectD EventBounds { get; }
 
         public SizeD ClientSize { get; set; }
@@ -143,6 +163,9 @@ namespace NativeApi.Api
         public void RemoveChild(Control control) { }
         public void Invalidate() { }
         public void Update() { }
+
+        public virtual void InvalidateBestSize() { }
+
         public virtual SizeD GetPreferredSize(SizeD availableSize) => default;
 
         public void SetFocusFlags(bool canSelect, bool tabStop, bool acceptsFocusRecursively) { }

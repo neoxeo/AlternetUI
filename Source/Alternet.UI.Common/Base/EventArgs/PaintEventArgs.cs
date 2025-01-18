@@ -6,7 +6,7 @@ using Alternet.Drawing;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Provides data for the <see cref="Control.Paint"/> or other paint events.
+    /// Provides data for the <see cref="AbstractControl.Paint"/> or other paint events.
     /// </summary>
     /// <remarks>
     /// A <see cref="PaintEventArgs"/> specifies the <see cref="Graphics"/> to use
@@ -14,18 +14,33 @@ namespace Alternet.UI
     /// </remarks>
     public class PaintEventArgs : BaseEventArgs
     {
-        private Graphics canvas;
+        private readonly Func<Graphics> canvasFunc;
+        private Graphics? canvas;
         private RectD rect;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaintEventArgs"/> class.
         /// </summary>
-        /// <param name="canvas">The <see cref="Graphics"/> used to paint.</param>
+        /// <param name="canvas"><see cref="Graphics"/> used to paint.</param>
         /// <param name="clipRect">The <see cref="RectD" /> that represents
         /// the rectangle in which to paint.</param>
         public PaintEventArgs(Graphics canvas, RectD clipRect)
         {
             this.canvas = canvas;
+            canvasFunc = () => canvas;
+            this.rect = clipRect;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaintEventArgs"/> class.
+        /// </summary>
+        /// <param name="canvasFunc">The function which returns
+        /// <see cref="Graphics"/> used to paint.</param>
+        /// <param name="clipRect">The <see cref="RectD" /> that represents
+        /// the rectangle in which to paint.</param>
+        public PaintEventArgs(Func<Graphics> canvasFunc, RectD clipRect)
+        {
+            this.canvasFunc = canvasFunc;
             this.rect = clipRect;
         }
 
@@ -43,9 +58,14 @@ namespace Alternet.UI
         [Browsable(false)]
         public Graphics DrawingContext
         {
-            get => canvas;
-            set => canvas = value;
+            get => Graphics;
+            set => Graphics = value;
         }
+
+        /// <summary>
+        /// Gets whether canvas was allocated.
+        /// </summary>
+        public bool GraphicsAllocated => canvas is not null;
 
         /// <summary>
         /// Gets the rectangle in which to paint.
@@ -59,13 +79,13 @@ namespace Alternet.UI
         [Browsable(false)]
         public RectD Bounds
         {
-            get => rect;
-            set => rect = value;
+            get => ClipRectangle;
+            set => ClipRectangle = value;
         }
 
         /// <summary>Gets the rectangle in which to paint.</summary>
         /// <returns>The <see cref="RectD" /> in which to paint.</returns>
-        public RectD ClipRectangle
+        public virtual RectD ClipRectangle
         {
             get => rect;
             set => rect = value;
@@ -79,9 +99,9 @@ namespace Alternet.UI
         /// The <see cref="Graphics" /> object provides methods for drawing objects
         /// on the display or other device.
         /// </returns>
-        public Graphics Graphics
+        public virtual Graphics Graphics
         {
-            get => canvas;
+            get => canvas ??= canvasFunc();
             set => canvas = value;
         }
     }

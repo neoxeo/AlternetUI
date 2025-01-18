@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Implements preview control which splits it's view into two docked panels
+    /// Implements preview control which splits its view into two docked panels
     /// and uses <see cref="First"/> and <see cref="Second"/> preview sub-controls there.
     /// When <see cref="FileName"/> is changed, preview sub-controls are also updated.
     /// </summary>
@@ -23,12 +23,31 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="PreviewFileSplitted"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public PreviewFileSplitted(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PreviewFileSplitted"/> class.
+        /// </summary>
+        public PreviewFileSplitted()
+            : this(new PreviewFile(), new PreviewFileDummy(), true)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PreviewFileSplitted"/> class.
+        /// </summary>
         /// <param name="centerPanel">Preview control which is docked in the center.</param>
-        /// <param name="rightPanel">Preview control which is docked to the right.</param>
-        public PreviewFileSplitted(IFilePreview centerPanel, IFilePreview rightPanel)
+        /// <param name="secondPanel">Second preview control.</param>
+        /// <param name="isRight">Whether second panel is shown in the right side bar.</param>
+        public PreviewFileSplitted(IFilePreview centerPanel, IFilePreview secondPanel, bool isRight)
         {
             this.first = centerPanel;
-            this.second = rightPanel;
+            this.second = secondPanel;
             panel.Parent = this;
             panel.DoInsideLayout(() =>
             {
@@ -36,20 +55,30 @@ namespace Alternet.UI
                 panel.BottomVisible = false;
                 panel.LeftVisible = false;
                 panel.RightPanel.Width = 300;
+                panel.BottomPanel.Height = 300;
             });
             first.Control.Parent = panel.CenterPanel;
-            second.Control.Parent = panel.RightPanel;
+            if(isRight)
+                SecondPanelToRight();
+            else
+                SecondPanelToBottom();
         }
 
         /// <summary>
         /// First preview sub-control which default docking position is at the center.
         /// </summary>
-        public virtual IFilePreview First => first;
+        public virtual IFilePreview First
+        {
+            get => first;
+        }
 
         /// <summary>
         /// First preview sub-control which default docking position is at the right.
         /// </summary>
-        public virtual IFilePreview Second => second;
+        public virtual IFilePreview Second
+        {
+            get => second;
+        }
 
         /// <summary>
         /// <inheritdoc cref="IFilePreview.FileName"/>
@@ -71,6 +100,26 @@ namespace Alternet.UI
             }
         }
 
-        Control IFilePreview.Control => this;
+        AbstractControl IFilePreview.Control => this;
+
+        /// <summary>
+        /// Moves second preview panel to the right side bar.
+        /// </summary>
+        public virtual void SecondPanelToRight()
+        {
+            panel.BottomVisible = false;
+            second.Control.Parent = panel.RightPanel;
+            panel.RightVisible = true;
+        }
+
+        /// <summary>
+        /// Moves second preview panel to the bottom bar.
+        /// </summary>
+        public virtual void SecondPanelToBottom()
+        {
+            panel.RightVisible = false;
+            second.Control.Parent = panel.BottomPanel;
+            panel.BottomVisible = true;
+        }
     }
 }

@@ -30,6 +30,11 @@ namespace Alternet.UI.Native
 
         public string? Title { get; set; }
 
+        public void ShowAsync(Alternet.UI.Window? owner, Action<bool>? onClose)
+        {
+            ColorDialog.DefaultShowAsync(owner, onClose, ShowModal);
+        }
+
         public void SetDocument(Alternet.Drawing.Printing.IPrintDocumentHandler? value)
         {
             Document = value as Alternet.Drawing.Printing.PrintDocumentHandler;
@@ -37,9 +42,7 @@ namespace Alternet.UI.Native
 
         public Alternet.UI.ModalResult ShowModal(Alternet.UI.Window? owner)
         {
-            var nativeOwner = owner == null ? null
-                : ((WindowHandler)owner.Handler).NativeControl;
-            return ShowModal(nativeOwner);
+            return ShowModal(GetNativeWindow(owner));
         }
     }
 }

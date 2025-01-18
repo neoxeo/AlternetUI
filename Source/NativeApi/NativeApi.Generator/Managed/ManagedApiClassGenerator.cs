@@ -14,6 +14,26 @@ namespace ApiGenerator.Managed
 {
     internal class ManagedApiClassGenerator
     {
+
+        public static bool IsControlOrDescendant(ApiType managedApiType)
+        {
+            var type = managedApiType.Type;
+
+            var controlType = typeof(NativeApi.Api.Control);
+
+            var result = type == controlType
+                || Alternet.UI.AssemblyUtils.TypeIsDescendant(type, controlType);
+
+            return result;
+        }
+
+        public static bool IsControl(ApiType managedApiType)
+        {
+            var type = managedApiType.Type;
+            var typeName = type.Name;
+            return typeName == "Control";
+        }
+
         public string Generate(ApiType managedApiType, ApiType pInvokeApiType)
         {
             var type = managedApiType.Type;
@@ -56,7 +76,7 @@ using System.Security;");
             w.WriteLine("{");
             w.Indent++;
 
-            if(typeName == "Control")
+            if(IsControl(managedApiType))
                 w.WriteLine("internal object? handler;");
 
             var events = MemberProvider.GetEvents(type).ToArray();
@@ -74,7 +94,7 @@ using System.Security;");
             foreach (var method in managedApiType.Methods)
                 WriteMethod(w, method, types, pinvokeTypes);
 
-            WriteEvents(w, types, events);
+            WriteEvents(managedApiType, pInvokeApiType, w, types, events);
 
             w.WriteLine();
             new PInvokeClassGenerator().Generate(pInvokeApiType, w);
@@ -430,7 +450,12 @@ using System.Security;");
             }
         }
 
-        private static void WriteEvents(IndentedTextWriter w, Types types, EventInfo[] events)
+        private static void WriteEvents(
+            ApiType managedApiType,
+            ApiType pInvokeApiType,
+            IndentedTextWriter w,
+            Types types,
+            EventInfo[] events)
         {
             if (events.Length == 0)
                 return;
@@ -439,6 +464,8 @@ using System.Security;");
             var declaringTypeName = types.GetTypeName(declaringType.ToContextualType());
 
             w.WriteLine("static GCHandle eventCallbackGCHandle;");
+
+            w.WriteLine($"public static {declaringTypeName}? GlobalObject;");
 
             w.WriteLine();
 
@@ -456,6 +483,7 @@ using System.Security;");
                         using (new BlockIndent(w))
                         {
                             w.WriteLine($"var w = {string.Format(GetNativeToManagedFormatString(declaringType.ToContextualType(), out _), "obj")};");
+                            w.WriteLine("w ??= GlobalObject;");
                             w.WriteLine("if (w == null) return IntPtr.Zero;");
                             w.WriteLine("return w.OnEvent(e, parameter);");
                         }
@@ -476,9 +504,19 @@ using System.Security;");
 
             // ===========================
 
+            var isControlOrDescendant = IsControlOrDescendant(managedApiType);
+
             using (new BlockIndent(w))
             {
-                if(events.Length == 1)
+
+                if (IsControl(managedApiType))
+                {
+                    w.WriteLine("if(handler is null)");
+                    w.WriteLine("return default;");
+                    w.WriteLine();
+                }
+
+                if (events.Length == 1)
                 {
                     FnSingle(events[0]);
                 }
@@ -491,7 +529,11 @@ using System.Security;");
                     if (dataType != null)
                     {
                         w.WriteLine($"var ea = new NativeEventArgs<{dataType.Name}>(MarshalEx.PtrToStructure<{dataType.Name}>(parameter));");
-                        w.WriteLine($"{e.Name}?.Invoke(this, ea); return ea.Result;");
+
+                        if(isControlOrDescendant)
+                            w.WriteLine($"OnPlatformEvent{e.Name}(ea); return ea.Result;");
+                        else
+                            w.WriteLine($"{e.Name}?.Invoke(this, ea); return ea.Result;");
                     }
                     else
                     {
@@ -500,15 +542,36 @@ using System.Security;");
                         {
                             using (new BlockIndent(w))
                             {
+                                if (!isControlOrDescendant)
+                                {
+                                    w.WriteLine($"if({e.Name} is not null)");
+                                    w.WriteLine("{");
+                                }
+
                                 w.WriteLine($"var cea = new CancelEventArgs();");
-                                w.WriteLine($"{e.Name}?.Invoke(this, cea);");
+
+                                if(isControlOrDescendant)
+                                    w.WriteLine($"OnPlatformEvent{e.Name}(cea);");
+                                else
+                                    w.WriteLine($"{e.Name}.Invoke(this, cea);");
+
                                 w.WriteLine(
-                                    $"return cea.Cancel ? new IntPtr(1) : IntPtr.Zero;");
+                                    $"return cea.Cancel ? IntPtrUtils.One : IntPtr.Zero;");
+
+                                if (!isControlOrDescendant)
+                                {
+                                    w.WriteLine("}");
+                                    w.WriteLine("else return IntPtr.Zero;");
+                                }
                             }
                         }
                         else
-                            w.WriteLine(
-                                $"{e.Name}?.Invoke(); return IntPtr.Zero;");
+                        {
+                            if(isControlOrDescendant)
+                                w.WriteLine($"OnPlatformEvent{e.Name}(); return IntPtr.Zero;");
+                            else
+                                w.WriteLine($"{e.Name}?.Invoke(); return IntPtr.Zero;");
+                        }
                     }
                 }
 
@@ -536,35 +599,38 @@ using System.Security;");
 
             w.WriteLine();
 
-            foreach (var e in events)
+            if(!isControlOrDescendant)
             {
-                string? argsType;
-                var dataType = MemberProvider.TryGetNativeEventDataType(e);
-                bool emitEvent;
-                if (dataType != null)
+                foreach (var e in events)
                 {
-                    argsType = "NativeEventHandler<" + dataType.Name + ">";
-                    emitEvent = true;
-                }
-                else
-                {
-                    var attribute = MemberProvider.GetEventAttribute(e);
-
-                    if (attribute.Cancellable)
+                    string? argsType;
+                    var dataType = MemberProvider.TryGetNativeEventDataType(e);
+                    bool emitEvent;
+                    if (dataType != null)
                     {
-                        argsType = "EventHandler<CancelEventArgs>";
+                        argsType = "NativeEventHandler<" + dataType.Name + ">";
                         emitEvent = true;
                     }
                     else
                     {
-                        argsType = "Action";
-                        emitEvent = false;
+                        var attribute = MemberProvider.GetEventAttribute(e);
+
+                        if (attribute.Cancellable)
+                        {
+                            argsType = "EventHandler<CancelEventArgs>";
+                            emitEvent = true;
+                        }
+                        else
+                        {
+                            argsType = "Action";
+                            emitEvent = false;
+                        }
                     }
+
+                    var eventStr = emitEvent ? "event " : "";
+
+                    w.WriteLine($"public {eventStr}{argsType}? {e.Name};");
                 }
-
-                var eventStr = emitEvent ? "event " : "";
-
-                w.WriteLine($"public {eventStr}{argsType}? {e.Name};");
             }
         }
 

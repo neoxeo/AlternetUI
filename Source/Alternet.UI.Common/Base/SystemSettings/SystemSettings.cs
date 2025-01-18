@@ -14,8 +14,37 @@ namespace Alternet.UI
     public static class SystemSettings
     {
         private static ISystemSettingsHandler? handler;
-        private static bool validColors = false;
+        private static bool validColors;
+        private static bool? appearanceIsDarkOverride;
+        private static bool? isUsingDarkBackgroundOverride;
 
+        static SystemSettings()
+        {
+            validColors = false;
+        }
+
+        /// <summary>
+        /// Occurs when the system colors change.
+        /// </summary>
+        public static event Action? SystemColorsChanged;
+
+        /// <summary>
+        /// Gets whether <see cref="SystemSettings"/> is initialized and
+        /// can be used. Normally this returns False when <see cref="Handler"/>
+        /// is not yet assigned.
+        /// </summary>
+        public static bool HasHandler
+        {
+            get
+            {
+                return handler is not null;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets <see cref="ISystemSettingsHandler"/> provider used to work
+        /// with system settings.
+        /// </summary>
         public static ISystemSettingsHandler Handler
         {
             get => handler ??= App.Handler.CreateSystemSettingsHandler();
@@ -37,7 +66,39 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Return true if the current system there is explicitly recognized as
+        /// Gets or sets an override for <see cref="IsUsingDarkBackground"/>.
+        /// </summary>
+        public static bool? IsUsingDarkBackgroundOverride
+        {
+            get
+            {
+                return isUsingDarkBackgroundOverride;
+            }
+
+            set
+            {
+                isUsingDarkBackgroundOverride = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets an override for <see cref="AppearanceIsDark"/>.
+        /// </summary>
+        public static bool? AppearanceIsDarkOverride
+        {
+            get
+            {
+                return appearanceIsDarkOverride;
+            }
+
+            set
+            {
+                appearanceIsDarkOverride = value;
+            }
+        }
+
+        /// <summary>
+        /// Return true if the current system theme is explicitly recognized as
         /// being a dark theme or if the default window background is dark.
         /// </summary>
         /// <remarks>
@@ -46,7 +107,10 @@ namespace Alternet.UI
         /// </remarks>
         public static bool AppearanceIsDark
         {
-            get => Handler.GetAppearanceIsDark();
+            get
+            {
+                return appearanceIsDarkOverride ?? Handler.GetAppearanceIsDark();
+            }
         }
 
         /// <summary>
@@ -56,7 +120,7 @@ namespace Alternet.UI
         /// </summary>
         public static bool IsUsingDarkBackground
         {
-            get => Handler.IsUsingDarkBackground();
+            get => isUsingDarkBackgroundOverride ?? Handler.IsUsingDarkBackground();
         }
 
         /// <summary>
@@ -89,7 +153,7 @@ namespace Alternet.UI
         /// one should still be given, as for example it might determine which displays
         /// cursor width is requested with <see cref="SystemSettingsMetric.CursorX"/>.
         /// </remarks>
-        public static int GetMetric(SystemSettingsMetric index, Control? control)
+        public static int GetMetric(SystemSettingsMetric index, AbstractControl? control)
         {
             return Handler.GetMetric(index, control);
         }
@@ -109,12 +173,50 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets default font size increnent depending on the dpi value of the screen.
+        /// Uses <see cref="Window.IncFontSize"/> and <see cref="Window.IncFontSizeHighDpi"/>
+        /// properties.
+        /// </summary>
+        /// <returns></returns>
+        public static int GetDefaultFontSizeIncrement()
+        {
+            int GetIncFontSizeHighDpi()
+            {
+                var result = Window.IncFontSizeHighDpi
+                    ?? AllPlatformDefaults.PlatformCurrent.IncFontSizeHighDpi;
+                return result;
+            }
+
+            int GetIncFontSize()
+            {
+                var result = Window.IncFontSize
+                    ?? AllPlatformDefaults.PlatformCurrent.IncFontSize;
+                return result;
+            }
+
+            var dpi = Display.MaxDPI;
+            var incFont = (dpi > 96) ? GetIncFontSizeHighDpi() : GetIncFontSize();
+            return incFont;
+        }
+
+        /// <summary>
+        /// Initializes <see cref="Window.IncFontSizeHighDpi"/> and
+        /// <see cref="Window.IncFontSize"/> with the default values.
+        /// </summary>
+        public static void InitDefaultFontSizeIncrement(int? value = null)
+        {
+            Window.IncFontSizeHighDpi = value ?? AllPlatformDefaults.DefaultIncFontSizeHighDpi;
+            Window.IncFontSize = value ?? AllPlatformDefaults.DefaultIncFontSize;
+        }
+
+        /// <summary>
         /// Logs all fonts enumerated in <see cref="SystemSettingsFont"/>.
         /// </summary>
         public static void LogSystemFonts()
         {
             App.LogBeginSection("System Fonts");
 
+            App.Log($"Control.DefaultFont: {AbstractControl.DefaultFont.ToInfoString()}");
             App.Log($"Default font: {Font.Default.ToInfoString()}");
             App.Log($"Default mono font: {Font.DefaultMono.ToInfoString()}");
 
@@ -149,8 +251,9 @@ namespace Alternet.UI
         /// </summary>
         public static void LogFixedWidthFonts()
         {
-            App.LogBeginSection();
+            App.LogBeginSection("Fixed Width Fonts");
             var items = FontFamily.FamiliesNamesAscending;
+            var hasFonts = false;
             foreach(var item in items)
             {
                 var font = new Font(item, 10);
@@ -158,7 +261,13 @@ namespace Alternet.UI
                 if(font.IsFixedWidth && font.Style == FontStyle.Regular && !font.GdiVerticalFont)
                 {
                     App.Log(font.ToInfoString());
+                    hasFonts = true;
                 }
+            }
+
+            if (!hasFonts)
+            {
+                App.Log("No fixed width fonts are found.");
             }
 
             App.LogEndSection();
@@ -188,12 +297,43 @@ namespace Alternet.UI
             return PlessSystemColors.GetColor(index);
         }
 
+        /// <summary>
+        /// Resets internal structures related to the system colors.
+        /// and raises <see cref="SystemColorsChanged"/> event.
+        /// </summary>
         public static void ResetColors()
         {
             validColors = false;
             PlessSystemColors.Reset();
+            SystemColorsChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Gets system font.
+        /// </summary>
+        /// <param name="font">System font id.</param>
+        /// <returns></returns>
         public static Font GetFont(SystemSettingsFont font) => SystemFonts.GetFont(font);
+
+        /// <summary>
+        /// Calls the specified action inside the block which temporary changes
+        /// value of the <see cref="AppearanceIsDarkOverride"/> property.
+        /// </summary>
+        /// <param name="tempAppearanceIsDark">Temporary value for the
+        /// <see cref="AppearanceIsDarkOverride"/> property.</param>
+        /// <param name="action">Action to call.</param>
+        public static void DoInsideTempAppearanceIsDark(bool? tempAppearanceIsDark, Action? action)
+        {
+            var savedOverride = AppearanceIsDarkOverride;
+            try
+            {
+                AppearanceIsDarkOverride = tempAppearanceIsDark;
+                action?.Invoke();
+            }
+            finally
+            {
+                AppearanceIsDarkOverride = savedOverride;
+            }
+        }
     }
 }

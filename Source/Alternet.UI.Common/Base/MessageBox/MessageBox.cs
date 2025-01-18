@@ -1,3 +1,5 @@
+// #define ObsoleteModalDialogs
+
 using System;
 using System.Collections.Generic;
 
@@ -13,10 +15,9 @@ namespace Alternet.UI
     /// the user.
     /// </summary>
     /// <remarks>
-    /// To display a message box, call the static method
-    /// <see cref="Show(Window, object, string, MessageBoxButtons, MessageBoxIcon, MessageBoxDefaultButton)"/>.
+    /// To display a message box, call one of the 'Show' static methods.
     /// The title, message, buttons, and icons
-    /// displayed in the message box are determined by parameters that you pass to this method.
+    /// displayed in the message box are determined by parameters that you pass to these methods.
     /// </remarks>
     public static class MessageBox
     {
@@ -29,6 +30,9 @@ namespace Alternet.UI
         /// If an event handler is added to this event,
         /// default message box show handler is not used.
         /// </remarks>
+#if ObsoleteModalDialogs
+        [Obsolete("Event is deprecated.")]
+#endif
         public static event EventHandler<BaseEventArgs<MessageBoxInfo>>? ShowDialog;
 
         /// <summary>
@@ -41,6 +45,9 @@ namespace Alternet.UI
         /// specifies which buttons to display in the message box.</param>
         /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
         /// specifies the default button for the message box.</param>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -76,6 +83,9 @@ namespace Alternet.UI
         ///   <see langword="true" /> to show the Help button; otherwise, <see langword="false" />.
         ///   The default is <see langword="false" />.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -94,18 +104,25 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which
         /// buttons to display in the message box.</param>
         /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which
         /// icon to display in the message box.</param>
         /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
         /// specifies the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which
-        /// display and association options will be used for the message box. You may pass in 0 if you wish
+        /// <param name="options">One of the <see cref="MessageBoxOptions" />
+        /// values that specifies which
+        /// display and association options will be used for the message box.
+        /// You may pass in 0 if you wish
         /// to use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks
+        /// <param name="helpFilePath">The path and name of the Help file to
+        /// display when the user clicks
         /// the Help button.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -119,23 +136,32 @@ namespace Alternet.UI
             return ShowCore(null, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
+        /// <summary>Displays a message box with the specified text, caption,
+        /// buttons, icon, default button,
         /// options, and Help button, using the specified Help file.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
         /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies
         /// which buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that
+        /// specifies which
         /// icon to display in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that
         /// specifies the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which
-        /// display and association options will be used for the message box. You may pass in 0 if you wish
+        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values
+        /// that specifies which
+        /// display and association options will be used for the message box. You may
+        /// pass in 0 if you wish
         /// to use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks
+        /// <param name="helpFilePath">The path and name of the Help file to display
+        /// when the user clicks
         /// the Help button.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -150,23 +176,32 @@ namespace Alternet.UI
             return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
+        /// <summary>Displays a message box with the specified text, caption, buttons, icon,
+        /// default button,
         /// options, and Help button, using the specified Help file and Help keyword.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that
+        /// specifies which
         /// buttons to display in the message box.</param>
         /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon
         /// to display in the message box.</param>
         /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
         /// specifies the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which
-        /// display and association options will be used for the message box. You may pass in 0 if you wish
+        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that
+        /// specifies which
+        /// display and association options will be used for the message box. You may pass
+        /// in 0 if you wish
         /// to use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks
+        /// <param name="helpFilePath">The path and name of the Help file to display when
+        /// the user clicks
         /// the Help button.</param>
-        /// <param name="keyword">The Help keyword to display when the user clicks the Help button.</param>
+        /// <param name="keyword">The Help keyword to display when the user clicks the
+        /// Help button.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -181,24 +216,31 @@ namespace Alternet.UI
             return ShowCore(null, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
+        /// <summary>Displays a message box with the specified text, caption, buttons,
+        /// icon, default button,
         /// options, and Help button, using the specified Help file and Help keyword.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that
+        /// specifies which
         /// buttons to display in the message box.</param>
         /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon
         /// to display in the message box.</param>
         /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
         /// specifies the default button for the message box.</param>
         /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies
-        /// which display and association options will be used for the message box. You may pass in 0 if
+        /// which display and association options will be used for the message box.
+        /// You may pass in 0 if
         /// you wish to use the defaults.</param>
         /// <param name="helpFilePath">The path and name of the Help file to display when the user
         /// clicks the Help button.</param>
-        /// <param name="keyword">The Help keyword to display when the user clicks the Help button.</param>
+        /// <param name="keyword">The Help keyword to display when the user clicks
+        /// the Help button.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -214,22 +256,33 @@ namespace Alternet.UI
             return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
-        /// options, and Help button, using the specified Help file and <see langword="HelpNavigator" />.</summary>
+        /// <summary>Displays a message box with the specified text, caption, buttons,
+        /// icon, default button,
+        /// options, and Help button, using the specified Help file and
+        /// <see langword="HelpNavigator" />.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which
         /// buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values
+        /// that specifies which icon to
         /// display in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that specifies
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that specifies
         /// the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which display
-        /// and association options will be used for the message box. You may pass in 0 if you wish to use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks the
+        /// <param name="options">One of the <see cref="MessageBoxOptions" />
+        /// values that specifies which display
+        /// and association options will be used for the message box.
+        /// You may pass in 0 if you wish to use the defaults.</param>
+        /// <param name="helpFilePath">The path and name of the Help file to display
+        /// when the user clicks the
         /// Help button.</param>
         /// <param name="navigator">One of the <see cref="HelpNavigator" /> values.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -244,23 +297,34 @@ namespace Alternet.UI
             return ShowCore(null, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
-        /// options, and Help button, using the specified Help file and <see langword="HelpNavigator" />.</summary>
+        /// <summary>Displays a message box with the specified text, caption, buttons,
+        /// icon, default button,
+        /// options, and Help button, using the specified Help file
+        /// and <see langword="HelpNavigator" />.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which
         /// buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that
+        /// specifies which icon to
         /// display in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that specifies
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that specifies
         /// the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which display
-        /// and association options will be used for the message box. You may pass in 0 if you wish to use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks the
+        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values
+        /// that specifies which display
+        /// and association options will be used for the message box. You may pass in 0
+        /// if you wish to use the defaults.</param>
+        /// <param name="helpFilePath">The path and name of the Help file to display when
+        /// the user clicks the
         /// Help button.</param>
         /// <param name="navigator">One of the <see cref="HelpNavigator" /> values.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -276,23 +340,35 @@ namespace Alternet.UI
             return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
-        /// options, and Help button, using the specified Help file, <see langword="HelpNavigator" />, and Help topic.</summary>
+        /// <summary>Displays a message box with the specified text, caption, buttons, icon,
+        /// default button,
+        /// options, and Help button, using the specified Help file,
+        /// <see langword="HelpNavigator" />, and Help topic.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that
+        /// specifies which
         /// buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies
+        /// which icon to
         /// display in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that
         /// specifies the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which
-        /// display and association options will be used for the message box. You may pass in 0 if you wish to
+        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that
+        /// specifies which
+        /// display and association options will be used for the message box. You may pass
+        /// in 0 if you wish to
         /// use the defaults.</param>
-        /// <param name="helpFilePath">The path and name of the Help file to display when the user clicks
+        /// <param name="helpFilePath">The path and name of the Help file to display when
+        /// the user clicks
         /// the Help button.</param>
         /// <param name="navigator">One of the <see cref="HelpNavigator" /> values.</param>
-        /// <param name="param">The numeric ID of the Help topic to display when the user clicks the Help button.</param>
+        /// <param name="param">The numeric ID of the Help topic to display when the user
+        /// clicks the Help button.</param>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -326,8 +402,12 @@ namespace Alternet.UI
         /// <param name="helpFilePath">The path and name of the Help file to display when the user
         /// clicks the Help button.</param>
         /// <param name="navigator">One of the <see cref="HelpNavigator" /> values.</param>
-        /// <param name="param">The numeric ID of the Help topic to display when the user clicks the Help button.</param>
+        /// <param name="param">The numeric ID of the Help topic to display when the user
+        /// clicks the Help button.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -344,7 +424,8 @@ namespace Alternet.UI
             return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, hpi);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, default button,
+        /// <summary>Displays a message box with the specified text, caption, buttons,
+        /// icon, default button,
         /// and options.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
@@ -355,9 +436,13 @@ namespace Alternet.UI
         /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that
         /// specifies the default button for the message box.</param>
         /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies
-        /// which display and association options will be used for the message box. You may pass in 0 if you
+        /// which display and association options will be used for the message box.
+        /// You may pass in 0 if you
         /// wish to use the defaults.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -369,16 +454,23 @@ namespace Alternet.UI
             return ShowCore(null, text, caption, buttons, icon, defaultButton, options, showHelp: false);
         }
 
-        /// <summary>Displays a message box with the specified text, caption, buttons, icon, and default button.</summary>
+        /// <summary>Displays a message box with the specified text, caption, buttons, icon,
+        /// and default button.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which buttons
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that
+        /// specifies which buttons
         /// to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to display
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies
+        /// which icon to display
         /// in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that specifies the
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that specifies the
         /// default button for the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             object? text,
             string? caption,
@@ -392,11 +484,16 @@ namespace Alternet.UI
         /// <summary>Displays a message box with specified text, caption, buttons, and icon.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which buttons to
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that
+        /// specifies which buttons to
         /// display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to display
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies
+        /// which icon to display
         /// in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(object? text, string? caption, MessageBoxButtons buttons, MessageBoxIcon icon)
         {
             return ShowCore(
@@ -416,6 +513,9 @@ namespace Alternet.UI
         /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies
         /// which buttons to display in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(object? text, string? caption, MessageBoxButtons buttons)
         {
             return ShowCore(
@@ -433,6 +533,9 @@ namespace Alternet.UI
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(object? text, string? caption)
         {
             return ShowCore(
@@ -449,6 +552,9 @@ namespace Alternet.UI
         /// <summary>Displays a message box with specified text.</summary>
         /// <param name="text">The text to display in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(object? text)
         {
             return ShowCore(
@@ -462,20 +568,29 @@ namespace Alternet.UI
                 showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text,
+        /// <summary>Displays a message box in front of the specified object and with
+        /// the specified text,
         /// caption, buttons, icon, default button, and options.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which
         /// buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that
+        /// specifies which icon to
         /// display in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values the specifies
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values the specifies
         /// the default button for the message box.</param>
-        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values that specifies which display
-        /// and association options will be used for the message box. You may pass in 0 if you wish to use the defaults.</param>
+        /// <param name="options">One of the <see cref="MessageBoxOptions" /> values
+        /// that specifies which display
+        /// and association options will be used for the message box. You may pass
+        /// in 0 if you wish to use the defaults.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -488,18 +603,25 @@ namespace Alternet.UI
             return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text, caption,
+        /// <summary>Displays a message box in front of the specified object and with
+        /// the specified text, caption,
         /// buttons, icon, and default button.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which buttons
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which buttons
         /// to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to display
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that
+        /// specifies which icon to display
         /// in the message box.</param>
-        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" /> values that specifies the
+        /// <param name="defaultButton">One of the <see cref="MessageBoxDefaultButton" />
+        /// values that specifies the
         /// default button for the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -508,19 +630,33 @@ namespace Alternet.UI
             MessageBoxIcon icon,
             MessageBoxDefaultButton defaultButton)
         {
-            return ShowCore(owner, text, caption, buttons, icon, defaultButton, (MessageBoxOptions)0, showHelp: false);
+            return ShowCore(
+                owner,
+                text,
+                caption,
+                buttons,
+                icon,
+                defaultButton,
+                (MessageBoxOptions)0,
+                showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text, caption,
+        /// <summary>Displays a message box in front of the specified object and
+        /// with the specified text, caption,
         /// buttons, and icon.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values
+        /// that specifies which
         /// buttons to display in the message box.</param>
-        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that specifies which icon to
+        /// <param name="icon">One of the <see cref="MessageBoxIcon" /> values that
+        /// specifies which icon to
         /// display in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(
             Window? owner,
             object? text,
@@ -539,14 +675,19 @@ namespace Alternet.UI
                 showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text,
+        /// <summary>Displays a message box in front of the specified object and
+        /// with the specified text,
         /// caption, and buttons.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
-        /// <param name="buttons">One of the <see cref="MessageBoxButtons" /> values that specifies which
+        /// <param name="buttons">One of the <see cref="MessageBoxButtons" />
+        /// values that specifies which
         /// buttons to display in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(Window? owner, object? text, string? caption, MessageBoxButtons buttons)
         {
             return ShowCore(
@@ -560,11 +701,15 @@ namespace Alternet.UI
                 showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text and caption.</summary>
+        /// <summary>Displays a message box in front of the specified object and with the
+        /// specified text and caption.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <param name="caption">The text to display in the title bar of the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(Window? owner, object? text, string? caption)
         {
             return ShowCore(
@@ -578,10 +723,14 @@ namespace Alternet.UI
                 showHelp: false);
         }
 
-        /// <summary>Displays a message box in front of the specified object and with the specified text.</summary>
+        /// <summary>Displays a message box in front of the specified object and with
+        /// the specified text.</summary>
         /// <param name="owner">A <see cref="Window"/> that will own the modal dialog box.</param>
         /// <param name="text">The text to display in the message box.</param>
         /// <returns>One of the <see cref="DialogResult" /> values.</returns>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult Show(Window? owner, object? text)
         {
             return ShowCore(
@@ -601,11 +750,15 @@ namespace Alternet.UI
         /// <param name="info">Message box parameters.</param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException">If some feature is not supported.</exception>
+#if ObsoleteModalDialogs
+        [Obsolete("Method is deprecated.")]
+#endif
         public static DialogResult ShowDefault(MessageBoxInfo info)
         {
             info.Icon = ValidateIcon(info.Icon);
 
-            if (info.Buttons == MessageBoxButtons.AbortRetryIgnore || info.Buttons == MessageBoxButtons.RetryCancel)
+            if (info.Buttons == MessageBoxButtons.AbortRetryIgnore
+                || info.Buttons == MessageBoxButtons.RetryCancel)
             {
                 App.Alert("AbortRetryIgnore and RetryCancel are not implemented");
                 return DialogResult.None;
@@ -614,9 +767,11 @@ namespace Alternet.UI
             switch (info.DefaultButton)
             {
                 case MessageBoxDefaultButton.Button1:
-                    if (info.Buttons == MessageBoxButtons.OK || info.Buttons == MessageBoxButtons.OKCancel)
+                    if (info.Buttons == MessageBoxButtons.OK
+                        || info.Buttons == MessageBoxButtons.OKCancel)
                         info.DefaultButton = MessageBoxDefaultButton.OK;
-                    if (info.Buttons == MessageBoxButtons.YesNo || info.Buttons == MessageBoxButtons.YesNoCancel)
+                    if (info.Buttons == MessageBoxButtons.YesNo
+                        || info.Buttons == MessageBoxButtons.YesNoCancel)
                         info.DefaultButton = MessageBoxDefaultButton.Yes;
                     break;
                 case MessageBoxDefaultButton.Button2:
@@ -626,7 +781,8 @@ namespace Alternet.UI
                     if (info.Buttons == MessageBoxButtons.OKCancel)
                         info.DefaultButton = MessageBoxDefaultButton.Cancel;
                     else
-                    if (info.Buttons == MessageBoxButtons.YesNo || info.Buttons == MessageBoxButtons.YesNoCancel)
+                    if (info.Buttons == MessageBoxButtons.YesNo
+                        || info.Buttons == MessageBoxButtons.YesNoCancel)
                         info.DefaultButton = MessageBoxDefaultButton.No;
                     break;
                 case MessageBoxDefaultButton.Button3:
@@ -649,7 +805,8 @@ namespace Alternet.UI
                     break;
             }
 
-            if (info.Buttons == MessageBoxButtons.YesNo || info.Buttons == MessageBoxButtons.YesNoCancel)
+            if (info.Buttons == MessageBoxButtons.YesNo
+                || info.Buttons == MessageBoxButtons.YesNoCancel)
             {
                 if (info.DefaultButton == MessageBoxDefaultButton.OK)
                     info.DefaultButton = MessageBoxDefaultButton.Yes;
@@ -699,7 +856,15 @@ namespace Alternet.UI
             try
             {
                 PushHelpInfo(hpi);
-                return ShowCore(owner, text, caption, buttons, icon, defaultButton, options, showHelp: true);
+                return ShowCore(
+                    owner,
+                    text,
+                    caption,
+                    buttons,
+                    icon,
+                    defaultButton,
+                    options,
+                    showHelp: true);
             }
             finally
             {

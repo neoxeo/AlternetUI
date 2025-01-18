@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<alternet:DisposableContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:alternet="http://schemas.alternetsoft.com/alternetui/2024"
+             xmlns:editor="http://schemas.alternetsoft.com/editor/2024"
+             x:Class="EditorMAUI.MainPage"
+             Title="Alternet.Editor Demo">
+    <Grid RowDefinitions="*,Auto">
+        <StackLayout x:Name="panel" 
+                           Grid.Row="0">
+            <editor:SyntaxEditView x:Name="editor" ReadOnly="False" 
+                                   SelectionChanged="editor_SelectionChanged">
+            </editor:SyntaxEditView>
+            <FlyoutBase.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="Set Height = (Width / 3) * 2"
+                                        x:Name="setHeight"/>
+                    <MenuFlyoutItem Text="Hide extra controls"
+                                        x:Name="hideExtra"/>
+                </MenuFlyout>
+            </FlyoutBase.ContextFlyout>
+        </StackLayout>
+
+        <StackLayout Margin="0,20" Grid.Row="1" x:Name="extraControls">
+            <Entry Text="some text" x:Name="entry1"/>
+            <Button Text="Action 1" x:Name="button1" WidthRequest="150">
+            </Button>
+        </StackLayout>
+    </Grid>
+</alternet:DisposableContentPage>

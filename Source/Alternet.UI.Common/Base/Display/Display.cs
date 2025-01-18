@@ -10,11 +10,23 @@ namespace Alternet.UI
     /// </summary>
     public class Display : HandledObject<IDisplayHandler>
     {
+        /// <summary>
+        /// Gets or sets maximal phone screen diagonal size.
+        /// This value is used in <see cref="IsPhoneScreen"/> and other methods.
+        /// </summary>
+        internal static Coord MaxPhoneScreenDiagonalInch = 7;
+
+        /// <summary>
+        /// Gets or sets maximal tablet screen diagonal size.
+        /// This value is used in <see cref="IsTabletScreen"/> and other methods.
+        /// </summary>
+        internal static Coord MaxTabletScreenDiagonalInch = 14;
+
         private static IDisplayFactoryHandler? factory;
         private static Coord? maxScaleFactor;
+        private static Coord? minScaleFactor;
         private static SizeI? baseDPI;
 
-        private SizeI? dpi;
         private Coord? scaleFactor;
 
         static Display()
@@ -36,7 +48,8 @@ namespace Alternet.UI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Display(int index)
         {
-            Handler = Factory.CreateDisplay(index);
+            if (index >= 0 && index < Count)
+                Handler = Factory.CreateDisplay(index);
         }
 
         /// <summary>
@@ -44,9 +57,21 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control">Control for which <see cref="Display"/> is created.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Display(Control control)
+        public Display(AbstractControl control)
             : this(GetFromControl(control))
         {
+        }
+
+        /// <summary>
+        /// Gets whether it is suggested to use large images.
+        /// </summary>
+        public static bool SuggestedLargeImages
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return MaxScaleFactor > SizeD.One.Width;
+            }
         }
 
         /// <summary>
@@ -54,9 +79,18 @@ namespace Alternet.UI
         /// </summary>
         public static Coord MaxScaleFactor
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return maxScaleFactor ??= MathUtils.Max(AllScaleFactors);
+                if(maxScaleFactor is null)
+                {
+                    var value = MathUtils.Max(AllScaleFactorsUnsafe());
+
+                    if (value >= 1)
+                        maxScaleFactor = value;
+                }
+
+                return maxScaleFactor ?? 1;
             }
         }
 
@@ -65,9 +99,32 @@ namespace Alternet.UI
         /// </summary>
         public static Coord MinScaleFactor
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return maxScaleFactor ??= MathUtils.Min(AllScaleFactors);
+                if (minScaleFactor is null)
+                {
+                    var value = MathUtils.Min(AllScaleFactorsUnsafe());
+
+                    if (value >= 1)
+                        minScaleFactor = value;
+                }
+
+                return minScaleFactor ?? 1;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether display factory is initialized and <see cref="Display"/> class
+        /// can be used. Normally this returns False when <see cref="SystemSettings.Handler"/>
+        /// is not yet assigned.
+        /// </summary>
+        public static bool HasFactory
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return App.Handler is not null && Primary.HasValidScaleFactor;
             }
         }
 
@@ -82,6 +139,7 @@ namespace Alternet.UI
                 return factory ??= SystemSettings.Handler.CreateDisplayFactoryHandler();
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 factory = value;
@@ -91,7 +149,14 @@ namespace Alternet.UI
         /// <summary>
         /// Gets the number of connected displays.
         /// </summary>
-        public static int Count => Factory.GetCount();
+        public static int Count
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Factory.GetCount();
+            }
+        }
 
         /// <summary>
         /// Gets base display resolution for the current platform in pixels per inch.
@@ -101,7 +166,14 @@ namespace Alternet.UI
         /// directions on all platforms and its value is 96 everywhere except under
         /// Apple devices (those running macOS, iOS, watchOS etc), where it is 72.
         /// </remarks>
-        public static int BaseDPIValue => BaseDPI.Width;
+        public static int BaseDPIValue
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return BaseDPI.Width;
+            }
+        }
 
         /// <summary>
         ///  Gets an array of all of the displays on the system.
@@ -110,16 +182,23 @@ namespace Alternet.UI
         {
             get
             {
-                // Do not keep displays in memory,
-                // otherwise when DPI is changed we will have an exception.
-                var count = Count;
-                var allScreens = new Display[count];
-                for (int i = 0; i < count; i++)
+                if (Count == 1)
                 {
-                    allScreens[i] = new Display(i);
+                    return [Primary];
                 }
+                else
+                {
+                    // Do not keep displays in memory,
+                    // otherwise when DPI is changed we will have an exception.
+                    var count = Count;
+                    var allScreens = new Display[count];
+                    for (int i = 0; i < count; i++)
+                    {
+                        allScreens[i] = new Display(i);
+                    }
 
-                return allScreens;
+                    return allScreens;
+                }
             }
         }
 
@@ -130,14 +209,21 @@ namespace Alternet.UI
         {
             get
             {
-                var screens = AllScreens;
-                var length = screens.Length;
-                var result = new Coord[length];
+                if(Count == 1)
+                {
+                    return [Primary.ScaleFactor];
+                }
+                else
+                {
+                    var screens = AllScreens;
+                    var length = screens.Length;
+                    var result = new Coord[length];
 
-                for (int i = 0; i < length; i++)
-                    result[i] = screens[i].ScaleFactor;
+                    for (int i = 0; i < length; i++)
+                        result[i] = screens[i].ScaleFactor;
 
-                return result;
+                    return result;
+                }
             }
         }
 
@@ -148,14 +234,28 @@ namespace Alternet.UI
         {
             get
             {
-                var screens = AllScreens;
-                var length = screens.Length;
-                var result = new int[length];
+                try
+                {
+                    if (Count == 1)
+                    {
+                        return [Primary.DPI.Height];
+                    }
+                    else
+                    {
+                        var screens = AllScreens;
+                        var length = screens.Length;
+                        var result = new int[length];
 
-                for (int i = 0; i < length; i++)
-                    result[i] = screens[i].DPI.Height;
+                        for (int i = 0; i < length; i++)
+                            result[i] = screens[i].DPI.Height;
 
-                return result;
+                        return result;
+                    }
+                }
+                catch
+                {
+                    return [96];
+                }
             }
         }
 
@@ -164,6 +264,7 @@ namespace Alternet.UI
         /// </summary>
         public static int MinDPI
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return MathUtils.Min(AllDPI);
@@ -175,6 +276,7 @@ namespace Alternet.UI
         /// </summary>
         public static int MaxDPI
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 return MathUtils.Max(AllDPI);
@@ -184,7 +286,14 @@ namespace Alternet.UI
         /// <summary>
         /// Gets whether system has displays with different DPI values.
         /// </summary>
-        public static bool HasDifferentDPI => MaxDPI != MinDPI;
+        public static bool HasDifferentDPI
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return MaxDPI != MinDPI;
+            }
+        }
 
         /// <summary>
         /// Gets primary display.
@@ -206,33 +315,85 @@ namespace Alternet.UI
         /// directions on all platforms and its value is 96 everywhere except under
         /// Apple devices (those running macOS, iOS, watchOS etc), where it is 72.
         /// </remarks>
-        public static SizeI BaseDPI => baseDPI ??= Factory.GetDefaultDPI();
+        public static SizeI BaseDPI
+        {
+            get
+            {
+                return baseDPI ??= Factory.GetDefaultDPI();
+            }
+        }
 
         /// <summary>
         /// Gets the display's name.
         /// </summary>
         /// <remarks>Same as <see cref="Name"/></remarks>
-        public string DeviceName => Name;
+        public string DeviceName
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Name;
+            }
+        }
 
         /// <summary>
         /// Gets the display's name.
         /// </summary>
         /// <remarks>Same as <see cref="DeviceName"/></remarks>
-        public string Name => Handler.GetName();
+        public string Name
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Handler.GetName();
+            }
+        }
 
         /// <summary>
         /// Gets whether this <see cref="Display"/> object is ok.
         /// </summary>
-        public bool IsOk => Handler.IsOk;
+        public bool IsOk
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Handler.IsOk;
+            }
+        }
 
         /// <summary>
         /// Gets display resolution in pixels per inch.
         /// </summary>
         public SizeI DPI
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return dpi ??= GraphicsFactory.ScaleFactorToDpi(ScaleFactor);
+                return GraphicsFactory.ScaleFactorToDpi(ScaleFactor);
+            }
+        }
+
+        /// <summary>
+        /// Gets scaling factor value returned by the platform.
+        /// Please use <see cref="ScaleFactor"/> instead of this property.
+        /// </summary>
+        public Coord UnsafeScaleFactor
+        {
+            get
+            {
+                return Handler.GetScaleFactor();
+            }
+        }
+
+        /// <summary>
+        /// Gets whether scale factor information reported
+        /// by <see cref="UnsafeScaleFactor"/> is valid.
+        /// </summary>
+        public bool HasValidScaleFactor
+        {
+            get
+            {
+                return UnsafeScaleFactor >= 1;
             }
         }
 
@@ -243,31 +404,67 @@ namespace Alternet.UI
         {
             get
             {
-                return scaleFactor ??= Handler.GetScaleFactor();
+                if (scaleFactor >= 1)
+                    return scaleFactor.Value;
+
+                var newScaleFactor = UnsafeScaleFactor;
+
+                if (newScaleFactor >= 1)
+                    scaleFactor = newScaleFactor;
+
+                return Math.Max(1, newScaleFactor);
             }
         }
 
         /// <summary>
         /// Gets <c>true</c> if the display is the primary display.
         /// </summary>
-        public bool IsPrimary => Handler.IsPrimary();
+        public bool IsPrimary
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Handler.IsPrimary();
+            }
+        }
 
         /// <summary>
         /// Gets the client area of the display.
         /// </summary>
-        public RectI ClientArea => Handler.GetClientArea();
+        public RectI ClientArea
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Handler.GetClientArea();
+            }
+        }
 
         /// <summary>
         /// Returns the bounding rectangle of the display in pixels.
         /// </summary>
         /// <remarks>Same as <see cref="Geometry"/></remarks>
-        public RectI Bounds => Geometry;
+        public RectI Bounds
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Geometry;
+            }
+        }
 
         /// <summary>
         /// Returns the bounding rectangle of the display in dips.
         /// </summary>
         /// <remarks>Same as <see cref="GeometryDip"/></remarks>
-        public RectD BoundsDip => GeometryDip;
+        public RectD BoundsDip
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return GeometryDip;
+            }
+        }
 
         /// <summary>
         /// Gets whether display height is bigger than width.
@@ -296,12 +493,20 @@ namespace Alternet.UI
         /// <summary>
         /// Returns the bounding rectangle of the display in pixels.
         /// </summary>
-        public RectI Geometry => Handler.GetGeometry();
+        public RectI Geometry
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return Handler.GetGeometry();
+            }
+        }
 
         /// <summary>
         /// Returns the bounding rectangle of the display in the
         /// device-independent units.
         /// </summary>
+        /// <remarks>Same as <see cref="BoundsDip"/></remarks>
         public RectD GeometryDip
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,13 +517,96 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Returns the bounding rectangle of the display in inches.
+        /// </summary>
+        internal SizeD SizeInch
+        {
+            get
+            {
+                return GraphicsFactory.PixelToInch(Bounds.Size);
+            }
+        }
+
+        /// <summary>
+        /// Gets display diagonal (inches).
+        /// </summary>
+        internal Coord DiagonalSizeInInches
+        {
+            get
+            {
+                return SizeInch.Diagonal;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether this display has diagonal less or
+        /// equal to <see cref="MaxPhoneScreenDiagonalInch"/>.
+        /// </summary>
+        internal bool IsPhoneScreen
+        {
+            get
+            {
+                return DiagonalSizeInInches <= MaxPhoneScreenDiagonalInch;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether this display has diagonal
+        /// greater than <see cref="MaxPhoneScreenDiagonalInch"/>
+        /// and less or equal to <see cref="MaxTabletScreenDiagonalInch"/>.
+        /// </summary>
+        internal bool IsTabletScreen
+        {
+            get
+            {
+                var diagonal = DiagonalSizeInInches;
+
+                return diagonal <= MaxTabletScreenDiagonalInch && !IsPhoneScreen;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether this display has diagonal
+        /// greater than <see cref="MaxTabletScreenDiagonalInch"/>.
+        /// </summary>
+        internal bool IsDesktopScreen
+        {
+            get
+            {
+                return DiagonalSizeInInches > MaxTabletScreenDiagonalInch;
+            }
+        }
+
+        /// <summary>
         /// Gets display with the specified index.
         /// </summary>
         /// <param name="index">Index of the display.</param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Display GetDisplay(int index)
         {
             return new Display(index);
+        }
+
+        /// <summary>
+        /// Gets the specified display if it is not null; otherwise returns
+        /// display of the <see cref="App.SafeWindow"/>.
+        /// </summary>
+        /// <param name="display">Display to return if it is not null.</param>
+        /// <returns></returns>
+        public static Display SafeDisplay(Display? display)
+        {
+            if (display is null)
+            {
+                var mainWindow = App.SafeWindow;
+
+                if (mainWindow is null)
+                    display = Display.Primary;
+                else
+                    display = new Display(mainWindow);
+            }
+
+            return display;
         }
 
         /// <summary>
@@ -334,7 +622,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="control">Control for which index of display is returned.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetFromControl(Control control)
+        public static int GetFromControl(AbstractControl control)
         {
             return Factory.GetFromControl(control);
         }
@@ -344,7 +632,9 @@ namespace Alternet.UI
         /// </summary>
         public static void Reset()
         {
+            baseDPI = null;
             maxScaleFactor = null;
+            minScaleFactor = null;
         }
 
         /// <summary>
@@ -358,10 +648,11 @@ namespace Alternet.UI
             method("Display:");
             method($"Count: {Count}");
             method($"DefaultDPI: {GraphicsFactory.DefaultDPI}");
+            method($"DeviceType: {App.DeviceType}");
 
             for (int i = 0; i < Display.AllScreens.Length; i++)
             {
-                method(" ");
+                method(StringUtils.OneSpace);
                 var display = Display.AllScreens[i];
                 method($"Index: {i}");
                 method($"Name: {display.DeviceName}");
@@ -370,6 +661,7 @@ namespace Alternet.UI
                 method($"IsPrimary: {display.IsPrimary}");
                 method($"IsVertical: {display.IsVertical}");
                 method($"ClientArea: {display.ClientArea}");
+                method($"Diagonal (inch): {display.SizeInch.Diagonal}");
                 method($"Bounds: {display.Bounds}");
                 method($"BoundsDip: {display.BoundsDip}");
                 method($"PixelToDip(100): {display.PixelToDip(100)}");
@@ -467,6 +759,25 @@ namespace Alternet.UI
         protected override IDisplayHandler CreateHandler()
         {
             return Factory.CreateDisplay();
+        }
+
+        private static Coord[] AllScaleFactorsUnsafe()
+        {
+            if (Count == 1)
+            {
+                return [Primary.UnsafeScaleFactor];
+            }
+            else
+            {
+                var screens = AllScreens;
+                var length = screens.Length;
+                var result = new Coord[length];
+
+                for (int i = 0; i < length; i++)
+                    result[i] = screens[i].UnsafeScaleFactor;
+
+                return result;
+            }
         }
     }
 }

@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Alternet.Drawing;
 using Alternet.Drawing.Printing;
 
+using Alternet.UI.Extensions;
+
 namespace Alternet.UI
 {
     /// <summary>
@@ -16,7 +18,7 @@ namespace Alternet.UI
     /// </summary>
     public class WxApplicationHandler : DisposableObject, IApplicationHandler
     {
-        private const string RequireVersion = "3.2.5";
+        private const string RequireVersion = "3.2.6";
 
         private static readonly int[] eventIdentifiers = new int[(int)WxEventIdentifiers.Max + 1];
         private static readonly int minEventIdentifier;
@@ -40,6 +42,21 @@ namespace Alternet.UI
                 Native.Application.SuppressDiagnostics(-1);
 
             nativeApplication = new Native.Application();
+            nativeApplication.AssertFailure = NativeApplication_AssertFailure;
+
+            /*
+            nativeApplication.QueryEndSession = ;
+            nativeApplication.EndSession = ;
+            nativeApplication.ActivateApp = ;
+            nativeApplication.Hibernate = ;
+            nativeApplication.DialupConnected = ;
+            nativeApplication.DialupDisconnected = ;
+            nativeApplication.ExceptionInMainLoop = ;
+            nativeApplication.UnhandledException = ;
+            nativeApplication.FatalException = ;
+            */
+
+            Native.Application.GlobalObject = nativeApplication;
             nativeApplication.Idle = App.RaiseIdle;
             nativeApplication.LogMessage += NativeApplication_LogMessage;
             nativeApplication.Name = Path.GetFileNameWithoutExtension(
@@ -66,13 +83,16 @@ namespace Alternet.UI
                 App.LogSeparator();
             }
 
-            LogUtils.RegisterLogAction("Use Pless Caret", () => { UsePlessCaret = true; });
-        }
+            if (DebugUtils.IsDebugDefined)
+            {
+                LogUtils.RegisterLogAction(
+                    "Log mapping: Key <-> WxWidgetsKeyCode",
+                    WxKeyboardHandler.KeyAndWxMapping.LogToFile);
+            }
 
-        /// <summary>
-        /// Gets or sets whether to use internal caret. This can be used for testing purposes.
-        /// </summary>
-        public static bool UsePlessCaret { get; set; } = false;
+            if (!App.IsWindowsOS)
+                Caret.UseGeneric = true;
+        }
 
         /// <summary>
         /// Gets or sets whether to use dummy timer which doesn't call timer event.
@@ -162,8 +182,9 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public void Run(Window window)
         {
-            nativeApplication.Run(
-                ((WindowHandler)window.Handler).NativeControl);
+            var nativeWindow = UI.Native.NativeObject.GetNativeWindow(window)
+                ?? throw new Exception("Not a window");
+            nativeApplication.Run(nativeWindow);
         }
 
         /// <inheritdoc/>
@@ -199,7 +220,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public void WakeUpIdle()
         {
-            nativeApplication.WakeUpIdle();
+            Native.Application.WakeUpIdle();
         }
 
         /// <inheritdoc/>
@@ -227,18 +248,22 @@ namespace Alternet.UI
             Native.Control.NotifyCaptureLost();
         }
 
-        /// <inheritdoc/>
-        public Control? GetFocusedControl()
+        internal static AbstractControl? FromNativeControl(Native.Control? nativeControl)
         {
-            var focusedNativeControl = Native.Control.GetFocusedControl();
-            if (focusedNativeControl == null)
+            if (nativeControl == null)
                 return null;
 
-            var handler = WxControlHandler.NativeControlToHandler(focusedNativeControl);
+            var handler = WxControlHandler.NativeControlToHandler(nativeControl);
             if (handler == null || !handler.IsAttached)
                 return null;
 
             return handler.Control;
+        }
+
+        /// <inheritdoc/>
+        public AbstractControl? GetFocusedControl()
+        {
+            return FromNativeControl(Native.Control.GetFocusedControl());
         }
 
         /// <inheritdoc/>
@@ -250,7 +275,13 @@ namespace Alternet.UI
 
             var handler = WxControlHandler.NativeControlToHandler(activeWindow) ??
                 throw new InvalidOperationException();
-            return ((WindowHandler)handler).Control;
+            return handler.Control as Window;
+        }
+
+        /// <inheritdoc/>
+        public IActionSimulatorHandler CreateActionSimulatorHandler()
+        {
+            return new WxActionSimulatorHandler();
         }
 
         /// <inheritdoc/>
@@ -268,15 +299,15 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public ICaretHandler CreateCaretHandler()
         {
-            if (UsePlessCaret)
+            if (Caret.UseGeneric)
                 return new PlessCaretHandler();
             return new WxCaretHandler();
         }
 
         /// <inheritdoc/>
-        public ICaretHandler CreateCaretHandler(Control control, int width, int height)
+        public ICaretHandler CreateCaretHandler(AbstractControl control, int width, int height)
         {
-            if (UsePlessCaret)
+            if (Caret.UseGeneric)
                 return new PlessCaretHandler(control, width, height);
             return new WxCaretHandler(control, width, height);
         }
@@ -288,7 +319,7 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc/>
-        public bool InvokeRequired => nativeApplication.InvokeRequired;
+        public bool IsInvokeRequired => nativeApplication.InvokeRequired;
 
         /// <inheritdoc/>
         public IControlPainterHandler CreateControlPainterHandler()
@@ -311,7 +342,7 @@ namespace Alternet.UI
         /// <inheritdoc/>
         public object? GetAttributeValue(string name)
         {
-            if(name == "NotifyIcon.IsAvailable")
+            if (name == "NotifyIcon.IsAvailable")
             {
                 return Native.NotifyIcon.IsAvailable;
             }
@@ -345,6 +376,18 @@ namespace Alternet.UI
             base.DisposeManaged();
             nativeApplication.Idle = null;
             nativeApplication.LogMessage = null;
+            nativeApplication.AssertFailure = null;
+
+            nativeApplication.QueryEndSession = null;
+            nativeApplication.EndSession = null;
+            nativeApplication.ActivateApp = null;
+            nativeApplication.Hibernate = null;
+            nativeApplication.DialupConnected = null;
+            nativeApplication.DialupDisconnected = null;
+            nativeApplication.ExceptionInMainLoop = null;
+            nativeApplication.UnhandledException = null;
+            nativeApplication.FatalException = null;
+
             keyboardInputProvider.Dispose();
             mouseInputProvider.Dispose();
             nativeApplication.Dispose();
@@ -355,7 +398,7 @@ namespace Alternet.UI
         {
             App.LogSeparator();
 
-            foreach(var item in Enum.GetValues(typeof(WxEventIdentifiers)))
+            foreach (var item in Enum.GetValues(typeof(WxEventIdentifiers)))
             {
                 App.LogNameValue(item, eventIdentifiers[(int)item]);
             }
@@ -373,6 +416,120 @@ namespace Alternet.UI
         public IKeyboardHandler CreateKeyboardHandler()
         {
             return new WxKeyboardHandler();
+        }
+
+        private static void NativeApplication_AssertFailure()
+        {
+            var s = NativeApplication.EventArgString;
+            if (s.StartsWith("<?xml"))
+            {
+                try
+                {
+                    var data = XmlUtils.DeserializeFromString<AssertFailureExceptionData>(s);
+                    var e = new AssertFailureException(data.Message ?? "WxWidgets assert failure");
+                    e.AssertData = data;
+                    App.LogError(e, LogItemKind.Warning);
+                }
+                catch
+                {
+                    var r = "NativeApplication_AssertFailure: Error getting AssertFailureExceptionData";
+                    App.LogError(new Exception(r), LogItemKind.Warning);
+                }
+            }
+            else
+            {
+                App.LogError(s, LogItemKind.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Contains properties that describe assert failure.
+        /// </summary>
+        public class AssertFailureExceptionData : BaseObject
+        {
+            /// <summary>
+            /// Gets or sets assert failure message.
+            /// </summary>
+            public string? Message { get; set; }
+
+            /// <summary>
+            /// Gets or sets source code file name.
+            /// </summary>
+            public string? File { get; set; }
+
+            /// <summary>
+            /// Gets or sets source code line number in the file.
+            /// </summary>
+            public string? Line { get; set; }
+
+            /// <summary>
+            /// Gets or sets function name where error occured.
+            /// </summary>
+            public string? Function { get; set; }
+
+            /// <summary>
+            /// Gets or sets assert condition.
+            /// </summary>
+            public string? Condition { get; set; }
+
+            internal static void TestSerialize()
+            {
+                AssertFailureExceptionData e = new()
+                {
+                    Message = "value",
+                    Condition = "value",
+                    File = "value",
+                    Function = "value",
+                    Line = "value",
+                };
+
+                XmlUtils.SerializeToFile(@"e:\sample.xml", e);
+            }
+        }
+
+        /// <summary>
+        /// Extends <see cref="Exception"/> with additional properties related to the
+        /// assert failure error details.
+        /// </summary>
+        public class AssertFailureException : BaseException
+        {
+            private AssertFailureExceptionData? assertData;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AssertFailureException"/> class.
+            /// </summary>
+            public AssertFailureException()
+            {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AssertFailureException"/> class.
+            /// </summary>
+            public AssertFailureException(string message)
+                : base(message)
+            {
+            }
+
+            /// <summary>
+            /// Gets or sets assert failure data.
+            /// </summary>
+            public AssertFailureExceptionData? AssertData
+            {
+                get => assertData;
+                set
+                {
+                    assertData = value;
+
+                    if (AssertData is not null)
+                    {
+                        AdditionalInformation =
+                            "Assert.File: " + AssertData.File + Environment.NewLine +
+                            "Assert.Line: " + AssertData.Line + Environment.NewLine +
+                            "Assert.Function: " + AssertData.Function + Environment.NewLine +
+                            "Assert.Condition: " + AssertData.Condition + Environment.NewLine;
+                    }
+                }
+            }
         }
     }
 }

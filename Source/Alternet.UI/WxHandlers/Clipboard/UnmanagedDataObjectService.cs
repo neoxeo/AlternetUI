@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
+
 using Alternet.Drawing;
 
 namespace Alternet.UI
@@ -16,8 +18,8 @@ namespace Alternet.UI
                 return GetUnmanagedDataObject(obj);
 
             var output = new Native.UnmanagedDataObject();
-            var adatpter = new UnmanagedDataObjectAdapter(output);
-            adatpter.SetData(input);
+            var adapter = new UnmanagedDataObjectAdapter(output);
+            adapter.SetData(input);
 
             return output;
         }
@@ -36,23 +38,69 @@ namespace Alternet.UI
             if (data == null)
                 return;
 
+            if(format == DataFormats.Rtf && data is string stringData)
+            {
+                using var stream = new MemoryStream();
+                StreamUtils.StringToStream(stream, stringData, Encoding.ASCII);
+                stream.Position = 0;
+                dataObject.SetStreamData(format, new Native.InputStream(stream));
+                return;
+            }
+
             if (format == DataFormats.Text || data is string)
-                dataObject.SetStringData(format, (string)ClipboardUtils.SetDataTransform(format, data));
-            else if (format == DataFormats.Files || data is FileInfo[])
+            {
+                dataObject.SetStringData(
+                    format,
+                    (string)ClipboardUtils.SetDataTransform(format, data));
+                return;
+            }
+
+            if (format == DataFormats.Files || data is FileInfo[])
+            {
                 dataObject.SetFileNamesData(format, string.Join("|", GetFileNames(data)));
-            else if (format == DataFormats.Bitmap || data is Image)
+                return;
+            }
+
+            if (format == DataFormats.Bitmap || data is Image)
             {
                 var image = (Image)data;
                 using var stream = new MemoryStream();
                 image.Save(stream, ImageFormat.Png);
                 stream.Position = 0;
                 dataObject.SetStreamData(format, new Native.InputStream(stream));
+                return;
             }
-            else
-                throw new NotSupportedException("This type of data is not supported: " + data.GetType());
+
+            if(data is System.Runtime.Serialization.ISerializable)
+            {
+
+            }
+
+            if(data is Stream streamData)
+            {
+                if (streamData.CanSeek)
+                {
+                    streamData.Position = 0;
+                }
+                else
+                {
+                    App.LogWarning(
+                        new NotSupportedException(
+                            "UnmanagedDataObjectService.SetData: Stream doesn't support seeking"));
+                }
+
+                dataObject.SetStreamData(format, new Native.InputStream(streamData));
+                return;
+            }
+
+            App.LogError(
+                new NotSupportedException("This type of data is not supported: " + data.GetType()));
         }
 
-        private static void CopyData(IDataObject input, Native.UnmanagedDataObject output, string format)
+        private static void CopyData(
+            IDataObject input,
+            Native.UnmanagedDataObject output,
+            string format)
         {
             var data = input.GetData(format);
             if (data == null)

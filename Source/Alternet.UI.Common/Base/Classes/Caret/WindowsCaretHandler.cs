@@ -17,12 +17,21 @@ namespace Alternet.UI
     public class WindowsCaretHandler : PlessCaretHandler
     {
         /// <summary>
+        /// Gets or sets whether to use this object if possible.
+        /// </summary>
+        /// <remarks>
+        /// For example this object is used under Maui platform running on Windows,
+        /// if this property is <c>true</c>.
+        /// </remarks>
+        public static bool UseIfPossible = false;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WindowsCaretHandler"/> class.
         /// </summary>
         /// <param name="control"></param>
         /// <param name="width"></param>
         /// <param name="height"></param>
-        public WindowsCaretHandler(Control control, int width, int height)
+        public WindowsCaretHandler(AbstractControl control, int width, int height)
             : base(control, width, height)
         {
         }

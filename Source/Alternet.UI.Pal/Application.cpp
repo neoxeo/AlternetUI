@@ -81,7 +81,9 @@ namespace Alternet::UI
     {
         if (_owner != nullptr)
             _owner->OnAssertFailure(file, line, func, cond, msg);
+        /*
         wxApp::OnAssertFailure(file, line, func, cond, msg);
+        */
     }
 
     void App::OnUnhandledException()
@@ -111,7 +113,8 @@ namespace Alternet::UI
         auto eventType = e.GetEventType();
         if (eventType == wxEVT_KEY_UP)
             _owner->GetKeyboardInternal()->OnKeyUp(e, handled);
-        else if (eventType == wxEVT_KEY_DOWN)
+        else
+        if (eventType == wxEVT_KEY_DOWN)
         {
 #ifndef __WXOSX_COCOA__            
             // For some reason, on Windows and Linux wxEVT_CHAR_HOOK are not sent
@@ -120,10 +123,16 @@ namespace Alternet::UI
                 _owner->GetKeyboardInternal()->OnKeyDown(e, handled);
 #endif                
         }
-        else if (eventType == wxEVT_CHAR_HOOK)
+        else
+        if (eventType == wxEVT_CHAR_HOOK)
+        {
             _owner->GetKeyboardInternal()->OnKeyDown(e, handled);
-        else if (eventType == wxEVT_CHAR)
+        }
+        else
+        if (eventType == wxEVT_CHAR)
+        {
             _owner->GetKeyboardInternal()->OnChar(e, handled);
+        }
     }
 
     int App::FilterEvent(wxEvent& e)
@@ -173,6 +182,7 @@ namespace Alternet::UI
     Application::Application()
     {
         Exception::_logMessageProc = LogExceptionInfo;
+        wxSizerFlags::DisableConsistencyChecks();
 
         GenericImage::EnsureImageHandlersInitialized();
 
@@ -335,7 +345,7 @@ namespace Alternet::UI
 
     void Application::WakeUpIdle()
     {
-        _app->WakeUpIdle();
+        wxWakeUpIdle();
     }
 
     void* Application::GetTopWindow()
@@ -414,7 +424,7 @@ namespace Alternet::UI
 
     void Application::RaiseIdle()
     {
-        RaiseEvent(ApplicationEvent::Idle);
+        RaiseStaticEvent(ApplicationEvent::Idle);
     }
 
     Clipboard* Application::GetClipboard()
@@ -469,14 +479,14 @@ namespace Alternet::UI
     void Application::Log(const string& msg)
     {
         GetCurrent()->_eventArgString = msg;
-        GetCurrent()->RaiseEvent(ApplicationEvent::LogMessage);
+        GetCurrent()->RaiseStaticEvent(ApplicationEvent::LogMessage);
     }
 
     void Application::DoLogRecord(wxLogLevel level /*unsigned long*/, const wxString& msg,
         const wxLogRecordInfo& info)
     {
         _eventArgString = wxStr(msg);
-        RaiseEvent(ApplicationEvent::LogMessage);
+        RaiseStaticEvent(ApplicationEvent::LogMessage);
     }
 
     /*static*/ Application* Application::GetCurrent()
@@ -543,8 +553,17 @@ currently means only Microsoft Visual C++.
     bool Application::OnFatalException()
     {
         Application::Log("Error: Fatal Exception");
-        RaiseEvent(ApplicationEvent::FatalException);
+        RaiseStaticEvent(ApplicationEvent::FatalException);
         return false;
+    }
+
+    wxString ToCDATA(wxString s)
+    {
+        wxString prefix = "<![CDATA[";
+        wxString suffix = "]]>";
+
+        auto result = prefix + s + suffix;
+        return result;
     }
 
     /*
@@ -574,17 +593,39 @@ or wxFAIL was used
         wxString sFunc = func;
         wxString sCond = cond;
         wxString sMsg = msg;
-
+/*
         Application::LogSeparator();
         Application::Log("Error: Assert Failure");        
+        Application::Log("Msg: " + sMsg);
         Application::Log("File: " + sFile);
         Application::Log("Line: " + sLine);
         Application::Log("Func: " + sFunc);
         Application::Log("Cond: " + sCond);
-        Application::Log("Msg:  " + sMsg);
-
         Application::LogSeparator();
-        RaiseEvent(ApplicationEvent::AssertFailure);
+*/
+        auto xmlMsg = "<Message>" + ToCDATA(sMsg) + "</Message>";
+        auto xmlFile = "<File>" + ToCDATA(sFile) + "</File>";
+        auto xmlLine = "<Line>" + ToCDATA(sLine) + "</Line>";
+        auto xmlFunc = "<Function>" + ToCDATA(sFunc) + "</Function>";
+        auto xmlCond = "<Condition>" + ToCDATA(sCond) + "</Condition>";
+
+        wxString xmlPrefix = "<?xml version='1.0' encoding='utf-8'?>";
+        wxString xmlPrefix2 =
+            + "<AssertFailureExceptionData xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>";
+        wxString xmlSuffix = "</AssertFailureExceptionData>";
+
+        auto xml =
+            xmlPrefix + xmlPrefix2 +
+            xmlMsg+
+            xmlFile+
+            xmlLine+
+            xmlFunc+
+            xmlCond+
+            xmlSuffix;
+
+        _eventArgString = wxStr(xml);
+
+        RaiseStaticEvent(ApplicationEvent::AssertFailure);
         return false;
     }
 
@@ -604,7 +645,7 @@ The default implementation dumps information about the exception using wxMessage
     bool Application::OnUnhandledException()
     {
         Application::Log("Error: Unhandled Exception");
-        RaiseEvent(ApplicationEvent::UnhandledException);
+        RaiseStaticEvent(ApplicationEvent::UnhandledException);
         return false;
     }
 
@@ -652,7 +693,7 @@ public:
     bool Application::OnExceptionInMainLoop()
     {
         Application::Log("Error: Exception In Main Loop");
-        RaiseEvent(ApplicationEvent::ExceptionInMainLoop);
+        RaiseStaticEvent(ApplicationEvent::ExceptionInMainLoop);
         return false;
     }
 }

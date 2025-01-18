@@ -12,16 +12,22 @@ namespace Alternet.UI
     /// </summary>
     public class CardPanelItem : BaseControlItem
     {
-        private readonly Func<Control>? action;
-        private Control? control;
+        /// <summary>
+        /// Gets or sets default value for the <see cref="SupressException"/>. It is used
+        /// if <see cref="SupressException"/> is Null.
+        /// </summary>
+        public static bool DefaultSupressException = true;
 
-        internal CardPanelItem(string? title, Control control)
+        private readonly Func<AbstractControl>? action;
+        private AbstractControl? control;
+
+        internal CardPanelItem(string? title, AbstractControl control)
         {
             Title = title;
             this.control = control;
         }
 
-        internal CardPanelItem(string? title, Func<Control> action)
+        internal CardPanelItem(string? title, Func<AbstractControl> action)
         {
             Title = title;
             this.action = action;
@@ -47,19 +53,53 @@ namespace Alternet.UI
         public bool ControlCreated => control != null;
 
         /// <summary>
+        /// Gets or sets whether to suppress exception when card is created.
+        /// In case when exception is supressed, a card with error is created and shown
+        /// instead of the card. Default is Null and
+        /// <see cref="DefaultSupressException"/> is used.
+        /// </summary>
+        public bool? SupressException { get; set; }
+
+        /// <summary>
         /// Child control.
         /// </summary>
         [Browsable(false)]
-        public Control Control
+        public AbstractControl Control
         {
             get
             {
                 var oldControl = control;
-                control ??= action?.Invoke() ?? new Control();
-                if(oldControl != control)
+
+                try
+                {
+                    control ??= action?.Invoke() ?? new Control();
+                }
+                catch (Exception e)
+                {
+                    if (SupressException ?? DefaultSupressException)
+                        control = CreateErrorCard(e);
+                    else
+                        throw;
+                }
+
+                if (oldControl != control)
                     RaisePropertyChanged(nameof(Control));
+
                 return control;
             }
+        }
+
+        /// <summary>
+        /// Creates card with the error to show instead of not loaded card.
+        /// </summary>
+        /// <param name="e">Exception.</param>
+        /// <returns></returns>
+        public static AbstractControl CreateErrorCard(Exception e)
+        {
+            RichToolTip tooltip = new();
+            tooltip.Visible = true;
+            tooltip.ShowToolTipWithError(null, e, 0);
+            return tooltip;
         }
 
         private void RaisePropertyChanged(string propName)

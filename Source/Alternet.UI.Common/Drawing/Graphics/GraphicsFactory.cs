@@ -14,7 +14,8 @@ using SkiaSharp;
 namespace Alternet.Drawing
 {
     /// <summary>
-    /// Provides access to the graphics factory.
+    /// Contains static methods and properties related to the graphics objects creation,
+    /// convertion and handling.
     /// </summary>
     public static class GraphicsFactory
     {
@@ -24,33 +25,12 @@ namespace Alternet.Drawing
         public static int DefaultDPI = 96;
 
         /// <summary>
-        /// Gets or sets default scaling quality used when images are scaled.
-        /// </summary>
-        public static SKFilterQuality DefaultScaleQuality = SKFilterQuality.High;
-
-        /// <summary>
         /// Gets or sets function which is used when
-        /// <see cref="Font"/> is converted to <see cref="SKPaint"/>
-        /// with <see cref="SKPaintStyle.Fill"/> style.
-        /// </summary>
-        public static Func<Font, SKPaint> FontToFillPaint
-            = (font) => GraphicsFactory.CreateFillPaint(font.SkiaFont);
-
-        /// <summary>
-        /// Gets or sets function which is used when
-        /// <see cref="Font"/> is converted to <see cref="SKPaint"/>
+        /// <see cref="BrushAndPen"/> is converted to <see cref="SKPaint"/>
         /// with <see cref="SKPaintStyle.StrokeAndFill"/> style.
         /// </summary>
-        public static Func<Font, SKPaint> FontToStrokeAndFillPaint
-            = (font) => GraphicsFactory.CreateStrokeAndFillPaint(font.SkiaFont);
-
-        /// <summary>
-        /// Gets or sets function which is used when
-        /// <see cref="Font"/> is converted to <see cref="SKPaint"/>
-        /// with <see cref="SKPaintStyle.Stroke"/> style.
-        /// </summary>
-        public static Func<Font, SKPaint> FontToStrokePaint
-            = (font) => GraphicsFactory.CreateStrokePaint(font.SkiaFont);
+        public static Func<BrushAndPen, SKPaint> BrushAndPenToStrokeAndFillPaint
+            = (brushAndPen) => GraphicsFactory.CreateStrokeAndFillPaint(brushAndPen);
 
         /// <summary>
         /// Gets or sets function which is used when
@@ -94,7 +74,7 @@ namespace Alternet.Drawing
         /// </summary>
         public static bool DefaultAntialias = true;
 
-        private static readonly AdvDictionary<double, Graphics> MemoryCanvases = new();
+        private static readonly AdvDictionary<Coord, Graphics> MemoryCanvases = new();
 
         private static bool imageBitsFormatsLoaded = false;
         private static ImageBitsFormat nativeBitsFormat;
@@ -122,6 +102,11 @@ namespace Alternet.Drawing
 
             set => handler = value;
         }
+
+        /// <summary>
+        /// Gets or sets global override for measure canvas.
+        /// </summary>
+        public static Graphics? MeasureCanvasOverride { get; set; }
 
         /// <summary>
         /// Gets or sets <see cref="ImageBitsFormat"/> for the opaque images.
@@ -252,7 +237,10 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="scaleFactor">Scale factor.</param>
         /// <returns></returns>
-        public static Graphics GetOrCreateMemoryCanvas(double? scaleFactor = null)
+        /// <remarks>
+        /// Use <see cref="Graphics.RequireMeasure"/> to get measurement canvas.
+        /// </remarks>
+        public static Graphics GetOrCreateMemoryCanvas(Coord? scaleFactor = null)
         {
             var factor = ScaleFactorOrDefault(scaleFactor);
             var result = MemoryCanvases.GetOrCreate(factor, () => CreateMemoryCanvas(factor));
@@ -275,7 +263,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="scaleFactor">Scale factor.</param>
         /// <returns></returns>
-        public static Graphics CreateMemoryCanvas(double? scaleFactor = null)
+        public static Graphics CreateMemoryCanvas(Coord? scaleFactor = null)
         {
             return Handler.CreateMemoryCanvas(ScaleFactorOrDefault(scaleFactor));
         }
@@ -337,7 +325,7 @@ namespace Alternet.Drawing
             result.Disposed += (s, e) =>
             {
                 if(lockMode.CanWrite())
-                    image.Assign(bitmap);
+                    image.Pixels = bitmap.Pixels;
             };
 
             return result;
@@ -401,45 +389,14 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
-        /// Creates <see cref="SKPaint"/> with <see cref="SKPaintStyle.Stroke"/> style
-        /// for the specified <see cref="SKFont"/> value.
-        /// </summary>
-        /// <param name="font">Font for which <see cref="SKPaint"/> is created.</param>
-        /// <returns></returns>
-        public static SKPaint CreateStrokePaint(SKFont font)
-        {
-            var result = new SKPaint(font);
-            result.Style = SKPaintStyle.Stroke;
-            SetPaintDefaults(result);
-            return result;
-        }
-
-        /// <summary>
-        /// Creates <see cref="SKPaint"/> with <see cref="SKPaintStyle.Fill"/> style
-        /// for the specified <see cref="SKFont"/> value.
-        /// </summary>
-        /// <param name="font">Font for which <see cref="SKPaint"/> is created.</param>
-        /// <returns></returns>
-        public static SKPaint CreateFillPaint(SKFont font)
-        {
-            var result = new SKPaint(font);
-            result.Style = SKPaintStyle.Fill;
-            SetPaintDefaults(result);
-            return result;
-        }
-
-        /// <summary>
         /// Creates <see cref="SKPaint"/> with <see cref="SKPaintStyle.StrokeAndFill"/> style
-        /// for the specified <see cref="SKFont"/> value.
+        /// for the specified <see cref="BrushAndPen"/> value.
         /// </summary>
-        /// <param name="font">Font for which <see cref="SKPaint"/> is created.</param>
+        /// <param name="brushAndPen">Brush and pen for which <see cref="SKPaint"/> is created.</param>
         /// <returns></returns>
-        public static SKPaint CreateStrokeAndFillPaint(SKFont font)
+        public static SKPaint CreateStrokeAndFillPaint(BrushAndPen brushAndPen)
         {
-            var result = new SKPaint(font);
-            result.Style = SKPaintStyle.StrokeAndFill;
-            SetPaintDefaults(result);
-            return result;
+            return brushAndPen.AsPaint;
         }
 
         /// <summary>
@@ -483,7 +440,7 @@ namespace Alternet.Drawing
         /// </remarks>
         public static int ScaleFactorToDpi(Coord scaleFactor)
         {
-            if (scaleFactor == 1)
+            if (scaleFactor <= 1)
                 return DefaultDPI;
             return (int)(scaleFactor * DefaultDPI);
         }
@@ -495,6 +452,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI PixelFromDip(SizeD value, Coord? scaleFactor = null)
         {
@@ -508,6 +466,7 @@ namespace Alternet.Drawing
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
         /// <returns></returns>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointI PixelFromDip(PointD value, Coord? scaleFactor = null)
         {
@@ -521,10 +480,40 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RectI PixelFromDip(RectD value, Coord? scaleFactor = null)
         {
             return new(PixelFromDip(value.Location, scaleFactor), PixelFromDip(value.Size, scaleFactor));
+        }
+
+        /// <summary>
+        /// Converts <see cref="int"/> value (pixels) to <see cref="Coord"/> value (inches).
+        /// </summary>
+        /// <param name="value">Value in pixels to convert.</param>
+        /// <returns>Converted value.</returns>
+        /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
+        /// If not specified, default value is used.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Coord PixelToInch(int value, Coord? scaleFactor = null)
+        {
+            var result = PixelToDip(value, scaleFactor);
+            result /= 96.0;
+            return result;
+        }
+
+        /// <summary>
+        /// Converts <see cref="SizeI"/> value (pixels) to <see cref="SizeD"/> value (inches).
+        /// </summary>
+        /// <param name="value">Value in pixels to convert.</param>
+        /// <returns>Converted value (inches).</returns>
+        /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
+        /// If not specified, default value is used.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SizeD PixelToInch(SizeI value, Coord? scaleFactor = null)
+        {
+            var result = (PixelToInch(value.Width), PixelToInch(value.Height));
+            return result;
         }
 
         /// <summary>
@@ -534,6 +523,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeD PixelToDip(SizeI value, Coord? scaleFactor = null)
         {
@@ -557,6 +547,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         public static RectD[] PixelToDip(RectI[] rects, Coord? scaleFactor = null)
         {
             var length = rects.Length;
@@ -573,6 +564,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointD PixelToDip(PointI value, Coord? scaleFactor = null)
         {
@@ -586,6 +578,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         /// <param name="scaleFactor">Scale factor used for the conversion. Optional.
         /// If not specified, default value is used.</param>
+        /// <returns>Converted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RectD PixelToDip(RectI value, Coord? scaleFactor = null)
         {
@@ -597,7 +590,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="value">Value in device-independent units.</param>
         /// <param name="scaleFactor">Scale factor.</param>
-        /// <returns></returns>
+        /// <returns>Converted value.</returns>
         public static int PixelFromDip(Coord value, Coord? scaleFactor = null)
         {
             var factor = ScaleFactorOrDefault(scaleFactor);
@@ -612,7 +605,7 @@ namespace Alternet.Drawing
         /// </summary>
         /// <param name="value">Value in pixels.</param>
         /// <param name="scaleFactor">Scale factor.</param>
-        /// <returns></returns>
+        /// <returns>Converted value.</returns>
         public static Coord PixelToDip(int value, Coord? scaleFactor = null)
         {
             var factor = ScaleFactorOrDefault(scaleFactor);

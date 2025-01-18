@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 
 using Alternet.Drawing;
 
@@ -12,7 +13,33 @@ namespace Alternet.UI
     [ControlCategory("Containers")]
     public partial class StackPanel : ContainerControl
     {
+        /// <summary>
+        /// Gets or sets whether to show debug corners when control is painted.
+        /// </summary>
+        public static new bool ShowDebugCorners = false;
+
         private StackPanelOrientation orientation;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StackPanel"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public StackPanel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StackPanel"/> class.
+        /// </summary>
+        public StackPanel()
+        {
+            CanSelect = false;
+            TabStop = false;
+            ParentBackColor = true;
+            ParentForeColor = true;
+        }
 
         /// <summary>
         /// Occurs when the value of the <see cref="Orientation"/> property changes.
@@ -70,6 +97,20 @@ namespace Alternet.UI
             set => base.Text = value;
         }
 
+        [Browsable(false)]
+        internal new LayoutStyle? Layout
+        {
+            get => base.Layout;
+            set => base.Layout = value;
+        }
+
+        /// <inheritdoc/>
+        public override void DefaultPaint(PaintEventArgs e)
+        {
+            base.DefaultPaint(e);
+            DefaultPaintDebug(e);
+        }
+
         /// <inheritdoc/>
         protected override LayoutStyle GetDefaultLayout()
         {
@@ -84,7 +125,16 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="e">An <see cref="EventArgs"/> that contains
         /// the event data.</param>
-        protected virtual void OnOrientationChanged(EventArgs e) =>
+        protected virtual void OnOrientationChanged(EventArgs e)
+        {
             OrientationChanged?.Invoke(this, e);
+        }
+
+        [Conditional("DEBUG")]
+        private void DefaultPaintDebug(PaintEventArgs e)
+        {
+            if (ShowDebugCorners)
+                BorderSettings.DrawDesignCorners(e.Graphics, e.ClipRectangle);
+        }
     }
 }

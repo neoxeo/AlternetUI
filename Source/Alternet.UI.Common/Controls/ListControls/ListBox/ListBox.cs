@@ -1,619 +1,359 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Alternet.Drawing;
-using Alternet.UI.Extensions;
+using System.Text;
 
 namespace Alternet.UI
 {
     /// <summary>
-    /// Represents a control to display a list of items. Please consider using <see cref="VListBox"/>
-    /// instead of this simple control.
+    /// Represents a control to display a list of items.
+    /// Please consider using <see cref="VirtualListBox"/>
+    /// instead of this control as it is faster.
     /// </summary>
     /// <remarks>
     /// The <see cref="ListBox"/> control enables you to display a list of items to
     /// the user that the user can select by clicking.
     /// A <see cref="ListBox"/> control can provide single or multiple selections
     /// using the <see cref="SelectionMode"/> property.
-    /// The <see cref="Control.BeginUpdate"/> and <see cref="Control.EndUpdate"/>
+    /// The <see cref="AbstractControl.BeginUpdate"/> and <see cref="AbstractControl.EndUpdate"/>
     /// methods enable
     /// you to add a large number of items to the ListBox without the control
     /// being repainted each time an item is added to the list.
-    /// The <see cref="ListControl.Items"/>, <see cref="SelectedItems"/>, and
-    /// <see cref="SelectedIndices"/> properties provide access to the three
-    /// collections that are used by the <see cref="ListBox"/>.
+    /// The <see cref="ListControl{T}.Items"/>, <see cref="VirtualListControl.SelectedItems"/>, and
+    /// <see cref="VirtualListControl.SelectedIndices"/> properties provide access to the three
+    /// collections that are used by the control.
     /// </remarks>
     [ControlCategory("Common")]
-    public partial class ListBox : ListControl
+    public class ListBox : VirtualListBox, ICustomListBox<object>
     {
-        private readonly HashSet<int> selectedIndices = new();
-        private int ignoreSelectEvents = 0;
+        private readonly ListControlItemsAdapter adapter;
 
-        private ListBoxSelectionMode selectionMode = ListBoxSelectionMode.Single;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ListBox"/> class
+        /// with the specified parent control.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public ListBox(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ListBox"/> class.
         /// </summary>
         public ListBox()
         {
+            adapter = new ListControlItemsAdapter(base.Items);
         }
 
         /// <summary>
-        /// Occurs when the <see cref="SelectedIndex"/> property or the
-        /// <see cref="SelectedIndices"/> collection has changed.
+        /// Gets last item in the control or <c>null</c> if there are no items.
         /// </summary>
-        /// <remarks>
-        /// You can create an event handler for this event to determine when the
-        /// selected index in the <see cref="ListBox"/> has been changed.
-        /// This can be useful when you need to display information in other
-        /// controls based on the current selection in the <see cref="ListBox"/>.
-        /// <para>
-        /// You can use the event handler for this event to load the information in
-        /// the other controls. If the <see cref="SelectionMode"/> property
-        /// is set to <see cref="ListBoxSelectionMode.Multiple"/>, any change to the
-        /// <see cref="SelectedIndices"/> collection,
-        /// including removing an item from the selection, will raise this event.
-        /// </para>
-        /// </remarks>
-        public event EventHandler? SelectionChanged;
-
-        /// <summary>
-        /// Occurs when the value of the <see cref="SelectionMode"/> property changes.
-        /// </summary>
-        public event EventHandler? SelectionModeChanged;
-
-        /// <inheritdoc/>
-        public override ControlTypeId ControlKind => ControlTypeId.ListBox;
-
-        /// <summary>
-        /// Gets a collection that contains the zero-based indexes of all
-        /// currently selected items in the <see cref="ListBox"/>.
-        /// </summary>
-        /// <value>
-        /// An <see cref="IReadOnlyList{T}"/> containing the indexes of the
-        /// currently selected items in the control.
-        /// If no items are currently selected, an empty
-        /// <see cref="IReadOnlyList{T}"/> is returned.
-        /// </value>
-        /// <remarks>
-        /// For a multiple-selection <see cref="ListBox"/>, this property
-        /// returns a collection containing the indexes to all items that are selected
-        /// in the <see cref="ListBox"/>. For a single-selection
-        /// <see cref="ListBox"/>, this property returns a collection containing a
-        /// single element containing the index of the only selected item in the
-        /// <see cref="ListBox"/>.
-        /// <para>
-        /// The <see cref="ListBox"/> class provides a number of ways to
-        /// reference selected items. Instead of using the <see cref="SelectedIndices"/>
-        /// property to obtain the index position of the currently selected item
-        /// in a single-selection <see cref="ListBox"/>, you
-        /// can use the <see cref="SelectedIndex"/> property. If you want to obtain
-        /// the item that is currently selected in the <see cref="ListBox"/>,
-        /// instead of the index position of the item, use the
-        /// <see cref="SelectedItem"/> property. In addition,
-        /// you can use the <see cref="SelectedItems"/> property if you want to
-        /// obtain all the selected items in a multiple-selection <see cref="ListBox"/>.
-        /// </para>
-        /// </remarks>
-        /// <seealso cref="SelectedIndicesDescending"/>
         [Browsable(false)]
-        public virtual IReadOnlyList<int> SelectedIndices
+        public new object? LastItem
         {
             get
             {
-                CheckDisposed();
-                return selectedIndices.ToArray();
+                return ItemToData(base.LastItem);
             }
 
             set
             {
-                CheckDisposed();
-
-                ClearSelectedCore();
-
-                bool changed = false;
-                foreach (var index in value)
-                {
-                    if (SetSelectedCore(index, true))
-                        changed = true;
-                }
-
-                if (changed)
-                    RaiseSelectionChanged(EventArgs.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Same as <see cref="SelectedIndices"/>
-        /// </summary>
-        [Browsable(false)]
-        public IReadOnlyList<int> SelectedIndexes => SelectedIndices;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the control has a border.
-        /// </summary>
-        public virtual bool HasBorder
-        {
-            get
-            {
-                CheckDisposed();
-                return Handler.HasBorder;
-            }
-
-            set
-            {
-                CheckDisposed();
-                Handler.HasBorder = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a collection that contains the zero-based indexes of all
-        /// currently selected
-        /// items in the <see cref="ListBox"/>.
-        /// </summary>
-        /// <remarks>
-        /// Indexes are returned in the descending order (maximal index is
-        /// the first).
-        /// </remarks>
-        /// <seealso cref="SelectedIndices"/>
-        /// <value>
-        /// An <see cref="IReadOnlyList{T}"/> containing the indexes of the
-        /// currently selected items in the control.
-        /// If no items are currently selected, an empty
-        /// <see cref="IReadOnlyList{T}"/> is returned.
-        /// </value>
-        [Browsable(false)]
-        public virtual IReadOnlyList<int> SelectedIndicesDescending
-        {
-            get
-            {
-#pragma warning disable
-                int[] sortedCopy = SelectedIndices.OrderByDescending(i => i).ToArray();
-#pragma warning restore
-                return sortedCopy;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the zero-based index of the currently selected item in a
-        /// <see cref="ListBox"/>.
-        /// </summary>
-        /// <value>A zero-based index of the currently selected item.
-        /// A value of <c>null</c> is returned if no item is selected.</value>
-        /// <remarks>
-        /// For a standard <see cref="ListBox"/>, you can use this property to
-        /// determine the index of the item that is selected
-        /// in the <see cref="ListBox"/>. If the <see cref="SelectionMode"/>
-        /// property of the <see cref="ListBox"/> is set to either
-        /// <see cref="ListBoxSelectionMode.Multiple"/> (which indicates a
-        /// multiple-selection <see cref="ListBox"/>) and multiple items
-        /// are selected in the list, this property can return the index to
-        /// any selected item.
-        /// <para>
-        /// To retrieve a collection containing the indexes of all selected items
-        /// in a multiple-selection <see cref="ListBox"/>,
-        /// use the <see cref="SelectedIndices"/> property. If you want to obtain
-        /// the item that is currently selected in the <see cref="ListBox"/>,
-        /// use the <see cref="SelectedItem"/> property. In addition, you can use
-        /// the <see cref="SelectedItems"/> property to obtain
-        /// all the selected items in a multiple-selection <see cref="ListBox"/>.
-        /// </para>
-        /// </remarks>
-        /// <exception cref="ArgumentOutOfRangeException">The assigned value is
-        /// less than 0 or greater than or equal to the item count.</exception>
-        public override int? SelectedIndex
-        {
-            get
-            {
-                if (selectedIndices.Count == 0)
-                    return null;
-                else
-                    return selectedIndices.First();
-            }
-
-            set
-            {
-                CheckDisposed();
-
-                var oldSelected = SelectedIndex;
-                var oldCount = selectedIndices.Count;
-
-                if (oldSelected == value && oldCount <= 1)
+                if (LastItem == value)
                     return;
-
-                if (value != null && (value < 0 || value >= Items.Count))
-                    throw new ArgumentOutOfRangeException(nameof(value));
-
-                ignoreSelectEvents++;
-                try
-                {
-                    ClearSelected();
-                    if (value != null)
-                        SetSelected(value.Value, true);
-                }
-                finally
-                {
-                    ignoreSelectEvents--;
-                    RaiseSelectionChanged(EventArgs.Empty);
-                }
+                base.LastItem = DataToItem(value);
             }
         }
 
         /// <summary>
-        /// Gets or sets the currently selected item in the ListBox.
+        /// Gets first item in the control or <c>null</c> if there are no items.
+        /// </summary>
+        [Browsable(false)]
+        public new object? FirstItem
+        {
+            get
+            {
+                return ItemToData(base.FirstItem);
+            }
+
+            set
+            {
+                if (FirstItem == value)
+                    return;
+                base.FirstItem = DataToItem(value);
+            }
+        }
+
+        /// <summary>
+        /// Gets last root item in the control or <c>null</c> if there are no items.
+        /// </summary>
+        [Browsable(false)]
+        public new object? LastRootItem
+        {
+            get
+            {
+                return ItemToData(base.LastRootItem);
+            }
+
+            set
+            {
+                if (LastRootItem == value)
+                    return;
+                base.LastRootItem = DataToItem(value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the currently selected item in the control.
         /// </summary>
         /// <value>An object that represents the current selection in the control,
         /// or <c>null</c> if no item is selected.</value>
         /// <remarks>
-        /// For a standard <see cref="ListBox"/>, you can use this property to
+        /// When single selection mode is used, you can use this property to
         /// determine the index of the item that is selected
-        /// in the <see cref="ListBox"/>. If the <see cref="SelectionMode"/>
-        /// property of the <see cref="ListBox"/> is set to either
+        /// in the control. If the <see cref="SelectionMode"/>
+        /// property of the control is set to either
         /// <see cref="ListBoxSelectionMode.Multiple"/> (which indicates a
-        /// multiple-selection <see cref="ListBox"/>) and multiple items
+        /// multiple-selection control) and multiple items
         /// are selected in the list, this property can return the index to
         /// any selected item.
         /// <para>
         /// To retrieve a collection containing all selected items in a
-        /// multiple-selection <see cref="ListBox"/>, use the
-        /// <see cref="SelectedItems"/> property.
+        /// multiple-selection control, use the
+        /// <see cref="VirtualListControl.SelectedItems"/> property.
         /// If you want to obtain the index position of the currently selected
-        /// item in the <see cref="ListBox"/>, use the
-        /// <see cref="SelectedIndex"/> property.
-        /// In addition, you can use the <see cref="SelectedIndices"/> property to
-        /// obtain all the selected indexes in a multiple-selection
-        /// <see cref="ListBox"/>.
+        /// item in the control, use the
+        /// <see cref="VirtualListControl.SelectedIndex"/> property.
+        /// In addition, you can use the <see cref="VirtualListControl.SelectedIndices"/>
+        /// property to obtain all the selected indexes in a multiple-selection control.
         /// </para>
         /// </remarks>
         [Browsable(false)]
-        public override object? SelectedItem
+        public new object? SelectedItem
         {
             get
             {
-                CheckDisposed();
-
-                var selectedIndex = SelectedIndex;
-
-                if (selectedIndex == null)
-                    return null;
-
-                int value = selectedIndex.Value;
-
-                if (value >= Items.Count || value < 0)
-                    return null;
-
-                return Items[value];
+                return ItemToData(base.SelectedItem);
             }
 
             set
             {
-                CheckDisposed();
-
-                if (value == null)
-                {
-                    SelectedIndex = null;
+                if (SelectedItem == value)
                     return;
+                base.SelectedItem = DataToItem(value);
+            }
+        }
+
+        /// <summary>
+        /// Gets a collection of the selected items.
+        /// </summary>
+        [Browsable(false)]
+        public IEnumerable<object> SelectedItemsCollection
+        {
+            get
+            {
+                foreach (var item in base.SelectedItems)
+                {
+                    var result = ItemToData(item);
+                    if(result is not null)
+                        yield return result;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets items as collection <see cref="ListControlItem"/> items.
+        /// This is the fastest way to access items.
+        /// </summary>
+        [Browsable(false)]
+        public IListControlItems<ListControlItem> BaseItems
+        {
+            get
+            {
+                return base.Items;
+            }
+
+            set
+            {
+                base.Items = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets items.
+        /// </summary>
+        public new IListControlItems<object> Items
+        {
+            get
+            {
+                return adapter;
+            }
+
+            set
+            {
+                ListControlItems<ListControlItem> newItems = new();
+                foreach(var valueItem in value)
+                {
+                    ListControlItem item = new();
+                    SetItemData(item, valueItem);
+                    newItems.Add(item);
                 }
 
-                var index = Items.IndexOf(value);
-                if (index != -1)
-                    SelectedIndex = index;
+                base.Items = newItems;
             }
         }
 
         /// <summary>
-        /// Gets a collection containing the currently selected items in the
-        /// <see cref="ListBox"/>.
+        /// Gets an array of the selected items.
         /// </summary>
-        /// <value>A <see cref="IReadOnlyList{T}"/> containing the currently
-        /// selected items in the control.</value>
-        /// <remarks>
-        /// For a multiple-selection <see cref="ListBox"/>, this property
-        /// returns a collection containing the indexes to all items that are selected
-        /// in the <see cref="ListBox"/>. For a single-selection
-        /// <see cref="ListBox"/>, this property returns a collection containing a
-        /// single element containing the index of the only selected item in the
-        /// <see cref="ListBox"/>.
-        /// <para>
-        /// The <see cref="ListBox"/> class provides a number of ways to
-        /// reference selected items. Instead of using the <see cref="SelectedIndices"/>
-        /// property to obtain the index position of the currently selected item
-        /// in a single-selection <see cref="ListBox"/>, you
-        /// can use the <see cref="SelectedIndex"/> property. If you want to obtain
-        /// the item that is currently selected in the <see cref="ListBox"/>,
-        /// instead of the index position of the item, use the
-        /// <see cref="SelectedItem"/> property.
-        /// In addition, you can use the <see cref="SelectedIndices"/> property
-        /// to obtain all the selected indexes in a multiple-selection
-        /// <see cref="ListBox"/>.
-        /// </para>
-        /// </remarks>
         [Browsable(false)]
-        public virtual IReadOnlyList<object> SelectedItems
+        public new IReadOnlyList<object> SelectedItems
         {
             get
             {
-                CheckDisposed();
-
-                return SelectedIndices.Select(x => Items[x]).ToArray();
+                return SelectedItemsCollection.ToArray();
             }
         }
 
         /// <summary>
-        /// Gets or sets the method in which items are selected in the
-        /// <see cref="ListBox"/>.
+        /// Gets or sets the <see cref="Items"/> element at the specified index.
         /// </summary>
-        /// <value>One of the <see cref="ListBoxSelectionMode"/> values.
-        /// The default is <see cref="ListBoxSelectionMode.Single"/>.</value>
-        /// <remarks>
-        /// The <see cref="SelectionMode"/> property enables you to determine
-        /// how many items in the <see cref="ListBox"/>
-        /// a user can select at one time.
-        /// </remarks>
-        public virtual ListBoxSelectionMode SelectionMode
+        /// <param name="index">The zero-based index of the element
+        /// to get or set.</param>
+        /// <returns>The element at the specified index.</returns>
+        public new object? this[int? index]
         {
             get
             {
-                CheckDisposed();
-
-                return selectionMode;
+                return ItemToData(base[index]);
             }
 
             set
             {
-                CheckDisposed();
-
-                if (selectionMode == value)
-                    return;
-
-                selectionMode = value;
-
-                SelectionModeChanged?.Invoke(this, EventArgs.Empty);
+                SetItemData(base[index], value);
             }
         }
 
         /// <summary>
-        /// Gets a <see cref="IListBoxHandler"/> associated with this class.
+        /// Gets or sets the <see cref="Items"/> element at the specified index.
         /// </summary>
-        [Browsable(false)]
-        internal new IListBoxHandler Handler
+        /// <param name="index">The zero-based index of the element
+        /// to get or set.</param>
+        /// <returns>The element at the specified index.</returns>
+        public new object? this[int index]
         {
             get
             {
-                return (IListBoxHandler)base.Handler;
+                return ItemToData(base[index]);
             }
-        }
 
-        [Browsable(false)]
-        internal new string Text
-        {
-            get => base.Text;
-            set => base.Text = value;
-        }
-
-        /// <summary>
-        /// Removes selected items from the <see cref="ListBox"/>.
-        /// </summary>
-        public virtual void RemoveSelectedItems()
-        {
-            RemoveItems(SelectedIndicesDescending);
-        }
-
-        /// <summary>
-        /// Ensures that the item is visible within the control, scrolling the
-        /// contents of the control, if necessary.
-        /// </summary>
-        /// <param name="itemIndex">The item index to scroll into visibility.</param>
-        public virtual void EnsureVisible(int itemIndex)
-        {
-            if(Count > 0)
-                Handler.EnsureVisible(itemIndex);
-        }
-
-        /// <summary>
-        /// Returns the zero-based index of the item at the specified coordinates.
-        /// </summary>
-        /// <param name="position">A <see cref="PointD"/> object containing
-        /// the coordinates used to obtain the item
-        /// index.</param>
-        /// <returns>The zero-based index of the item found at the specified
-        /// coordinates; returns <see langword="null"/>
-        /// if no match is found.</returns>
-        public virtual int? HitTest(PointD position) => Handler.HitTest(position);
-
-        /// <summary>
-        /// Gets only valid indexes from the list of indexes in
-        /// the <see cref="ListBox"/>.
-        /// </summary>
-        public IReadOnlyList<int> GetValidIndexes(params int[] indexes)
-        {
-            var validIndexes = new List<int>();
-
-            foreach (int index in indexes)
+            set
             {
-                if (IsValidIndex(index))
-                    validIndexes.Add(index);
+                SetItemData(base[index], value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Items"/> element at the specified index.
+        /// </summary>
+        /// <param name="index">The zero-based index of the element
+        /// to get or set.</param>
+        /// <returns>The element at the specified index.</returns>
+        public new object? this[long index]
+        {
+            get
+            {
+                return ItemToData(base[index]);
             }
 
-            return validIndexes;
+            set
+            {
+                SetItemData(base[index], value);
+            }
         }
 
         /// <summary>
-        /// Copies result of the <see cref="SelectedItemsAsText"/> to clipboard.
+        /// Gets item with the specified index.
         /// </summary>
-        public virtual bool SelectedItemsToClipboard(string? separator = default)
-        {
-            var text = SelectedItemsAsText();
-            if (string.IsNullOrEmpty(text))
-                return false;
-            Clipboard.SetText(text ?? string.Empty);
-            return true;
-        }
-
-        /// <summary>
-        /// Gets selected items as <see cref="string"/>.
-        /// </summary>
-        /// <remarks>Each item is separated by <paramref name="separator"/> or
-        /// <see cref="Environment.NewLine"/> if it is empty.</remarks>
-        /// <param name="separator">Items separator string.</param>
-        public virtual string? SelectedItemsAsText(string? separator = default)
-        {
-            return ItemsAsText(SelectedIndexes, separator);
-        }
-
-        /// <summary>
-        /// Selects items with specified indexes in the <see cref="ListBox"/>.
-        /// </summary>
-        public virtual void SelectItems(params int[] indexes)
-        {
-            SelectedIndices = GetValidIndexes(indexes);
-        }
-
-        /// <summary>
-        /// Checks whether index is valid in the <see cref="ListBox"/>.
-        /// </summary>
-        public virtual bool IsValidIndex(int index)
-        {
-            return index >= 0 && index < Items.Count;
-        }
-
-        /// <inheritdoc/>
-        public override void ClearSelected()
-        {
-            ClearSelectedCore();
-            RaiseSelectionChanged(EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Selects or clears the selection for the specified item in a
-        /// <see cref="ListBox"/>.
-        /// </summary>
-        /// <param name="index">The zero-based index of the item in a
-        /// <see cref="ListBox"/> to select or clear the selection for.</param>
-        /// <param name="value"><c>true</c> to select the specified item;
-        /// otherwise, false.</param>
-        /// <remarks>
-        /// You can use this property to set the selection of items in a
-        /// multiple-selection <see cref="ListBox"/>.
-        /// To select an item in a single-selection <see cref="ListBox"/>, use
-        /// the <see cref="SelectedIndex"/> property.
-        /// </remarks>
-        /// <exception cref="ArgumentOutOfRangeException">The specified index
-        /// was outside the range of valid values.</exception>
-        public virtual bool SetSelected(int index, bool value)
-        {
-            if (index < 0 || index >= Items.Count)
-                throw new ArgumentOutOfRangeException(nameof(value));
-
-            CheckDisposed();
-
-            var changed = SetSelectedCore(index, value);
-
-            if (changed)
-                RaiseSelectionChanged(EventArgs.Empty);
-
-            return changed;
-        }
-
-        /// <summary>
-        /// Gets whether control has items.
-        /// </summary>
-        public virtual bool HasItems()
-        {
-            return Items.Count > 0;
-        }
-
-        /// <summary>
-        /// Gets whether control has selected items.
-        /// </summary>
-        public virtual bool HasSelectedItems()
-        {
-            var indexes = SelectedIndexes;
-
-            return (indexes is not null) && indexes.Count > 0;
-        }
-
-        /// <summary>
-        /// Gets whether selected item can be removed.
-        /// </summary>
+        /// <param name="index">Item index.</param>
         /// <returns></returns>
-        public virtual bool CanRemoveSelectedItem()
+        public new object? GetItem(int index)
         {
-            var item = SelectedItem;
-
-            if (item is not ListControlItem item2)
-                return item != null;
-
-            return item2.CanRemove;
+            return ItemToData(base.GetItem(index));
         }
 
         /// <summary>
-        /// Removes selected item from the control.
+        /// Sets item with the specified index.
         /// </summary>
-        public virtual void RemoveSelectedItem()
+        /// <param name="index">Index of the item.</param>
+        /// <param name="value">New item value.</param>
+        public void SetItem(int index, object value)
         {
-            var index = SelectedIndex;
-            if (index is null)
-                return;
-            Items.RemoveAt(index.Value);
+            ListControlItem item = new();
+            SetItemData(item, value);
+            base.SetItem(index, item);
         }
 
         /// <summary>
-        /// Raises the <see cref="SelectionChanged"/> event and calls
-        /// <see cref="OnSelectionChanged(EventArgs)"/>.
+        /// Adds an object to the end of the <see cref="Items"/> collection.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        public void RaiseSelectionChanged(EventArgs e)
+        /// <param name="value">The object to be added to the end of the
+        /// <see cref="Items"/> collection.</param>
+        public int Add(object value)
         {
-            if (ignoreSelectEvents > 0)
-                return;
-            OnSelectionChanged(e);
-            SelectionChanged?.Invoke(this, e);
-        }
-
-        /// <inheritdoc/>
-        protected override IControlHandler CreateHandler()
-        {
-            return ControlFactory.Handler.CreateListBoxHandler(this);
+            ListControlItem item = new();
+            SetItemData(item, value);
+            return base.Add(item);
         }
 
         /// <summary>
-        /// Called when the <see cref="SelectedIndex"/> property or the
-        /// <see cref="SelectedIndices"/> collection has changed.
+        /// Changes the number of elements in the <see cref="Items"/>.
         /// </summary>
-        /// <param name="e">An <see cref="EventArgs"/> that contains the event
-        /// data.</param>
-        /// <remarks>See <see cref="SelectionChanged"/> for details.</remarks>
-        protected virtual void OnSelectionChanged(EventArgs e)
+        /// <param name="newCount">New number of elements.</param>
+        /// <param name="createItem">Function which creates new item.</param>
+        /// <remarks>
+        /// If collection has more items than specified in <paramref name="newCount"/>,
+        /// these items are removed. If collection has less items, new items are created
+        /// using <paramref name="createItem"/> function.
+        /// </remarks>
+        public void SetCount(int newCount, Func<object> createItem)
         {
+            base.SetCount(newCount, () =>
+            {
+                ListControlItem item = new();
+                SetItemData(item, createItem());
+                return item;
+            });
         }
 
-        /// <inheritdoc/>
-        protected override void OnMouseDoubleClick(MouseEventArgs e)
+        /// <summary>
+        /// Gets data associated with the item.
+        /// </summary>
+        /// <param name="item">Item which contains the data.</param>
+        /// <returns></returns>
+        protected virtual object? ItemToData(ListControlItem? item)
         {
-            base.OnMouseDoubleClick(e);
-            var item = SelectedItem as ListControlItem;
-            var action = item?.DoubleClickAction;
-            action?.Invoke();
+            return item?.Value;
         }
 
-        private void ClearSelectedCore()
+        /// <summary>
+        /// Finds the item with the specified data.
+        /// </summary>
+        /// <param name="data">Data to search for.</param>
+        /// <returns></returns>
+        protected virtual ListControlItem? DataToItem(object? data)
         {
-            selectedIndices.Clear();
+            return FindItemWithValue(data);
         }
 
-        private bool SetSelectedCore(int index, bool value)
+        /// <summary>
+        /// Sets item data.
+        /// </summary>
+        protected virtual void SetItemData(ListControlItem? item, object? data)
         {
-            bool changed;
-            if (value)
-                changed = selectedIndices.Add(index);
-            else
-                changed = selectedIndices.Remove(index);
-
-            return changed;
+            item?.SetValue(data);
         }
     }
 }

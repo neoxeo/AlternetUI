@@ -16,6 +16,16 @@ namespace Alternet.UI
         private static ColorSvgImage? imgError;
         private static ColorSvgImage? imgWarning;
         private static ColorSvgImage? imgInformation;
+        private static ColorSvgImage? imgLogo;
+
+        /// <summary>
+        /// Gets or sets logo svg image without text.
+        /// </summary>
+        public static ColorSvgImage ImgLogo
+        {
+            get => imgLogo ??= new(KnownColorSvgUrls.Logo);
+            set => imgLogo = value;
+        }
 
         /// <summary>
         /// Gets or sets 'Error' image.
@@ -40,7 +50,11 @@ namespace Alternet.UI
         /// </summary>
         public static ColorSvgImage ImgInformation
         {
-            get => imgInformation ??= new(KnownColorSvgUrls.Information);
+            get
+            {
+                return imgInformation ??= new(KnownColorSvgUrls.Information);
+            }
+
             set => imgInformation = value;
         }
 
@@ -55,6 +69,14 @@ namespace Alternet.UI
             var imageSet = KnownColorSvgImages.ImgError.AsImageSet(size.Value);
             var image = imageSet?.AsImage(size.Value);
             return image;
+        }
+
+        /// <summary>
+        /// Gets all images in <see cref="KnownColorSvgImages"/>.
+        /// </summary>
+        public static IEnumerable<SvgImage> GetAllImages()
+        {
+            return AssemblyUtils.GetStaticProperties<ColorSvgImage>(typeof(KnownColorSvgImages));
         }
     }
 }

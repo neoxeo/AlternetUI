@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Alternet.Drawing;
 
 namespace Alternet.UI
 {
-    public partial class PropertyGrid
+    public partial class PropertyGrid : Control
     {
         /// <summary>
         /// Adds simple action for the specified <typeparamref name="T"/>.
@@ -31,7 +32,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="t">Type for which actions are requested.</param>
         /// <returns></returns>
-        public static IEnumerable<(string, Action)>? GetSimpleActions(Type t)
+        public static IEnumerable<(string Title, Action Action)>? GetSimpleActions(Type t)
         {
             var registry = PropertyGrid.GetTypeRegistryOrNull(t);
             return registry?.GetSimpleActions();
@@ -45,31 +46,55 @@ namespace Alternet.UI
         /// <returns>Returns true if successful or if there was no selection. May fail if validation
         /// was enabled and active editor had invalid value.</returns>
         public virtual bool ClearSelection(bool validation)
-            => Handler.ClearSelection(validation);
+        {
+            if (DisposingOrDisposed)
+                return default;
+            return Handler.ClearSelection(validation);
+        }
 
         /// <summary>
         /// Resets modified status of all properties.
         /// </summary>
-        public virtual void ClearModifiedStatus() => Handler.ClearModifiedStatus();
+        public virtual void ClearModifiedStatus()
+        {
+            if (DisposingOrDisposed)
+                return;
+            Handler.ClearModifiedStatus();
+        }
 
         /// <summary>
         /// Collapses all items that can be collapsed. This functions clears selection.
         /// </summary>
-        public virtual bool CollapseAll() => Handler.CollapseAll();
+        public virtual bool CollapseAll()
+        {
+            if (DisposingOrDisposed)
+                return default;
+            return Handler.CollapseAll();
+        }
 
         /// <summary>
         /// Returns true if all property grid data changes have been committed.
         /// </summary>
         /// <returns>Usually only returns false if value in active editor has been invalidated
         /// by a validator.</returns>
-        public virtual bool EditorValidate() => Handler.EditorValidate();
+        public virtual bool EditorValidate()
+        {
+            if (DisposingOrDisposed)
+                return default;
+            return Handler.EditorValidate();
+        }
 
         /// <summary>
         /// Expands all items that can be expanded. This functions clears selection.
         /// </summary>
         /// <param name="expand"></param>
         /// <returns></returns>
-        public virtual bool ExpandAll(bool expand) => Handler.ExpandAll(expand);
+        public virtual bool ExpandAll(bool expand)
+        {
+            if (DisposingOrDisposed)
+                return default;
+            return Handler.ExpandAll(expand);
+        }
 
         /// <summary>
         /// Translates the logical coordinates to the device ones.
@@ -86,6 +111,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual PointI CalcScrolledPositionI(PointI point)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CalcScrolledPosition(point);
         }
 
@@ -104,6 +131,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual PointD CalcScrolledPositionD(PointD point)
         {
+            if (DisposingOrDisposed)
+                return default;
             var pointI = PixelFromDip(point);
             var result = Handler.CalcScrolledPosition(pointI);
             var pointD = PixelToDip(result);
@@ -125,6 +154,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual PointI CalcUnscrolledPositionI(PointI point)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.CalcUnscrolledPosition(point);
         }
 
@@ -143,6 +174,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual PointD CalcUnscrolledPositionD(PointD point)
         {
+            if (DisposingOrDisposed)
+                return default;
             var pointI = PixelFromDip(point);
             var result = Handler.CalcUnscrolledPosition(pointI);
             var pointD = PixelToDip(result);
@@ -161,6 +194,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual int GetHitTestColumn(PointD point)
         {
+            if (DisposingOrDisposed)
+                return default;
             var pointI = PixelFromDip(point);
             var result = Handler.GetHitTestColumn(pointI);
             return result;
@@ -178,6 +213,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual IPropertyGridItem? GetHitTestProp(PointD point)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetHitTestProp(point);
         }
 
@@ -187,18 +224,12 @@ namespace Alternet.UI
         /// <param name="item">Property item.</param>
         /// <returns></returns>
         /// <remarks>
-        /// Property can be reset if it is nullable, has <see cref="DefaultValueAttribute"/>
-        /// specified or class has 'Reset(PropertyName)' method.
+        /// Uses <see cref="AssemblyUtils.CanResetProp"/>.
         /// </remarks>
         public virtual bool CanResetProp(IPropertyGridItem? item)
         {
-            if (item is null || item.PropInfo is null || item.Instance is null)
-                return false;
-            var nullable = AssemblyUtils.GetNullable(item.PropInfo);
-            var value = item.PropInfo.GetValue(item.Instance);
-            var resetMethod = AssemblyUtils.GetResetPropMethod(item.Instance, item.PropInfo.Name);
-            var hasDevaultAttr = AssemblyUtils.GetDefaultValue(item.PropInfo, out _);
-            return hasDevaultAttr || resetMethod != null || (nullable && value is not null);
+            var result = AssemblyUtils.CanResetProp(item?.Instance, item?.PropInfo);
+            return result;
         }
 
         /// <summary>
@@ -206,38 +237,12 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="item">Property item.</param>
         /// <remarks>
-        /// Property can be reset if it is nullable, has <see cref="DefaultValueAttribute"/>
-        /// specified or class has 'Reset(PropertyName)' method.
+        /// Uses <see cref="AssemblyUtils.ResetProperty"/>.
         /// </remarks>
         public virtual void ResetProp(IPropertyGridItem? item)
         {
-            if (item is null || item.PropInfo is null || item.Instance is null)
-                return;
-
-            var resetMethod = AssemblyUtils.GetResetPropMethod(item.Instance, item.PropInfo.Name);
-            if (resetMethod is not null)
-            {
-                resetMethod.Invoke(item.Instance, Array.Empty<object?>());
+            if(AssemblyUtils.ResetProperty(item?.Instance, item?.PropInfo))
                 ReloadPropertyValue(item);
-                return;
-            }
-
-            var hasDevaultAttr = AssemblyUtils.GetDefaultValue(item.PropInfo, out var defValue);
-            if (hasDevaultAttr)
-            {
-                item.PropInfo.SetValue(item.Instance, defValue);
-                ReloadPropertyValue(item);
-                return;
-            }
-
-            var nullable = AssemblyUtils.GetNullable(item.PropInfo);
-            var value = item.PropInfo.GetValue(item.Instance);
-            if (nullable && value is not null)
-            {
-                item.PropInfo.SetValue(item.Instance, null);
-                ReloadPropertyValue(item);
-                return;
-            }
         }
     }
 }

@@ -96,6 +96,9 @@ namespace Alternet.Drawing
             y = MathUtils.HighInt16(dw);
         }
 
+        /// <summary>
+        /// Gets or sets this point as <see cref="SKPoint"/>.
+        /// </summary>
         [Browsable(false)]
         public SKPointI SkiaPoint
         {
@@ -229,15 +232,22 @@ namespace Alternet.Drawing
             new(unchecked(pt.X - sz.Width), unchecked(pt.Y - sz.Height));
 
         /// <summary>
-        /// Converts a PointF to a Point by performing a ceiling operation
-        /// on all the coordinates.
+        /// Converts a <see cref="PointD"/> to a <see cref="PointI"/>
+        /// by performing a ceiling operation on all the coordinates.
         /// </summary>
-        public static PointI Ceiling(PointD value) =>
-            new(unchecked((int)Math.Ceiling(value.X)),
+        /// <remarks>
+        /// Ceiling operation returns the smallest integer that is greater than or equal
+        /// to the specified floating-point number.
+        /// </remarks>
+        public static PointI Ceiling(PointD value)
+        {
+            return new(unchecked((int)Math.Ceiling(value.X)),
                 unchecked((int)Math.Ceiling(value.Y)));
+        }
 
         /// <summary>
-        /// Converts a Point to a Int32Point by performing a truncate operation
+        /// Converts a <see cref="PointD"/> to a <see cref="PointI"/>
+        /// by performing a truncate operation
         /// on all the coordinates.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -245,13 +255,23 @@ namespace Alternet.Drawing
             new(unchecked((int)value.X), unchecked((int)value.Y));
 
         /// <summary>
-        /// Converts a PointF to a Point by performing a round operation on
-        /// all the coordinates.
+        /// Converts a <see cref="PointD"/> to a <see cref="PointI"/>
+        /// by performing a round operation on the coordinates.
         /// </summary>
+        /// <param name="rounding">The <see cref="MidpointRounding"/> to use when
+        /// <see cref="Math.Round(Coord,MidpointRounding)"/> is called.</param>
+        /// <remarks>
+        /// Rounds a floating-point value to the nearest integer.
+        /// </remarks>
+        /// <param name="value">The <see cref="PointD" /> to be converted.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointI Round(PointD value) =>
-            new(unchecked((int)Math.Round(value.X)),
-                unchecked((int)Math.Round(value.Y)));
+        public static PointI Round(PointD value, MidpointRounding? rounding = null)
+        {
+            rounding ??= RectD.DefaultMidpointRounding;
+            return new(
+                unchecked((int)Math.Round(value.X, rounding.Value)),
+                unchecked((int)Math.Round(value.Y, rounding.Value)));
+        }
 
         /// <summary>
         /// Specifies whether this <see cref='PointI'/> contains
@@ -274,7 +294,7 @@ namespace Alternet.Drawing
         /// <summary>
         /// Returns a hash code.
         /// </summary>
-        public override readonly int GetHashCode() => HashCode.Combine(X, Y);
+        public override readonly int GetHashCode() => HashCode.Combine(x, y);
 
         /// <summary>
         /// Translates this <see cref='Drawing.PointI'/> by the specified amount.
@@ -289,6 +309,13 @@ namespace Alternet.Drawing
             }
         }
 
+        /// <summary>
+        /// Converts this point to device-independent units using the specified scale factor.
+        /// </summary>
+        /// <param name="scaleFactor">Scale factor. Optional. If not specified, the default
+        /// value is used.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly PointD PixelToDip(Coord scaleFactor)
         {
             return GraphicsFactory.PixelToDip(this, scaleFactor);
@@ -308,7 +335,7 @@ namespace Alternet.Drawing
             string[] names = { PropNameStrings.Default.X, PropNameStrings.Default.Y };
             int[] values = { x, y };
 
-            return StringUtils.ToString<int>(names, values);
+            return StringUtils.ToStringWithOrWithoutNames<int>(names, values);
         }
     }
 }

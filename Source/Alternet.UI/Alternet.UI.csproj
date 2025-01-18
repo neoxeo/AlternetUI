@@ -1,13 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Version\Version.props" />
+  <Import Project="..\Version\VersionNugets.props" />
   <Import Project="..\Version\TargetFrameworks.props" />
   <Import Project="..\Keys\Keys.props" />
 
 <!-- ================================================= -->
 
   <PropertyGroup>
-    <NoWarn>CS8032</NoWarn>
-    <Platforms>AnyCPU;x64</Platforms>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+    <NoWarn>$(NoWarn);CS8032</NoWarn>
+    <Platforms>AnyCPU;x64;x86</Platforms>
     <LangVersion>12.0</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
@@ -20,31 +22,8 @@
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>    
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.4" />
-    <PackageReference Include="CommunityToolkit.Common" Version="8.2.2" />
-    <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.2.2" />
-    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-    <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    <PackageReference Include="SkiaSharp.Extended" Version="2.0.0" />
-    <PackageReference Include="SkiaSharp.Extended.Iconify" Version="1.60.0" />
-    <PackageReference Include="SkiaSharp.Extended.Iconify.FontAwesome" Version="5.0.0" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.8" />
-    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.8" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="2.88.8" />
-    <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
-    <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-    <PackageReference Include="System.IO.Packaging" Version="8.0.0" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageReference Include="System.Runtime" Version="4.3.1" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="Package\readme.md" Pack="true" PackagePath="" />
@@ -97,16 +76,20 @@
 
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+  </ItemGroup>
+
   <!-- ================================================= -->
 
   <ItemGroup>
 	<ProjectReference Include="..\Alternet.UI.Common\Alternet.UI.Common.csproj" PrivateAssets="All">
 		<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-		<IncludeAssets>Alternet.UI.Common.dll</IncludeAssets>
+		<IncludeAssets>all</IncludeAssets>
 	</ProjectReference>
 	<ProjectReference Include="..\Alternet.UI.Interfaces\Alternet.UI.Interfaces.csproj" PrivateAssets="All">
 		<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-		<IncludeAssets>Alternet.UI.Interfaces.dll</IncludeAssets>
+		<IncludeAssets>all</IncludeAssets>
 	</ProjectReference>
   </ItemGroup>
 
@@ -132,4 +115,6 @@
     </ItemGroup>
   </Target>
 
+  <Import Project="$(MSBuildThisFileDirectory)\..\Alternet.UI.Interfaces\SignDll.proj" />
+  <Import Project="$(MSBuildThisFileDirectory)\..\Alternet.UI.Interfaces\OutputVars.proj" />
 </Project>

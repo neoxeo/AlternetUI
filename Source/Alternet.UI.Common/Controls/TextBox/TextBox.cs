@@ -24,22 +24,31 @@ namespace Alternet.UI
         private bool hasBorder = true;
         private bool readOnly = false;
         private TextBoxTextWrap textWrap;
-        private GenericAlignment textAlign;
-        private IValueValidator? validator;
+        private TextHorizontalAlignment textAlign;
 
         static TextBox()
         {
-            var choices = PropertyGrid.CreateChoices();
-            choices.Add(PropNameStrings.Default.Left, GenericAlignment.Left);
-            choices.Add(PropNameStrings.Default.Right, GenericAlignment.Right);
-            choices.Add(PropNameStrings.Default.Center, GenericAlignment.CenterHorizontal);
             var prm = PropertyGrid.GetNewItemParams(typeof(TextBox), nameof(TextBox.TextAlign));
-            prm.EnumIsFlags = false;
-            prm.Choices = choices;
+            if(prm is not null)
+            {
+                var choices = PropertyGrid.CreateChoices();
+                choices.Add(PropNameStrings.Default.Left, GenericAlignment.Left);
+                choices.Add(PropNameStrings.Default.Right, GenericAlignment.Right);
+                choices.Add(PropNameStrings.Default.Center, GenericAlignment.CenterHorizontal);
 
-            var useErrorColors = false;
-            DefaultErrorUseForegroundColor = useErrorColors;
-            DefaultErrorUseBackgroundColor = useErrorColors;
+                prm.EnumIsFlags = false;
+                prm.Choices = choices;
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TextBox"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public TextBox(Control parent)
+            : this()
+        {
+            Parent = parent;
         }
 
         /// <summary>
@@ -113,6 +122,139 @@ namespace Alternet.UI
         /// </remarks>
         public static ModifierKeys? DefaultAutoUrlModifiers { get; set; }
 
+        /// <inheritdoc/>
+        public override bool WantTab
+        {
+            get => base.WantTab && !ReadOnly;
+
+            set
+            {
+                if (WantTab == value || DisposingOrDisposed)
+                    return;
+                base.WantTab = value;
+                Handler.ProcessTab = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the starting point of text selected in the control.
+        /// </summary>
+        /// <returns>
+        /// The starting position of text selected in the control.
+        /// </returns>
+        [Category("Appearance")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public virtual int SelectionStart
+        {
+            get
+            {
+                return (int)GetSelectionStart();
+            }
+
+            set
+            {
+                if (value < 0)
+                    value = 0;
+                if (SelectionStart == value)
+                    return;
+                SetSelection(value, GetSelectionEnd());
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating the currently selected text in the control.
+        /// </summary>
+        /// <returns>
+        /// A string that represents the currently selected text in the control.
+        /// </returns>
+        /// <remarks>
+        /// If there is no selection, the replacement text is inserted at the caret.
+        /// </remarks>
+        [Category("Appearance")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public virtual string SelectedText
+        {
+            get
+            {
+                return GetStringSelection();
+            }
+
+            set
+            {
+                value ??= string.Empty;
+
+                if (SelectedText == value)
+                    return;
+
+                if (HasSelection)
+                {
+                    Replace(GetSelectionStart(), GetSelectionEnd(), value);
+                }
+                else
+                {
+                    WriteText(value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of characters selected in the control.
+        /// </summary>
+        /// <returns>
+        /// The number of characters selected in the control.
+        /// </returns>
+        [Category("Appearance")]
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public virtual int SelectionLength
+        {
+            get
+            {
+                if (HasSelection)
+                {
+                    var selectionStart = GetSelectionStart();
+                    var selectionEnd = GetSelectionEnd();
+                    var selectionLength = (int)(selectionEnd - selectionStart);
+                    if (selectionLength < 0)
+                        selectionLength = 0;
+                    return selectionLength;
+                }
+                else
+                    return 0;
+            }
+
+            set
+            {
+                if (value < 0)
+                    value = 0;
+                if (SelectionLength == value)
+                    return;
+                if(value == 0)
+                {
+                    SelectNone();
+                }
+                else
+                {
+                    if (HasSelection)
+                    {
+                        var selectionStart = GetSelectionStart();
+                        var selectionEnd = selectionStart + value;
+                        SetSelection(selectionStart, selectionEnd);
+                    }
+                    else
+                    {
+                        var selectionStart = GetInsertionPoint();
+                        if (selectionStart < 0)
+                            selectionStart = 0;
+                        var selectionEnd = selectionStart + value;
+                        SetSelection(selectionStart, selectionEnd);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets a value indicating whether urls in the input text
         /// are opened in the default browser.
@@ -129,31 +271,6 @@ namespace Alternet.UI
         /// </summary>
         [Browsable(false)]
         public virtual ModifierKeys? AutoUrlModifiers { get; set; }
-
-        /// <summary>
-        /// Gets or sets <see cref="IValueValidator"/> for the <see cref="TextBox"/> control.
-        /// </summary>
-        /// <remarks>
-        /// <see cref="IValueValidator"/> allows to set limitations on possible values of
-        /// the <see cref="Control.Text"/> property. See <see cref="IValueValidatorText"/> and
-        /// <see cref="ValueValidatorFactory.CreateValueValidatorText"/>.
-        /// </remarks>
-        [Browsable(false)]
-        public virtual IValueValidator? Validator
-        {
-            get
-            {
-                return validator;
-            }
-
-            set
-            {
-                if (validator == value)
-                    return;
-                validator = value;
-                Handler.SetValidator(value);
-            }
-        }
 
         /// <inheritdoc/>
         public override ControlTypeId ControlKind => ControlTypeId.TextBox;
@@ -177,6 +294,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (multiline == value)
                     return;
                 multiline = value;
@@ -202,6 +321,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (isRichEdit == value)
                     return;
                 isRichEdit = value;
@@ -225,6 +346,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (textWrap == value)
                     return;
                 textWrap = value;
@@ -236,14 +359,11 @@ namespace Alternet.UI
         /// Gets or sets text alignment for the <see cref="TextBox"/> control.
         /// </summary>
         /// <remarks>
-        /// Only <see cref="GenericAlignment.Left"/>, <see cref="GenericAlignment.Right"/>
-        /// and <see cref="GenericAlignment.CenterHorizontal"/> are supported.
+        /// Default value is <see cref="TextHorizontalAlignment.Left"/>.
         /// </remarks>
-        /// <remarks>
-        /// Default value is <see cref="GenericAlignment.Left"/>.
-        /// </remarks>
-        [DefaultValue(GenericAlignment.Left)]
-        public virtual GenericAlignment TextAlign
+        [DefaultValue(TextHorizontalAlignment.Left)]
+        [Browsable(false)]
+        public virtual TextHorizontalAlignment TextAlign
         {
             get
             {
@@ -252,10 +372,28 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (textAlign == value)
                     return;
                 textAlign = value;
+
                 Handler.TextAlign = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets the length of text in the control.
+        /// </summary>
+        /// <returns>
+        /// The number of characters contained in the text of the control.
+        /// </returns>
+        [Browsable(false)]
+        public virtual int TextLength
+        {
+            get
+            {
+                return Text.Length;
             }
         }
 
@@ -271,7 +409,7 @@ namespace Alternet.UI
         /// When this property is set to <see langword="true"/>, the contents
         /// of the control cannot be changed by the user at runtime.
         /// With this property set to <see langword="true"/>, you can still
-        /// set the value of the <see cref="Control.Text"/> property in code.
+        /// set the value of the <see cref="AbstractControl.Text"/> property in code.
         /// </remarks>
         public virtual bool ReadOnly
         {
@@ -282,6 +420,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (readOnly == value)
                     return;
 
@@ -301,6 +441,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (MaxLength == value || value < 0)
                     return;
                 base.MaxLength = value;
@@ -312,7 +454,8 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets a value indicating whether the control has a border.
         /// </summary>
-        public virtual bool HasBorder
+        [Browsable(true)]
+        public override bool HasBorder
         {
             get
             {
@@ -321,10 +464,12 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 if (hasBorder == value)
                     return;
                 hasBorder = value;
-                Handler.HasBorder = value;
+                base.Handler.HasBorder = value;
                 HasBorderChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -337,6 +482,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.HasSelection;
             }
         }
@@ -349,11 +496,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.IsModified;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.IsModified = value;
             }
         }
@@ -371,6 +522,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanCopy;
             }
         }
@@ -388,6 +541,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanCut;
             }
         }
@@ -406,6 +561,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanPaste;
             }
         }
@@ -424,6 +581,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanRedo;
             }
         }
@@ -444,39 +603,16 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.HideSelection;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.HideSelection = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the TAB key is received and
-        /// processed by the control.
-        /// </summary>
-        /// <returns>
-        /// <see langword="true" /> if the TAB key is received by the control;
-        /// <see langword="false" />, if the TAB key is not received by the control.
-        /// The default is <see langword="false" />.
-        /// </returns>
-        /// <remarks>
-        /// Normally, TAB key is used for passing to the next control in a dialog.
-        /// For the control created with this style, you can still use
-        /// Ctrl-Enter to pass to the next control from the keyboard.
-        /// </remarks>
-        public virtual bool ProcessTab
-        {
-            get
-            {
-                return Handler.ProcessTab;
-            }
-
-            set
-            {
-                Handler.ProcessTab = value;
             }
         }
 
@@ -522,11 +658,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.ProcessEnter;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.ProcessEnter = value;
             }
         }
@@ -545,11 +685,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.IsPassword;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.IsPassword = value;
             }
         }
@@ -577,11 +721,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.AutoUrl;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.AutoUrl = value;
             }
         }
@@ -606,11 +754,15 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.HideVertScrollbar;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 Handler.HideVertScrollbar = value;
             }
         }
@@ -639,6 +791,8 @@ namespace Alternet.UI
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 value ??= PointI.Empty;
                 var insertPoint = XYToPosition((long)value.Value.X, (long)value.Value.Y);
                 SetInsertionPoint(insertPoint);
@@ -666,6 +820,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.CanUndo;
             }
         }
@@ -678,6 +834,8 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.IsEmpty;
             }
         }
@@ -689,39 +847,25 @@ namespace Alternet.UI
         {
             get
             {
+                if (DisposingOrDisposed)
+                    return default;
                 return Handler.EmptyTextHint;
             }
 
             set
             {
+                if (DisposingOrDisposed)
+                    return;
                 value ??= string.Empty;
                 Handler.EmptyTextHint = value;
             }
         }
 
-        internal new ITextBoxHandler Handler => (ITextBoxHandler)base.Handler;
-
-        /// <inheritdoc cref="ValueValidatorFactory.CreateValidator(ValueValidatorKind)"/>
-        public static IValueValidatorText CreateValidator(ValueValidatorKind kind)
-        {
-            return ValueValidatorFactory.CreateValidator(kind);
-        }
-
-        /// <inheritdoc cref="ValueValidatorFactory.CreateValidator(TypeCode)"/>
-        public static IValueValidatorText CreateValidator(TypeCode typeCode)
-        {
-            return ValueValidatorFactory.CreateValidator(typeCode);
-        }
-
         /// <summary>
-        /// Creates <see cref="IValueValidatorText"/> instance for the specified type.
+        /// Gets control handler.
         /// </summary>
-        /// <param name="type">Type.</param>
-        public static IValueValidatorText CreateValidator(Type type)
-        {
-            var typeCode = AssemblyUtils.GetRealTypeCode(type);
-            return CreateValidator(typeCode);
-        }
+        [Browsable(false)]
+        public new ITextBoxHandler Handler => (ITextBoxHandler)base.Handler;
 
         /// <summary>
         /// Changes the style of selection (if any). If no text is selected, style of the
@@ -774,6 +918,8 @@ namespace Alternet.UI
         {
             var position = GetInsertionPoint();
             var fs = GetStyle(position);
+            if (fs is null)
+                return;
             var style = fs.GetFontStyle();
             style = Font.ChangeFontStyle(style, toggle, !style.HasFlag(toggle));
 
@@ -786,7 +932,7 @@ namespace Alternet.UI
         /// <summary>
         /// Clears text formatting when <see cref="TextBox"/> is in rich edit mode.
         /// </summary>
-        public void ClearTextFormatting()
+        public virtual void ClearTextFormatting()
         {
             var attr = CreateTextAttr();
             attr.SetFlags(TextBoxTextAttrFlags.All);
@@ -810,17 +956,19 @@ namespace Alternet.UI
         /// <remarks>
         /// If any of the color parameters is null, it will not be changed.
         /// </remarks>
-        public void SelectionSetColor(Color? textColor, Color? backColor = null)
+        public virtual bool SelectionSetColor(Color? textColor, Color? backColor = null)
         {
             var position = GetInsertionPoint();
             var fs = GetStyle(position);
+            if (fs is null)
+                return false;
             var newStyle = CreateTextAttr();
             newStyle.Copy(fs);
             if (backColor is not null)
                 newStyle.SetBackgroundColor(backColor);
             if (textColor is not null)
                 newStyle.SetTextColor(textColor);
-            SetSelectionStyle(newStyle);
+            return SetSelectionStyle(newStyle);
         }
 
         /// <summary>
@@ -860,17 +1008,6 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Sets <see cref="CustomTextBox.DataType"/> property to <typeparamref name="T"/>
-        /// and <see cref="Validator"/> to the appropriate validator provider.
-        /// </summary>
-        /// <typeparam name="T">New <see cref="CustomTextBox.DataType"/> property value.</typeparam>
-        public virtual void UseValidator<T>()
-        {
-            DataType = typeof(T);
-            Validator = CreateValidator(typeof(T));
-        }
-
-        /// <summary>
         /// Gets the length of the specified line, not including any trailing
         /// newline character(s).
         /// </summary>
@@ -878,12 +1015,16 @@ namespace Alternet.UI
         /// <returns>The length of the line, or -1 if lineNo was invalid.</returns>
         public virtual int GetLineLength(long lineNo)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLineLength(lineNo);
         }
 
         /// <inheritdoc/>
         public override string GetLineText(long lineNo)
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetLineText(lineNo);
         }
 
@@ -892,6 +1033,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void OnTextMaxLength()
         {
+            if (DisposingOrDisposed)
+                return;
             TextMaxLength?.Invoke(this, EventArgs.Empty);
         }
 
@@ -903,6 +1046,9 @@ namespace Alternet.UI
         /// </param>
         public virtual void OnTextUrl(UrlEventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
+
             // Under MacOs url parameter of the event data is always empty,
             // so event is not fired. Also on MacOs url is opened automatically.
             if (App.IsMacOS)
@@ -925,12 +1071,16 @@ namespace Alternet.UI
         /// </summary>
         public virtual void OnEnterPressed()
         {
+            if (DisposingOrDisposed)
+                return;
             EnterPressed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <inheritdoc/>
         public override int GetNumberOfLines()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetNumberOfLines();
         }
 
@@ -942,6 +1092,8 @@ namespace Alternet.UI
         /// zero based line number. If failure returns (-1,-1).</returns>
         public virtual PointI PositionToXY(long pos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PositionToXY(pos);
         }
 
@@ -968,6 +1120,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual PointD PositionToCoords(long pos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.PositionToCoords(pos);
         }
 
@@ -977,6 +1131,8 @@ namespace Alternet.UI
         /// <param name="pos">The position that should be visible.</param>
         public virtual void ShowPosition(long pos)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.ShowPosition(pos);
         }
 
@@ -988,6 +1144,8 @@ namespace Alternet.UI
         /// <returns>The position value, or -1 if x or y was invalid.</returns>
         public virtual long XYToPosition(long x, long y)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.XYToPosition(x, y);
         }
 
@@ -996,6 +1154,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Clear()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Clear();
         }
 
@@ -1004,6 +1164,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Copy()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Copy();
         }
 
@@ -1012,6 +1174,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Cut()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Cut();
         }
 
@@ -1027,6 +1191,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void AppendText(string text)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.AppendText(text);
         }
 
@@ -1095,6 +1261,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual long GetInsertionPoint()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetInsertionPoint();
         }
 
@@ -1112,10 +1280,12 @@ namespace Alternet.UI
 
         /// <summary>
         /// Replaces the current selection in the control with the
-        /// contents of the Clipboard.
+        /// contents of the clipboard.
         /// </summary>
         public virtual void Paste()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Paste();
         }
 
@@ -1124,6 +1294,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Redo()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Redo();
         }
 
@@ -1139,6 +1311,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void Remove(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Remove(from, to);
         }
 
@@ -1156,6 +1330,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void Replace(long from, long to, string value)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Replace(from, to, value);
         }
 
@@ -1166,6 +1342,8 @@ namespace Alternet.UI
         /// to <see cref="GetLastPosition"/> inclusive.</param>
         public virtual void SetInsertionPoint(long pos)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetInsertionPoint(pos);
         }
 
@@ -1174,6 +1352,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SetInsertionPointEnd()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetInsertionPointEnd();
         }
 
@@ -1183,6 +1363,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void IdleAction()
         {
+            if (DisposingOrDisposed)
+                return;
             if (CurrentPositionChanged is not null)
             {
                 var currentPos = CurrentPosition;
@@ -1208,6 +1390,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void SetSelection(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SetSelection(from, to);
         }
 
@@ -1216,6 +1400,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SelectAll()
         {
+            if (DisposingOrDisposed)
+                return;
             if (IsRichEdit)
             {
                 DoInsideUpdate(() =>
@@ -1232,6 +1418,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void SelectNone()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.SelectNone();
         }
 
@@ -1240,6 +1428,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void Undo()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.Undo();
         }
 
@@ -1261,6 +1451,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual void WriteText(string text)
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.WriteText(text);
         }
 
@@ -1285,6 +1477,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual string GetRange(long from, long to)
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetRange(from, to);
         }
 
@@ -1294,6 +1488,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual string GetStringSelection()
         {
+            if (DisposingOrDisposed)
+                return string.Empty;
             return Handler.GetStringSelection();
         }
 
@@ -1303,6 +1499,8 @@ namespace Alternet.UI
         /// </summary>
         public virtual void EmptyUndoBuffer()
         {
+            if (DisposingOrDisposed)
+                return;
             Handler.EmptyUndoBuffer();
         }
 
@@ -1314,6 +1512,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual bool IsValidPosition(long pos)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.IsValidPosition(pos);
         }
 
@@ -1325,6 +1525,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual long GetLastPosition()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetLastPosition();
         }
 
@@ -1334,6 +1536,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual long GetSelectionStart()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetSelectionStart();
         }
 
@@ -1343,6 +1547,8 @@ namespace Alternet.UI
         /// <returns></returns>
         public virtual long GetSelectionEnd()
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.GetSelectionEnd();
         }
 
@@ -1369,8 +1575,10 @@ namespace Alternet.UI
         /// <remarks>
         /// Turn on <see cref="TextBox.IsRichEdit"/> in order to use this method.
         /// </remarks>
-        public virtual ITextBoxTextAttr GetDefaultStyle()
+        public virtual ITextBoxTextAttr? GetDefaultStyle()
         {
+            if (DisposingOrDisposed)
+                return null;
             return Handler.GetDefaultStyle();
         }
 
@@ -1382,8 +1590,10 @@ namespace Alternet.UI
         /// <remarks>
         /// Turn on <see cref="TextBox.IsRichEdit"/> in order to use this method.
         /// </remarks>
-        public virtual ITextBoxTextAttr GetStyle(long pos)
+        public virtual ITextBoxTextAttr? GetStyle(long pos)
         {
+            if (DisposingOrDisposed)
+                return null;
             return Handler.GetStyle(pos);
         }
 
@@ -1408,6 +1618,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool SetDefaultStyle(ITextBoxTextAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetDefaultStyle(style);
         }
 
@@ -1430,6 +1642,8 @@ namespace Alternet.UI
         /// </remarks>
         public virtual bool SetStyle(long start, long end, ITextBoxTextAttr style)
         {
+            if (DisposingOrDisposed)
+                return default;
             return Handler.SetStyle(start, end, style);
         }
 
@@ -1447,6 +1661,8 @@ namespace Alternet.UI
         /// </returns>
         public virtual object? DoCommand(string cmdName, params object?[] args)
         {
+            if (DisposingOrDisposed)
+                return default;
             if (cmdName == "GetReportedUrl")
             {
                 return Handler.ReportedUrl;
@@ -1467,7 +1683,8 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Sets text alignment in the current position to <see cref="TextBoxTextAttrAlignment.Center"/>
+        /// Sets text alignment in the current position
+        /// to <see cref="TextBoxTextAttrAlignment.Center"/>
         /// </summary>
         public virtual void SelectionAlignCenter()
         {
@@ -1475,21 +1692,12 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Sets text alignment in the current position to <see cref="TextBoxTextAttrAlignment.Left"/>
+        /// Sets text alignment in the current position
+        /// to <see cref="TextBoxTextAttrAlignment.Left"/>
         /// </summary>
         public virtual void SelectionAlignLeft()
         {
             SelectionSetAlignment(TextBoxTextAttrAlignment.Left);
-        }
-
-        /// <summary>
-        /// Sets <see cref="CustomTextBox.ValidatorErrorText"/> property
-        /// to <paramref name="knownError"/>.
-        /// </summary>
-        /// <param name="knownError">Known error identifier.</param>
-        public virtual void SetErrorText(ValueValidatorKnownError knownError)
-        {
-            ValidatorErrorText = GetKnownErrorText(knownError);
         }
 
         /// <summary>
@@ -1519,6 +1727,8 @@ namespace Alternet.UI
         /// <inheritdoc/>
         protected override void OnTextChanged(EventArgs e)
         {
+            if (DisposingOrDisposed)
+                return;
             base.OnTextChanged(e);
             if (Options.HasFlag(TextBoxOptions.DefaultValidation))
                 RunDefaultValidation();

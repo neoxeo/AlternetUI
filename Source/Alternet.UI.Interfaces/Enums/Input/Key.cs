@@ -8,7 +8,6 @@ namespace Alternet.UI
     ///     An enumeration of all of the possible key values on a keyboard.
     /// </summary>
     [TypeConverter("Alternet.UI.KeyConverter")]
-    [ValueSerializer("Alternet.UI.KeyValueSerializer")]
     public enum Key
     {
         /// <summary>
@@ -637,7 +636,7 @@ namespace Alternet.UI
         Clear,
 
         /// <summary>
-        ///  The "`" key.
+        ///  The ` key.
         /// </summary>
         Backtick,
 
@@ -683,107 +682,107 @@ namespace Alternet.UI
         Menu = 133,
 
         /// <summary>
-        ///  The '!' (33, 0x21) key.
+        ///  The '!' (33 0x21) key.
         /// </summary>
         ExclamationMark = 134,
 
         /// <summary>
-        ///  The '"' (34, 0x220) key.
+        ///  The '"' (34 0x220) key.
         /// </summary>
         QuotationMark = 135,
 
         /// <summary>
-        ///  The '#' (35, 0x23) key.
+        ///  The '#' (35 0x23) key.
         /// </summary>
         NumberSign = 136,
 
         /// <summary>
-        ///  The '$' (36, 0x24) key.
+        ///  The '$' (36 0x24) key.
         /// </summary>
         DollarSign = 137,
 
         /// <summary>
-        ///  The '%' (37, 0x25) key.
+        ///  The '%' (37 0x25) key.
         /// </summary>
         PercentSign = 138,
 
         /// <summary>
-        ///  The ampersand (38, 0x26) key.
+        ///  The ampersand (38 0x26) key.
         /// </summary>
         Ampersand = 139,
 
         /// <summary>
-        ///  The '(' (40, 0x28) key.
+        ///  The '(' (40 0x28) key.
         /// </summary>
         LeftParenthesis = 140,
 
         /// <summary>
-        ///  The ')' (41, 0x29) key.
+        ///  The ')' (41 0x29) key.
         /// </summary>
         RightParenthesis = 141,
 
         /// <summary>
-        ///  The '*' (42, 0x2A) key.
+        ///  The '*' (42 0x2A) key.
         /// </summary>
         Asterisk = 142,
 
         /// <summary>
-        ///  The '+' (43, 0x2B) key.
+        ///  The '+' (43 0x2B) key.
         /// </summary>
         PlusSign = 143,
 
         /// <summary>
-        ///  The ':' (58, 0x3A) key.
+        ///  The ':' (58 0x3A) key.
         /// </summary>
         Colon = 144,
 
         /// <summary>
-        ///  The less than sign (60, 0x3C) key.
+        ///  The less than sign (60 0x3C) key.
         /// </summary>
         LessThanSign = 145,
 
         /// <summary>
-        ///  The greater than sign (62, 0x3E) key.
+        ///  The greater than sign (62 0x3E) key.
         /// </summary>
         GreaterThanSign = 146,
 
         /// <summary>
-        ///  The '?' (63, 0x3F) key.
+        ///  The '?' (63 0x3F) key.
         /// </summary>
         QuestionMark = 147,
 
         /// <summary>
-        ///  The '@' (64, 0x40) key.
+        ///  The '@' (64 0x40) key.
         /// </summary>
         CommercialAt = 148,
 
         /// <summary>
-        ///  The '^' (94, 0x5E) key.
+        ///  The '^' (94 0x5E) key.
         /// </summary>
         CircumflexAccent = 149,
 
         /// <summary>
-        ///  The '_' (95, 0x5F) key.
+        ///  The '_' (95 0x5F) key.
         /// </summary>
         LowLine = 150,
 
         /// <summary>
-        ///  The '{', 123, 0x7B) key.
+        ///  The '{' 123 0x7B) key.
         /// </summary>
         LeftCurlyBracket = 151,
 
         /// <summary>
-        ///  The '|', 124, 0x7C) key.
+        ///  The '|' 124 0x7C) key.
         /// </summary>
         VerticalLine = 152,
 
         /// <summary>
-        ///  The '}', 125, 0x7D) key.
+        ///  The '}' 125 0x7D) key.
         /// </summary>
         RightCurlyBracket = 153,
 
         /// <summary>
-        ///  The '~', 126, 0x7E) key.
+        ///  The '~' 126 0x7E) key.
         /// </summary>
         Tilde = 154,
 
@@ -1081,6 +1080,1219 @@ namespace Alternet.UI
         /// </summary>
         NavigationCancel = 198,
 
+        /* MacOs */
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        AlternateErase = 199,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        SysReqOrAttention = 200,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        ClearOrAgain = 201,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        CrSelOrProps = 202,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        ExSel = 203,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// An alias for the LANG3 key on Japanese language keyboards.
+        /// </summary>
+        Katakana = 204,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// An alias for the LANG4 key on Japanese language keyboards.
+        /// </summary>
+        Hiragana = 205,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        LockingCapsLock = 206,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        LockingNumLock = 207,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        LockingScrollLock = 208,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Undo = 209,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Cut = 210,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Copy = 211,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Paste = 212,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Find = 213,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        NumPadEqualSignAS400 = 214,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Help = 215,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Power = 216,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        NonUSBackslash = 217,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International1 = 218,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International2 = 219,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International3 = 220,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International4 = 221,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International5 = 222,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International6 = 223,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International7 = 224,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International8 = 225,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        International9 = 226,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang1 = 227,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang2 = 228,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang3 = 229,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang4 = 230,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang5 = 231,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang6 = 232,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang7 = 233,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang8 = 234,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Lang9 = 235,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// An alias for the LANG2 key on Japanese language keyboards from Apple.
+        /// </summary>
+        AlphanumericSwitch = 236,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Separator = 237,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Out = 238,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Oper = 239,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        NonUSPound = 240,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Application = 241,
+
+        /// <summary>
+        /// Key mapped from UIKeyboardHidUsage enum value.
+        /// </summary>
+        Again = 242,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        LineFeed = 243,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        Oem8 = 244,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        ProcessKey = 245,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        Packet = 246,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        Attn = 247,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        EraseEof = 248,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        Zoom = 249,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        NoName = 250,
+
+        /// <summary>
+        /// Mappped from the correspoding <see cref="Keys"/> value.
+        /// </summary>
+        Pa1 = 251,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaAudioTrack,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Wakeup,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Pairing,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaTopMenu,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        K11,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        K12,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        LastChannel,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvDataService,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VoiceAssist,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvRadioService,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvTeletext,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvNumberEntry,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvTerrestrialAnalog,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvTerrestrialDigital,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvSatellite,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvSatelliteBs,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvSatelliteCs,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvSatelliteService,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvNetwork,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvAntennaCable,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputHdmi1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputHdmi2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputHdmi3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputHdmi4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputComposite1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputComposite2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputComponent1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputComponent2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvInputVga1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvAudioDescription,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvAudioDescriptionMixUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvAudioDescriptionMixDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvZoomMode,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvContentsMenu,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvMediaContextMenu,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        TvTimerProgramming,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        NavigatePrevious,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        NavigateNext,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        NavigateIn,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        NavigateOut,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        StemPrimary,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Stem1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Stem2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Stem3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DpadUpLeft,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DpadDownLeft,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DpadUpRight,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DpadDownRight,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaSkipForward,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaSkipBackward,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaStepForward,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaStepBackward,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        SoftSleep,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        SystemNavigationUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        SystemNavigationDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        SystemNavigationLeft,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        SystemNavigationRight,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        AllApps,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        ThumbsUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        ThumbsDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        ProfileSwitch,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp5,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp6,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp7,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        VideoApp8,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        FeaturedApp1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        FeaturedApp2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        FeaturedApp3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        FeaturedApp4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DemoApp1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DemoApp2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DemoApp3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        DemoApp4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        KeyboardBacklightDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        KeyboardBacklightUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        KeyboardBacklightToggle,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        StylusButtonPrimary,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        StylusButtonSecondary,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        StylusButtonTertiary,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        StylusButtonTail,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        RecentApps,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Macro1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Macro2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Macro3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Macro4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes toggles picture-in-picture mode
+        /// or other windowing functions.
+        /// </summary>
+        TVWindow,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes shows a programming guide.
+        /// </summary>
+        TVGuide,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On some TV remotes switches to a DVR mode for recorded shows.
+        /// </summary>
+        TvDvr,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On some TV remotes bookmarks content or web pages.
+        /// </summary>
+        TVBookmark,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Toggle captions. Switches the mode for closed-captioning
+        /// text for example during television shows.
+        /// </summary>
+        TVCaptions,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Starts the system settings activity.
+        /// </summary>
+        Settings,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes switches the input on a television screen.
+        /// </summary>
+        TVPower,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes switches the input on a television screen.
+        /// </summary>
+        TVInput,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes toggles the power on an external Set-top-box.
+        /// </summary>
+        TVStbPower,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes switches the input mode on an external Set-top-box.
+        /// </summary>
+        TVStbInput,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes toggles the power on an external A/V Receiver.
+        /// </summary>
+        TVAvrPower,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes switches the input mode on an external A/V Receiver.
+        /// </summary>
+        TVAvrInput,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Red "programmable". On TV remotes acts as a contextual/programmable.
+        /// </summary>
+        TVProgRed,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Green "programmable". On TV remotes actsas a contextual/programmable.
+        /// </summary>
+        TVProgGreen,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Yellow "programmable". On TV remotes acts as a contextual/programmable.
+        /// </summary>
+        TVProgYellow,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Blue "programmable". On TV remotes acts as a contextual/programmable.
+        /// </summary>
+        TVProgBlue,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        // App switch  Should bring up the application switcher dialog.
+        AppSwitch,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 1.
+        /// </summary>
+        GamepadButton1,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton2,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton3,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton4,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton5,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton6,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton7,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton8,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton9,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton10,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton11,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton12,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton13,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton14,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton15,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Generic Game Pad Button 2.
+        /// </summary>
+        GamepadButton16,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Toggles the current input language such
+        /// as switching between English and Japanese on a QWERTY keyboard.
+        /// </summary>
+        LanguageSwitch,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Toggles silent or vibrate mode on and off
+        /// to make the device behave more politely in certain settings such as on a crowded train.
+        /// </summary>
+        MannerMode,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Toggles the display between 2D and 3D mode.
+        /// </summary>
+        ThreeDMode,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch an address book application.
+        /// </summary>
+        Contacts,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch a calendar application.
+        /// </summary>
+        Calendar,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch a music player application.
+        /// </summary>
+        Music,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch a calculator application.
+        /// </summary>
+        Calculator,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Japanese full-width / half-width
+        /// </summary>
+        JapaneseZenkakuHankaku,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Japanese alphanumeric
+        /// </summary>
+        JapaneseEisu,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Japanese non-conversion
+        /// </summary>
+        JapaneseMuhenkan,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Japanese conversion
+        /// </summary>
+        JapaneseHenkan,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        JapaneseYen,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        JapaneseRo,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Assist  Launches the global assist activity.
+        /// </summary>
+        Assist,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Adjusts the screen brightness down.
+        /// </summary>
+        BrightnessDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Adjusts the screen brightness up.
+        /// </summary>
+        BrightnessUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Numeric keypad '('
+        /// </summary>
+        NumPadLeftParen,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Numeric keypad ')'
+        /// </summary>
+        NumPadRightParen,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On a game controller the C button should be
+        /// either the button labeled C or the third button on the bottom row of controller buttons.
+        /// </summary>
+        GamepadC,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On a game controller the Z button should be
+        /// either the button labeled Z or the third button on the upper row of controller buttons.
+        /// </summary>
+        GamepadZ,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Function modifier.
+        /// </summary>
+        Function,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Common on TV remotes to show additional information
+        /// related to what is currently being viewed.
+        /// </summary>
+        TVInfo,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes increments the television channel.
+        /// </summary>
+        TVChannelUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes decrements the television channel.
+        /// </summary>
+        TVChannelDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaRewind,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaFastForward,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Symbol modifier  Used to enter alternate symbols.
+        /// </summary>
+        Sym,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch a browser application.
+        /// </summary>
+        LaunchBrowser,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Mutes the microphone unlike Android.Views.Keycode.VolumeMute.
+        /// </summary>
+        Mute,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Picture Symbols modifier. Used to switch symbol sets (Emoji Kao-moji).
+        /// </summary>
+        Pictsymbols,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Switch Charset modifier. Used to switch character sets (Kanji Katakana).
+        /// </summary>
+        SwitchCharset,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        ZoomIn,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        ZoomOut,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Num,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to hang up calls and stop media.
+        /// </summary>
+        Headsethook,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to focus the camera.
+        /// </summary>
+        Focus,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Notification,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Call,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        Endcall,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Directional Pad Up. May also be synthesized from trackball motions.
+        /// </summary>
+        DpadUp,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Directional Pad Down. May also be synthesized from trackball motions.
+        /// </summary>
+        DpadDown,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Directional Pad Left. May also be synthesized from trackball motions.
+        /// </summary>
+        DpadLeft,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Directional Pad Right. May also be synthesized from trackball motions.
+        /// </summary>
+        DpadRight,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Directional Pad Center. May also be synthesized from trackball motions.
+        /// </summary>
+        DpadCenter,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Used to launch a camera application or take pictures.
+        /// </summary>
+        Camera,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// On TV remotes switches to viewing live TV.
+        /// </summary>
+        TvViewLive,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaPlay,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaPause,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// May be used to close a CD tray for example.
+        /// </summary>
+        MediaClose,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// Eject media. May be used to eject a CD tray for example.
+        /// </summary>
+        MediaEject,
+
+        /// <summary>
+        /// Mappped from the correspoding "Android.Views.Keycode" value.
+        /// </summary>
+        MediaRecord,
+
         /* max values */
 
         /// <summary>
@@ -1089,13 +2301,8 @@ namespace Alternet.UI
         MaxWxWidgets = Tilde,
 
         /// <summary>
-        /// Max supported enum value when library is running on Maui platform.
-        /// </summary>
-        MaxMaui = NavigationCancel,
-
-        /// <summary>
         /// Max enum value.
         /// </summary>
-        Max = MaxMaui,
+        Max = MediaRecord,
     }
 }

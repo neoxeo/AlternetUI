@@ -22,7 +22,7 @@ namespace Alternet.UI
         /// Gets a collection of <see cref="MenuItem"/> objects associated with the menu.
         /// </summary>
         [Content]
-        public Collection<MenuItem> Items
+        public virtual Collection<MenuItem> Items
         {
             get
             {
@@ -41,7 +41,7 @@ namespace Alternet.UI
         public override ControlTypeId ControlKind => ControlTypeId.Menu;
 
         /// <inheritdoc/>
-        internal override IReadOnlyList<FrameworkElement> ContentElements
+        public override IReadOnlyList<FrameworkElement> ContentElements
         {
             get
             {
@@ -52,7 +52,7 @@ namespace Alternet.UI
         }
 
         /// <inheritdoc />
-        internal override IEnumerable<FrameworkElement> LogicalChildrenCollection => ContentElements;
+        public override IEnumerable<FrameworkElement> LogicalChildrenCollection => ContentElements;
 
         /// <inheritdoc />
         protected override bool IsDummy => true;

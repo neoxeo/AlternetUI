@@ -94,12 +94,21 @@ namespace Alternet.Drawing
         public readonly bool IsEmpty => width == 0 && height == 0;
 
         /// <summary>
+        /// Gets <see cref="SizeI"/> with absolute values of (Width, Height).
+        /// </summary>
+        [Browsable(false)]
+        public readonly SizeI Abs => new(Math.Abs(width), Math.Abs(height));
+
+        /// <summary>
         /// Represents the horizontal component of this
         /// <see cref='SizeI'/>.
         /// </summary>
         public int Width
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             readonly get => width;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => width = value;
         }
 
@@ -109,8 +118,41 @@ namespace Alternet.Drawing
         /// </summary>
         public int Height
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             readonly get => height;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => height = value;
+        }
+
+        /// <summary>
+        /// Gets whether width and height are equal.
+        /// </summary>
+        [Browsable(false)]
+        public readonly bool SameWidthHeight => width == height;
+
+        /// <summary>
+        /// Gets minimal of width and height.
+        /// </summary>
+        [Browsable(false)]
+        public readonly int MinWidthHeight
+        {
+            get
+            {
+                return Math.Min(width, height);
+            }
+        }
+
+        /// <summary>
+        /// Gets maximal of width and height.
+        /// </summary>
+        [Browsable(false)]
+        public readonly int MaxWidthHeight
+        {
+            get
+            {
+                return Math.Max(width, height);
+            }
         }
 
         /// <summary>
@@ -205,36 +247,36 @@ namespace Alternet.Drawing
             new(unchecked(left.width / right), unchecked(left.height / right));
 
         /// <summary>
-        /// Multiplies <see cref="SizeI"/> by a <see cref="double"/>
+        /// Multiplies <see cref="SizeI"/> by a coordinate value
         /// producing <see cref="SizeD"/>.
         /// </summary>
-        /// <param name="left">Multiplier of type <see cref="double"/>.</param>
+        /// <param name="left">Multiplier.</param>
         /// <param name="right">Multiplicand of type <see cref="SizeI"/>.</param>
         /// <returns>Product of type <see cref="SizeD"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeD operator *(double left, SizeI right) =>
+        public static SizeD operator *(Coord left, SizeI right) =>
             Multiply(right, left);
 
         /// <summary>
-        /// Multiplies <see cref="SizeI"/> by a <see cref="double"/>
+        /// Multiplies <see cref="SizeI"/> by a coordinate
         /// producing <see cref="SizeD"/>.
         /// </summary>
         /// <param name="left">Multiplicand of type <see cref="SizeI"/>.</param>
-        /// <param name="right">Multiplier of type <see cref="double"/>.</param>
+        /// <param name="right">Multiplier.</param>
         /// <returns>Product of type <see cref="SizeD"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeD operator *(SizeI left, double right) =>
+        public static SizeD operator *(SizeI left, Coord right) =>
             Multiply(left, right);
 
         /// <summary>
-        /// Divides <see cref="SizeI"/> by a <see cref="double"/>
+        /// Divides <see cref="SizeI"/> by a coordinate
         /// producing <see cref="SizeD"/>.
         /// </summary>
         /// <param name="left">Dividend of type <see cref="SizeI"/>.</param>
         /// <param name="right">Divisor of type <see cref="int"/>.</param>
         /// <returns>Result of type <see cref="SizeD"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeD operator /(SizeI left, double right)
+        public static SizeD operator /(SizeI left, Coord right)
             => new(left.width / right, left.height / right);
 
         /// <summary>
@@ -257,6 +299,7 @@ namespace Alternet.Drawing
         /// <param name="v1">First <see cref="SizeI"/> value.</param>
         /// <param name="v2">Second <see cref="SizeI"/> value.</param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI Max(SizeI v1, SizeI v2)
         {
             return new SizeI(Math.Max(v1.width, v2.width), Math.Max(v1.height, v2.height));
@@ -265,6 +308,7 @@ namespace Alternet.Drawing
         /// <summary>
         /// Performs vector addition of two <see cref='SizeI'/> objects.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI Add(SizeI sz1, SizeI sz2) =>
             new(unchecked(sz1.Width + sz2.Width),
                 unchecked(sz1.Height + sz2.Height));
@@ -273,9 +317,33 @@ namespace Alternet.Drawing
         /// Converts a SizeF to a Size by performing a ceiling operation
         /// on all the coordinates.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI Ceiling(SizeD value) =>
             new(unchecked((int)Math.Ceiling(value.Width)),
                 unchecked((int)Math.Ceiling(value.Height)));
+
+        /// <summary>
+        /// Multiplies <see cref="SizeI"/> by an <see cref="int"/>
+        /// producing <see cref="SizeI"/>.
+        /// </summary>
+        /// <param name="size">Multiplicand of type <see cref="SizeI"/>.</param>
+        /// <param name="multiplier">Multiplier of type <see cref='int'/>.</param>
+        /// <returns>Product of type <see cref="SizeI"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SizeI Multiply(SizeI size, int multiplier) =>
+            new(unchecked(size.width * multiplier),
+                unchecked(size.height * multiplier));
+
+        /// <summary>
+        /// Multiplies <see cref="SizeI"/> by a coordinate
+        /// producing <see cref="SizeD"/>.
+        /// </summary>
+        /// <param name="size">Multiplicand of type <see cref="SizeI"/>.</param>
+        /// <param name="multiplier">Multiplier.</param>
+        /// <returns>Product of type SizeD.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SizeD Multiply(SizeI size, Coord multiplier) =>
+            new(size.width * multiplier, size.height * multiplier);
 
         /// <summary>
         /// Contracts a <see cref='SizeI'/> by another
@@ -289,6 +357,7 @@ namespace Alternet.Drawing
         /// Converts a SizeF to a Size by performing a truncate operation
         /// on all the coordinates.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI Truncate(SizeD value) =>
             new(unchecked((int)value.Width), unchecked((int)value.Height));
 
@@ -296,6 +365,7 @@ namespace Alternet.Drawing
         /// Converts a SizeF to a Size by performing a round operation on
         /// all the coordinates.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeI Round(SizeD value) =>
             new(unchecked((int)Math.Round(value.Width)),
                 unchecked((int)Math.Round(value.Height)));
@@ -324,6 +394,28 @@ namespace Alternet.Drawing
             HashCode.Combine(Width, Height);
 
         /// <summary>
+        /// Creates new <see cref="SizeI"/> with the height of this object
+        /// and the specified width.
+        /// </summary>
+        /// <param name="newWidth">The width to use in the returned <see cref="SizeI"/>.</param>
+        /// <returns></returns>
+        public readonly SizeI WithWidth(int newWidth)
+        {
+            return new(newWidth, height);
+        }
+
+        /// <summary>
+        /// Creates new <see cref="SizeI"/> with the width of this object
+        /// and the specified height.
+        /// </summary>
+        /// <param name="newHeight">The height to use in the returned <see cref="SizeI"/>.</param>
+        /// <returns></returns>
+        public readonly SizeI WithHeight(int newHeight)
+        {
+            return new(width, newHeight);
+        }
+
+        /// <summary>
         /// Creates a human-readable string that represents this
         /// <see cref='SizeI'/>.
         /// </summary>
@@ -332,33 +424,19 @@ namespace Alternet.Drawing
             string[] names = { PropNameStrings.Default.Width, PropNameStrings.Default.Height };
             int[] values = { width, height };
 
-            return StringUtils.ToString<int>(names, values);
+            return StringUtils.ToStringWithOrWithoutNames<int>(names, values);
         }
 
+        /// <summary>
+        /// Converts pixels to device-independent units using specified scale factor.
+        /// </summary>
+        /// <param name="scaleFactor">Scale factor. Optional. Default scale factor used if this
+        /// parameter is not specified.</param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly SizeD PixelToDip(Coord? scaleFactor = null)
         {
             return GraphicsFactory.PixelToDip(this, scaleFactor);
         }
-
-        /// <summary>
-        /// Multiplies <see cref="SizeI"/> by an <see cref="int"/>
-        /// producing <see cref="SizeI"/>.
-        /// </summary>
-        /// <param name="size">Multiplicand of type <see cref="SizeI"/>.</param>
-        /// <param name="multiplier">Multiplier of type <see cref='int'/>.</param>
-        /// <returns>Product of type <see cref="SizeI"/>.</returns>
-        private static SizeI Multiply(SizeI size, int multiplier) =>
-            new(unchecked(size.width * multiplier),
-                unchecked(size.height * multiplier));
-
-        /// <summary>
-        /// Multiplies <see cref="SizeI"/> by a <see cref="double"/>
-        /// producing <see cref="SizeD"/>.
-        /// </summary>
-        /// <param name="size">Multiplicand of type <see cref="SizeI"/>.</param>
-        /// <param name="multiplier">Multiplier of type <see cref="double"/>.</param>
-        /// <returns>Product of type SizeF.</returns>
-        private static SizeD Multiply(SizeI size, double multiplier) =>
-            new(size.width * multiplier, size.height * multiplier);
     }
 }

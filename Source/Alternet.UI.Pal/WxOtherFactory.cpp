@@ -365,14 +365,33 @@ namespace Alternet::UI
 	{
 	}
 
-	void WxOtherFactory::RichToolTipShowFor(void* handle, void* window, const Int32Rect& rect)
+	SizeI WxOtherFactory::RichToolTipGetSize(void* handle)
 	{
+		auto tooltip = (wxRichToolTip2*)handle;
+		return tooltip->GetSize();
+	}
+
+	void WxOtherFactory::RichToolTipSetLocationDecrement(void* handle, bool decrementX, bool decrementY)
+	{
+		auto tooltip = (wxRichToolTip2*)handle;
+		tooltip->SetLocationDecrement(decrementX, decrementY);
+	}
+
+	void WxOtherFactory::RichToolTipShowFor(
+		void* handle,
+		void* window,
+		const Int32Rect& rect,
+		bool adjustPos)
+	{
+		auto tooltip = (wxRichToolTip2*)handle;
+		tooltip->SetAdjustPos(adjustPos);
+
 		if(rect.IsZero())
-			((wxRichToolTip2*)handle)->ShowFor((wxWindow*)window);
+			tooltip->ShowFor((wxWindow*)window);
 		else
 		{
 			auto wxr = new wxRect(rect.X, rect.Y, rect.Width, rect.Height);
-			((wxRichToolTip2*)handle)->ShowFor((wxWindow*)window, wxr);
+			tooltip->ShowFor((wxWindow*)window, wxr);
 			delete wxr;
 		}
 	}

@@ -11,13 +11,14 @@ namespace Alternet.UI
     /// <summary>
     /// Implements panel with top, bottom, left, right sub-panels and splitters.
     /// </summary>
+    [ControlCategory("Containers")]
     public partial class SplittedPanel : LayoutPanel
     {
-        private readonly Control rightPanel;
-        private readonly Control leftPanel;
-        private readonly Control topPanel;
-        private readonly Control bottomPanel;
-        private readonly Control fillPanel;
+        private readonly AbstractControl rightPanel;
+        private readonly AbstractControl leftPanel;
+        private readonly AbstractControl topPanel;
+        private readonly AbstractControl bottomPanel;
+        private readonly AbstractControl fillPanel;
 
         private readonly Splitter leftSplitter = new()
         {
@@ -42,8 +43,23 @@ namespace Alternet.UI
         /// <summary>
         /// Initializes a new instance of the <see cref="SplittedPanel"/> class.
         /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public SplittedPanel(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SplittedPanel"/> class.
+        /// </summary>
         public SplittedPanel()
         {
+            CanSelect = false;
+            TabStop = false;
+            ParentBackColor = true;
+            ParentForeColor = true;
+
             var panelSize = DefaultPanelSize;
 
             rightPanel = CreateRightPanel();
@@ -66,21 +82,28 @@ namespace Alternet.UI
             fillPanel.Dock = DockStyle.Fill;
 
             SuspendLayout();
-            FillPanel.Parent = this;
-            RightSplitter.Parent = this;
-            RightPanel.Parent = this;
-            LeftSplitter.Parent = this;
-            LeftPanel.Parent = this;
-            TopSplitter.Parent = this;
-            TopPanel.Parent = this;
-            BottomSplitter.Parent = this;
-            BottomPanel.Parent = this;
-            ResumeLayout();
+            try
+            {
+                FillPanel.Parent = this;
+                RightSplitter.Parent = this;
+                RightPanel.Parent = this;
+                LeftSplitter.Parent = this;
+                LeftPanel.Parent = this;
+                TopSplitter.Parent = this;
+                TopPanel.Parent = this;
+                BottomSplitter.Parent = this;
+                BottomPanel.Parent = this;
+            }
+            finally
+            {
+                ResumeLayout();
+            }
         }
 
         /// <summary>
         /// Gets <see cref="ControlSet"/> with all splitters.
         /// </summary>
+        [Browsable(false)]
         public ControlSet Splitters =>
             ControlSet.New(leftSplitter, topSplitter, rightSplitter, bottomSplitter);
 
@@ -88,37 +111,37 @@ namespace Alternet.UI
         /// Gets right sub-panel.
         /// </summary>
         [Browsable(false)]
-        public Control RightPanel => rightPanel;
+        public AbstractControl RightPanel => rightPanel;
 
         /// <summary>
         /// Gets left sub-panel.
         /// </summary>
         [Browsable(false)]
-        public Control LeftPanel => leftPanel;
+        public AbstractControl LeftPanel => leftPanel;
 
         /// <summary>
         /// Gets top sub-panel.
         /// </summary>
         [Browsable(false)]
-        public Control TopPanel => topPanel;
+        public AbstractControl TopPanel => topPanel;
 
         /// <summary>
         /// Gets bottom sub-panel.
         /// </summary>
         [Browsable(false)]
-        public Control BottomPanel => bottomPanel;
+        public AbstractControl BottomPanel => bottomPanel;
 
         /// <summary>
         /// Gets center sub-panel. Same as <see cref="CenterPanel"/>.
         /// </summary>
         [Browsable(false)]
-        public Control FillPanel => fillPanel;
+        public AbstractControl FillPanel => fillPanel;
 
         /// <summary>
         /// Gets center sub-panel. Same as <see cref="FillPanel"/>.
         /// </summary>
         [Browsable(false)]
-        public Control CenterPanel => fillPanel;
+        public AbstractControl CenterPanel => fillPanel;
 
         /// <summary>
         /// Gets left splitter.
@@ -147,7 +170,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets width of the left panel.
         /// </summary>
-        public virtual double LeftPanelWidth
+        public virtual Coord LeftPanelWidth
         {
             get => LeftPanel.Width;
             set => LeftPanel.Width = value;
@@ -156,7 +179,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets width of the right panel.
         /// </summary>
-        public virtual double RightPanelWidth
+        public virtual Coord RightPanelWidth
         {
             get => RightPanel.Width;
             set => RightPanel.Width = value;
@@ -165,7 +188,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets height of the top panel.
         /// </summary>
-        public virtual double TopPanelHeight
+        public virtual Coord TopPanelHeight
         {
             get => TopPanel.Height;
             set => TopPanel.Height = value;
@@ -174,7 +197,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets or sets height of the bottom panel.
         /// </summary>
-        public virtual double BottomPanelHeight
+        public virtual Coord BottomPanelHeight
         {
             get => BottomPanel.Height;
             set => BottomPanel.Height = value;
@@ -285,6 +308,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets default size of the left, top, right and bottom panels.
         /// </summary>
+        [Browsable(false)]
         public virtual Thickness DefaultPanelSize => (50, 30, 50, 30);
 
         [Browsable(false)]
@@ -298,31 +322,31 @@ namespace Alternet.UI
         /// Creates right panel.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateRightPanel() => CreateAnyPanel();
+        protected virtual AbstractControl CreateRightPanel() => CreateAnyPanel();
 
         /// <summary>
         /// Creates left panel.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateLeftPanel() => CreateAnyPanel();
+        protected virtual AbstractControl CreateLeftPanel() => CreateAnyPanel();
 
         /// <summary>
         /// Creates top panel.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateTopPanel() => CreateAnyPanel();
+        protected virtual AbstractControl CreateTopPanel() => CreateAnyPanel();
 
         /// <summary>
         /// Creates bottom panel.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateBottomPanel() => CreateAnyPanel();
+        protected virtual AbstractControl CreateBottomPanel() => CreateAnyPanel();
 
         /// <summary>
         /// Creates center panel.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateCenterPanel() => CreateAnyPanel();
+        protected virtual AbstractControl CreateCenterPanel() => CreateAnyPanel();
 
         /// <summary>
         /// Creates panel.

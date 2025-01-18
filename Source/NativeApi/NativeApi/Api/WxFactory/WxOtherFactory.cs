@@ -67,7 +67,12 @@ namespace NativeApi.Api
         public static void RichToolTipSetTitleFont(IntPtr handle, Font? font) { }
 
         // Show the tooltip for the given window and optionally a specified area.
-        public static void RichToolTipShowFor(IntPtr handle, IntPtr window, RectI rect) { }
+        public static void RichToolTipShowFor(IntPtr handle, IntPtr window, RectI rect, bool adjustPos) { }
+
+        public static SizeI RichToolTipGetSize(IntPtr handle) => default;
+
+        public static void RichToolTipSetLocationDecrement(
+            IntPtr handle, bool decrementX, bool decrementY) { }
 
         // =================== ToolTip
 

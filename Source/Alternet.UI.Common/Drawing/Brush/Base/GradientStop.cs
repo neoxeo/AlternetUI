@@ -1,11 +1,13 @@
 using System;
 
+using Alternet.UI;
+
 namespace Alternet.Drawing
 {
     /// <summary>
     /// Describes the location and color of a transition point in a gradient.
     /// </summary>
-    public class GradientStop : IEquatable<GradientStop>
+    public class GradientStop : BaseObject, IEquatable<GradientStop>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GradientStop"/> class.

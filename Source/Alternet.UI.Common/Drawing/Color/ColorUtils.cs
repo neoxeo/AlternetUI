@@ -30,6 +30,17 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets default border color.
+        /// </summary>
+        /// <param name="isDarkBackground">Whether control has dark background.</param>
+        /// <returns></returns>
+        public static Color GetDefaultBorderColor(bool isDarkBackground)
+        {
+            return BorderSettings.DefaultColor
+                ?? ColorUtils.GetTabControlInteriorBorderColor(isDarkBackground);
+        }
+
+        /// <summary>
         /// Converts <see cref="Color"/> to known color if its possible.
         /// </summary>
         /// <param name="color">Color.</param>
@@ -69,12 +80,12 @@ namespace Alternet.Drawing
         /// <param name="control">Control which background color is checked to get whether
         /// it is dark.</param>
         /// <returns></returns>
-        public static Color GetDefaultBorderColor(Control? control)
+        public static Color GetDefaultBorderColor(AbstractControl? control)
         {
             if (control is null)
                 return BorderSettings.DefaultCommonBorderColor;
             var isDark = control.IsDarkBackground;
-            return BorderSettings.DefaultColor?.Get(isDark)
+            return BorderSettings.DefaultColor
                 ?? ColorUtils.GetTabControlInteriorBorderColor(isDark);
         }
 
@@ -118,6 +129,17 @@ namespace Alternet.Drawing
         }
 
         /// <summary>
+        /// Gets default interior border color of the tab control as <see cref="LightDarkColor"/>.
+        /// </summary>
+        /// <returns></returns>
+        public static LightDarkColor GetTabControlInteriorBorderColor()
+        {
+            return Color.LightDark(
+                GetTabControlInteriorBorderColor(false),
+                GetTabControlInteriorBorderColor(true));
+        }
+
+        /// <summary>
         /// Gets default interior border color of the tab control.
         /// </summary>
         /// <returns></returns>
@@ -148,7 +170,7 @@ namespace Alternet.Drawing
         /// <returns></returns>
         public static IReadOnlyFontAndColor GetResetColors(
             ResetColorType method,
-            Control? control = null,
+            AbstractControl? control = null,
             ControlRenderSizeVariant renderSize = ControlRenderSizeVariant.Normal)
         {
             switch (method)
@@ -162,11 +184,11 @@ namespace Alternet.Drawing
                 case ResetColorType.DefaultAttributes:
                     return control?.GetDefaultFontAndColor() ?? FontAndColor.Null;
                 case ResetColorType.DefaultAttributesTextBox:
-                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.TextBox, renderSize);
+                    return AbstractControl.GetStaticDefaultFontAndColor(ControlTypeId.TextBox, renderSize);
                 case ResetColorType.DefaultAttributesListBox:
-                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.ListBox, renderSize);
+                    return AbstractControl.GetStaticDefaultFontAndColor(ControlTypeId.ListBox, renderSize);
                 case ResetColorType.DefaultAttributesButton:
-                    return Control.GetStaticDefaultFontAndColor(ControlTypeId.Button, renderSize);
+                    return AbstractControl.GetStaticDefaultFontAndColor(ControlTypeId.Button, renderSize);
                 case ResetColorType.ColorMenu:
                     return FontAndColor.SystemColorMenu;
                 case ResetColorType.ColorActiveCaption:

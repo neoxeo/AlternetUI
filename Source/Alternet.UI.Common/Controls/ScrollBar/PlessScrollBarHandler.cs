@@ -6,37 +6,36 @@ using System.Threading.Tasks;
 
 namespace Alternet.UI
 {
+    /// <summary>
+    /// Implements dummy <see cref="IScrollBarHandler"/> provider.
+    /// </summary>
     public class PlessScrollBarHandler : PlessControlHandler, IScrollBarHandler
     {
-        public Action? Scroll { get; set; }
-
+        /// <inheritdoc/>
         public int ThumbPosition { get; set; }
 
+        /// <inheritdoc/>
         public int Range { get; set; }
 
-        public int ThumbSize { get; set; }
-
+        /// <inheritdoc/>
         public int PageSize { get; set; }
 
+        /// <inheritdoc/>
         public bool IsVertical { get; set; }
 
-        public ScrollEventType EventTypeID { get; set; }
-
-        public int EventOldPos { get; set; }
-
-        public int EventNewPos { get; set; }
-
+        /// <inheritdoc/>
         public void SetScrollbar(
-            int position,
-            int thumbSize,
-            int range,
-            int pageSize,
+            int? position,
+            int? range,
+            int? pageSize,
             bool refresh = true)
         {
-            ThumbPosition = position;
-            Range = range;
-            ThumbSize = thumbSize;
-            PageSize = pageSize;
+            if(position is not null)
+                ThumbPosition = position.Value;
+            if(range is not null)
+                Range = range.Value;
+            if(pageSize is not null)
+                PageSize = pageSize.Value;
         }
     }
 }

@@ -1,6 +1,12 @@
+pdf: false
+items:
 - name: Debugging with AlterNET UI Sources
   href: debugging-with-alternet-ui-sources/debugging-with-alternet-ui-sources.md
 - name: Using AlterNET UI NuGet Packages
   href: using-alternet-ui-packages/using-alternet-ui-packages.md
 - name: Using UIXML Previewer
   href: using-uixml-previewer/using-uixml-previewer.md
+- name: Using SkiaSharp
+  href: using-skiasharp/using-skiasharp.md
+- name: Running MAUI apps on macOs
+  href: run-macos-maui/run-macos-maui.md

@@ -163,7 +163,7 @@ namespace Alternet.UI
             }
         }
 
-        public bool HasBorder
+        public override bool HasBorder
         {
             get
             {
@@ -217,7 +217,7 @@ namespace Alternet.UI
 
         public new Native.Calendar NativeControl => (Native.Calendar)base.NativeControl!;
 
-        public new Calendar Control => (Calendar)base.Control;
+        public new Calendar? Control => (Calendar?)base.Control;
 
         public bool SetRange(bool useMinValue, bool useMaxValue)
         {
@@ -241,7 +241,7 @@ namespace Alternet.UI
 
         public Calendar.HitTestResult HitTest(PointD point)
         {
-            if (App.IsLinuxOS)
+            if (App.IsLinuxOS || Control is null)
                 return Calendar.HitTestResult.None;
 
             var pointi = Control.PixelFromDip(point);
@@ -342,48 +342,6 @@ namespace Alternet.UI
 
             if (App.IsWindowsOS)
                 UserPaint = true;
-            BackgroundColor = SystemColors.Window;
-
-            NativeControl.SelectionChanged = NativeControl_SelectionChanged;
-            NativeControl.PageChanged = NativeControl_PageChanged;
-            NativeControl.WeekNumberClick = NativeControl_WeekNumberClick;
-            NativeControl.DayHeaderClick = NativeControl_DayHeaderClick;
-            NativeControl.DayDoubleClick = NativeControl_DayDoubleClick;
-        }
-
-        protected override void OnDetach()
-        {
-            base.OnDetach();
-            NativeControl.SelectionChanged = null;
-            NativeControl.PageChanged = null;
-            NativeControl.WeekNumberClick = null;
-            NativeControl.DayHeaderClick = null;
-            NativeControl.DayDoubleClick = null;
-        }
-
-        private void NativeControl_DayDoubleClick()
-        {
-            Control.RaiseDayDoubleClick(EventArgs.Empty);
-        }
-
-        private void NativeControl_DayHeaderClick()
-        {
-            Control.RaiseDayHeaderClick(EventArgs.Empty);
-        }
-
-        private void NativeControl_WeekNumberClick()
-        {
-            Control.RaiseWeekNumberClick(EventArgs.Empty);
-        }
-
-        private void NativeControl_PageChanged()
-        {
-            Control.RaisePageChanged(EventArgs.Empty);
-        }
-
-        private void NativeControl_SelectionChanged()
-        {
-            Control.RaiseSelectionChanged(EventArgs.Empty);
         }
     }
 }

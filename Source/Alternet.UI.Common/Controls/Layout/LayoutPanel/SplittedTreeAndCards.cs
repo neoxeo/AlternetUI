@@ -6,7 +6,7 @@ using Alternet.Drawing;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Implements splitter panel with <see cref="TreeView"/> or <see cref="VListBox"/>
+    /// Implements splitter panel with <see cref="TreeView"/> or <see cref="VirtualListBox"/>
     /// on the left and <see cref="CardPanel"/> on the right.
     /// </summary>
     public partial class SplittedTreeAndCards : LayoutPanel
@@ -14,7 +14,7 @@ namespace Alternet.UI
         /// <summary>
         /// Gets default sash position.
         /// </summary>
-        public double DefaultSashPosition = 140;
+        public Coord DefaultSashPosition = 140;
 
         private readonly CardPanel cardPanel = new()
         {
@@ -23,7 +23,17 @@ namespace Alternet.UI
         private readonly Splitter splitter = new();
 
         private TreeKind kind = TreeKind.TreeView;
-        private Control? leftControl;
+        private AbstractControl? leftControl;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SplittedTreeAndCards"/> class.
+        /// </summary>
+        /// <param name="parent">Parent of the control.</param>
+        public SplittedTreeAndCards(Control parent)
+            : this()
+        {
+            Parent = parent;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SplittedTreeAndCards"/> class.
@@ -60,11 +70,28 @@ namespace Alternet.UI
         /// <summary>
         /// Gets left control.
         /// </summary>
-        public Control? LeftControl
+        public AbstractControl? LeftControl
         {
             get
             {
                 return leftControl;
+            }
+        }
+
+        /// <summary>
+        /// Gets 'Tag' property of the selected item.
+        /// </summary>
+        public object? SelectedItemTag
+        {
+            get
+            {
+                object? result;
+
+                if (kind == TreeKind.TreeView)
+                    result = TreeView?.SelectedItem?.Tag;
+                else
+                    result = ListBox?.SelectedItemTag;
+                return result;
             }
         }
 
@@ -79,14 +106,14 @@ namespace Alternet.UI
         public TreeView? TreeView => leftControl as TreeView;
 
         /// <summary>
-        /// Gets left control as <see cref="VListBox"/>.
+        /// Gets left control as <see cref="VirtualListBox"/>.
         /// </summary>
-        public VListBox? ListBox => leftControl as VListBox;
+        public VirtualListBox? ListBox => leftControl as VirtualListBox;
 
         /// <summary>
         /// Gets or sets index of the selected item in the <see cref="TreeView"/>.
         /// </summary>
-        public int? SelectedIndex
+        public virtual int? SelectedIndex
         {
             get
             {
@@ -118,7 +145,7 @@ namespace Alternet.UI
         /// Calls <see cref="TreeView.MakeAsListBox"/> for the left control if
         /// it is <see cref="TreeView"/>.
         /// </summary>
-        public void MakeAsListBox()
+        public virtual void MakeAsListBox()
         {
             TreeView?.MakeAsListBox();
         }
@@ -127,7 +154,7 @@ namespace Alternet.UI
         /// Sets debug background colors for the different parts of the control.
         /// </summary>
         [Conditional("DEBUG")]
-        public void SetDebugColors()
+        public virtual void SetDebugColors()
         {
             DebugBackgroundColor(Color.Green, nameof(SplittedTreeAndCards));
             Cards.DebugBackgroundColor(Color.Yellow, "SplittedTreeAndCards.Cards");
@@ -147,7 +174,7 @@ namespace Alternet.UI
         /// </summary>
         /// <param name="title">Item title.</param>
         /// <param name="action">Card control create action.</param>
-        public void Add(string title, Func<Control> action)
+        public virtual void Add(string title, Func<AbstractControl> action)
         {
             var index = cardPanel.Add(title, action);
 
@@ -174,7 +201,7 @@ namespace Alternet.UI
         /// Creates used <see cref="TreeView"/> control.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateTreeView()
+        protected virtual AbstractControl CreateTreeView()
         {
             TreeView treeView = new()
             {
@@ -187,17 +214,17 @@ namespace Alternet.UI
         }
 
         /// <summary>
-        /// Creates used <see cref="VListBox"/> control.
+        /// Creates used <see cref="VirtualListBox"/> control.
         /// </summary>
         /// <returns></returns>
-        protected virtual Control CreateListBox()
+        protected virtual AbstractControl CreateListBox()
         {
-            VListBox listBox = new()
+            VirtualListBox listBox = new()
             {
                 HasBorder = false,
             };
 
-            listBox.SelectionChanged += OnSelectionChanged;
+            listBox.DelayedSelectionChanged += OnSelectionChanged;
 
             return listBox;
         }
@@ -236,16 +263,7 @@ namespace Alternet.UI
 
         private void SetActiveCard()
         {
-            object? pageIndex;
-
-            if (kind == TreeKind.TreeView)
-                pageIndex = TreeView?.SelectedItem?.Tag;
-            else
-                pageIndex = (ListBox?.SelectedItem as ListControlItem)?.Tag;
-
-            if (pageIndex == null)
-                return;
-            cardPanel.SelectedCardIndex = (int)pageIndex;
+            cardPanel.SelectedCardIndex = (int?)SelectedItemTag;
         }
     }
 }

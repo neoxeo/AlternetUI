@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
+
 using Alternet.Drawing;
+using Alternet.UI.Extensions;
 
 namespace Alternet.UI
 {
@@ -20,7 +22,7 @@ namespace Alternet.UI
             }
         }
 
-        public bool HasBorder
+        public override bool HasBorder
         {
             get
             {
@@ -227,16 +229,16 @@ namespace Alternet.UI
             }
         }
 
-        public GenericAlignment TextAlign
+        public TextHorizontalAlignment TextAlign
         {
             get
             {
-                return (GenericAlignment)NativeControl.TextAlign;
+                return ((GenericAlignment)NativeControl.TextAlign).AsTextHorizontalAlignment();
             }
 
             set
             {
-                NativeControl.TextAlign = (int)value;
+                NativeControl.TextAlign = (int)(value.AsGenericAlignment());
             }
         }
 
@@ -373,14 +375,6 @@ namespace Alternet.UI
             return new TextBoxTextAttr(NativeControl.GetDefaultStyle());
         }
 
-        void ITextBoxHandler.SetValidator(IValueValidator? value)
-        {
-            if (value == null)
-                NativeControl.Validator = IntPtr.Zero;
-            else
-                NativeControl.Validator = value.Handle;
-        }
-
         bool ITextBoxHandler.SetStyle(long start, long end, ITextBoxTextAttr style)
         {
             if (style is not TextBoxTextAttr s)
@@ -470,40 +464,19 @@ namespace Alternet.UI
             return new NativeTextBox(Control);
         }
 
-        protected override void OnDetach()
-        {
-            base.OnDetach();
-            NativeControl.TextUrl = null;
-            NativeControl.TextMaxLength = null;
-        }
-
         protected override void OnAttach()
         {
             base.OnAttach();
 
             if (App.IsWindowsOS)
                 UserPaint = true;
-
-            NativeControl.TextEnter = Control.OnEnterPressed;
-            NativeControl.TextMaxLength = Control.OnTextMaxLength;
-            NativeControl.TextUrl = NativeControl_TextUrl;
-        }
-
-        private void NativeControl_TextUrl()
-        {
-            var url = ReportedUrl;
-            Control.OnTextUrl(new UrlEventArgs(url));
         }
 
         internal class NativeTextBox : Native.TextBox
         {
             public NativeTextBox(TextBox control)
             {
-                var validator = control.Validator;
                 IntPtr ptr = default;
-                if (validator != null)
-                    ptr = validator.Handle;
-
                 SetNativePointer(NativeApi.TextBox_CreateTextBox_(ptr));
             }
         }

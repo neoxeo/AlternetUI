@@ -15,9 +15,9 @@ namespace Alternet.UI
     public readonly struct PropInstanceAndValue
     {
         /// <summary>
-        /// The object instance which contains the property.
+        /// The property information.
         /// </summary>
-        public readonly object? Instance;
+        public readonly PropertyInfo PropInfo;
 
         /// <summary>
         /// The property value.
@@ -25,9 +25,9 @@ namespace Alternet.UI
         public readonly object? Value;
 
         /// <summary>
-        /// The property information.
+        /// The object instance which contains the property.
         /// </summary>
-        public readonly PropertyInfo PropInfo;
+        private readonly WeakReferenceValue<object> instanceContainer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropInstanceAndValue"/> struct
@@ -38,9 +38,21 @@ namespace Alternet.UI
         /// <param name="propInfo">The property information.</param>
         public PropInstanceAndValue(object? instance, PropertyInfo propInfo, object? value)
         {
-            Instance = instance;
+            if(instance is not null)
+                instanceContainer = new(instance);
             PropInfo = propInfo;
             Value = value;
+        }
+
+        /// <summary>
+        /// The object instance which contains the property.
+        /// </summary>
+        private readonly object? Instance
+        {
+            get
+            {
+                return instanceContainer.Value;
+            }
         }
 
         /// <summary>
@@ -57,7 +69,7 @@ namespace Alternet.UI
         /// You can use <see cref="PopProperties"/> for restoring property values
         /// after saved them using <see cref="PushProperties"/>.
         /// </remarks>
-        public void PushProperties(
+        public static void PushProperties(
             IEnumerable objects,
             PropertyInfo? propInfo,
             object? newValue,
@@ -82,13 +94,14 @@ namespace Alternet.UI
         /// <see cref="PushProperties"/>.
         /// </summary>
         /// <param name="savedProperties">Collection of the saved properties.</param>
-        public void PopProperties(ConcurrentStack<PropInstanceAndValue>? savedProperties)
+        public static void PopProperties(ConcurrentStack<PropInstanceAndValue>? savedProperties)
         {
             if (savedProperties is null)
                 return;
             while (savedProperties.TryPop(out var item))
             {
-                item.PropInfo.SetValue(item.Instance, item.Value);
+                if(item.Instance is not null)
+                    item.PropInfo.SetValue(item.Instance, item.Value);
             }
         }
 
@@ -106,7 +119,7 @@ namespace Alternet.UI
         /// You can use <see cref="PopProperties"/> for restoring property values
         /// after saved them using this method.
         /// </remarks>
-        public void PushChildrenProperties(
+        public static void PushChildrenProperties(
             AbstractControl control,
             PropertyInfo? propInfo,
             object? newValue,
@@ -130,14 +143,14 @@ namespace Alternet.UI
         /// You can use <see cref="PopProperties"/> for restoring property values
         /// after saved them using this method.
         /// </remarks>
-        public void PushChildrenEnabled(
+        public static void PushChildrenEnabled(
             AbstractControl control,
             bool newValue,
             ref ConcurrentStack<PropInstanceAndValue>? oldValues)
         {
             PushChildrenProperties(
                         control,
-                        KnownProperties.AbstractControl.Enabled,
+                        KnownProperties.AbstractControlProperties.Enabled,
                         BoolBoxes.Box(newValue),
                         ref oldValues);
         }
@@ -155,16 +168,145 @@ namespace Alternet.UI
         /// You can use <see cref="PopProperties"/> for restoring property values
         /// after saved them using this method.
         /// </remarks>
-        public void PushChildrenVisible(
+        public static void PushChildrenVisible(
             AbstractControl control,
             bool newValue,
             ref ConcurrentStack<PropInstanceAndValue>? oldValues)
         {
             PushChildrenProperties(
                         control,
-                        KnownProperties.AbstractControl.Visible,
+                        KnownProperties.AbstractControlProperties.Visible,
                         BoolBoxes.Box(newValue),
                         ref oldValues);
+        }
+
+        /// <summary>
+        /// Iterates collection of the container controls and changes 'Enabled' property value
+        /// of their childs. Old property values are returned.
+        /// </summary>
+        /// <param name="containers">The collection of the container controls
+        /// which childs are processed.</param>
+        /// <param name="newValue">New value for the property.</param>
+        /// <returns>Old values of the properties, it allows to restore them later.</returns>
+        /// <param name="doInsideUpdate">Whether to call
+        /// <see cref="AbstractControl.DoInsideUpdate"/> when properties are restored.</param>
+        public static ConcurrentStack<SavedPropertiesItem>? PushChildrenEnabledMultiple(
+            IEnumerable<AbstractControl> containers,
+            bool newValue,
+            bool doInsideUpdate = true)
+        {
+            ConcurrentStack<SavedPropertiesItem>? result = null;
+
+            foreach (var container in containers)
+            {
+                ConcurrentStack<PropInstanceAndValue>? oldValues = null;
+
+                if (doInsideUpdate)
+                    container.DoInsideUpdate(Fn);
+                else
+                    Fn();
+
+                void Fn()
+                {
+                    PushChildrenEnabled(
+                                container,
+                                newValue,
+                                ref oldValues);
+                }
+
+                if (oldValues is not null)
+                {
+                    SavedPropertiesItem item = new(container, oldValues);
+                    result ??= new();
+                    result.Push(item);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Disables children controls for all windows in the application
+        /// except the specified window.
+        /// </summary>
+        /// <param name="window">Window to ignore during the operation. Optional.</param>
+        /// <returns></returns>
+        public static ConcurrentStack<SavedPropertiesItem>? DisableAllFormsChildrenExcept(
+            Window? window = null)
+        {
+            var forms = App.WindowsWithExcept(window);
+            var result = PushChildrenEnabledMultiple(forms, false);
+            return result;
+        }
+
+        /// <summary>
+        /// Restores property values which were previously saved using
+        /// <see cref="PushChildrenEnabledMultiple"/> or similar methods.
+        /// </summary>
+        /// <param name="saved">The collection of the saved properties.</param>
+        /// <param name="doInsideUpdate">Whether to call
+        /// <see cref="AbstractControl.DoInsideUpdate"/> when properties are restored.</param>
+        public static void PopPropertiesMultiple(
+            ConcurrentStack<SavedPropertiesItem>? saved,
+            bool doInsideUpdate = true)
+        {
+            if (saved is null)
+                return;
+            foreach(var item in saved)
+            {
+                var container = item.Container;
+                if (container is null)
+                    continue;
+
+                if (doInsideUpdate)
+                    container.DoInsideUpdate(Pop);
+                else
+                    Pop();
+
+                void Pop()
+                {
+                    PopProperties(item.SavedProperties);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Item which is used in <see cref="PushChildrenEnabledMultiple"/>
+        /// and <see cref="PopPropertiesMultiple"/>.
+        /// </summary>
+        public class SavedPropertiesItem
+        {
+            /// <summary>
+            /// Information about the saved properties.
+            /// </summary>
+            public readonly ConcurrentStack<PropInstanceAndValue> SavedProperties;
+
+            private readonly WeakReferenceValue<AbstractControl> containerValue;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="SavedPropertiesItem"/> struct
+            /// with the specified parameters.
+            /// </summary>
+            /// <param name="container">Container control which properties are saved.</param>
+            /// <param name="savedProps">Information about the saved properties.</param>
+            public SavedPropertiesItem(
+                AbstractControl container,
+                ConcurrentStack<PropInstanceAndValue> savedProps)
+            {
+                containerValue = new(container);
+                SavedProperties = savedProps;
+            }
+
+            /// <summary>
+            /// Container control which properties are saved.
+            /// </summary>
+            public AbstractControl? Container
+            {
+                get
+                {
+                    return containerValue.Value;
+                }
+            }
         }
     }
 }

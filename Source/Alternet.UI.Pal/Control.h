@@ -116,6 +116,8 @@ namespace Alternet::UI
         virtual void HideCore();
         void ApplyVisible(bool value);
 
+        bool HasEnabledChilds();
+
     protected:
         bool _wantChars = false;
         bool _showVertScrollBar = false;
@@ -223,6 +225,7 @@ namespace Alternet::UI
     private:
         string _textValue = u"";
         RectD _eventBounds;
+        bool _destroying = false;
 
         bool CanSetScrollbar();
 

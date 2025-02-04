@@ -100,6 +100,29 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Finds type by the name. Searches through all loaded assemblies.
+        /// </summary>
+        /// <param name="name">Type name.</param>
+        /// <returns></returns>
+        public static Type? FindType(string name)
+        {
+            var typeSystem =
+                Alternet.UI.Markup.Xaml.XamlIl.UixmlPortXamlIlRuntimeCompiler.TypeSystem;
+            var resultXaml = typeSystem.FindType(name);
+            return resultXaml?.Type;
+        }
+
+        /// <summary>
+        /// Initializes uixml loader. Optional. Can be called during application
+        /// startup for better user experience if first uixml is loaded later than
+        /// main form is shown.
+        /// </summary>
+        public static void Initialize()
+        {
+            Alternet.UI.Markup.Xaml.XamlIl.UixmlPortXamlIlRuntimeCompiler.InitializeSre();
+        }
+
+        /// <summary>
         /// Populates an existing root object with the object property values created
         /// from a source XAML.
         /// </summary>
@@ -202,6 +225,8 @@ namespace Alternet.UI
                     return;
             }
 
+            var rethrow = true;
+
             if (flags.HasFlag(Flags.ReportError))
             {
                 if (flags.HasFlag(Flags.LogError))
@@ -212,15 +237,23 @@ namespace Alternet.UI
                 if (App.Initialized && !App.Current.InUixmlPreviewerMode
                     && ShowExceptionDialog)
                 {
-                    if (!App.ShowExceptionWindow(e))
+                    rethrow = false;
+
+                    App.ShowExceptionWindow(e, (result) =>
                     {
-                        App.Exit();
-                    }
+                        if (!result)
+                            App.Exit();
+                        else
+                        {
+                            if (!flags.HasFlag(Flags.NoThrowException))
+                                ExceptionUtils.Rethrow(e);
+                        }
+                    });
                 }
             }
 
-            if (!flags.HasFlag(Flags.NoThrowException))
-                ExceptionUtils.Rethrow(e);
+            if (!flags.HasFlag(Flags.NoThrowException) && rethrow)
+                    ExceptionUtils.Rethrow(e);
 
             void BeginSection()
             {

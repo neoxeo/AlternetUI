@@ -45,11 +45,6 @@ namespace Alternet.UI
         /// <inheritdoc cref="AbstractControl.Title"/>
         string Title { get; set; }
 
-        /// <summary>
-        /// Gets whether or not window is modal dialog.
-        /// </summary>
-        bool IsModal { get; }
-
         /// <inheritdoc cref="Window.IsPopupWindow"/>
         bool IsPopupWindow { get; set; }
 
@@ -58,9 +53,6 @@ namespace Alternet.UI
 
         /// <inheritdoc cref="Window.State"/>
         WindowState State { get; set; }
-
-        /// <inheritdoc cref="DialogWindow.ModalResult"/>
-        ModalResult ModalResult { get; set; }
 
         /// <summary>
         /// Gets or sets window status bar.
@@ -71,13 +63,6 @@ namespace Alternet.UI
         /// Gets a <see cref="Window"/> this handler provides the implementation for.
         /// </summary>
         Window? Control { get; }
-
-        /// <summary>
-        /// Shows window as a modal dialog.
-        /// </summary>
-        /// <param name="owner">Window owner.</param>
-        /// <returns></returns>
-        ModalResult ShowModal(IWindow? owner);
 
         /// <inheritdoc cref="Window.Close()"/>
         void Close();

@@ -1,3 +1,54 @@
+# 0.9.707 (2025 February 4)
+
+- ToolBar: default separator color made the same as border color.
+- Maui: Improved bitmap handler to support ScaleFactor and canvas on bitmap creation.
+- Maui: Fix exception in ControlView when disposed PlatformView was invalidated.
+- Toolbar.SetBorderAndMargin - initializes default toolbar border, padding and margin.
+- Demo: Improved layout and fixed minor bugs.
+- Install scripts: Do not use Net 9 on old maxOs x64.
+- Remove SkiaSharp alpha nuget source as no longer needed.
+- AbstractControl.GetLabelFont - fixed to support all font style overrides.
+- GenericLabel.MakeAsLinkLabel() - initialized control to look like LinkLabel.
+- PanelSettings: Use GenericLabel instead of LinkLabel because LinkLabel shows strange empty tooltip on Linux when mouse is over the control.
+- ThreadExceptionWindow: Fixed Details dialog show.
+- App: Fixed Error dialog show.
+- Window: Fixed issues in modal dialogs behavior.
+- RichTextBox.ScrollToCaret().
+- App: IsArmOS, IsArmProcess.
+
+# 0.9.706 (2025 January 30)
+
+- Implement modal dialogs internally so under macOs and Linux problems with modal dialogs are fixed.
+- Moved ShowDialogAsync, ModalResult and other members related to modal dialogs handling from DialogWindow to Window.
+- From now the only method for modal dialog showing is ShowDialogAsync as legacy methods are not compatible with Maui and not worked properly on macOs and Linux.
+- Add AbstractControl.FindChild oveload.
+- FileDialog.Reset and static props with default values for the dialog properties.
+- App: TopModalDialog, ModalDialogs.
+
+# 0.9.705 (2025 January 26)
+
+- ImageSet: Fixed FromSvgStream.
+- PropertyGrid.AddInitializer.
+- Clipboard: Implement support for DataFormats.Serializable.
+- UixmlLoader: FindType, Initialize.
+- Clipboard: Fixed exception on get data occured in some cases.
+
+# 0.9.704 (2025 January 22)
+
+- Added Calculator control.
+- PanelSettings: overloads for AddLinkLabel, AddButton.
+- LinkLabel: Fixed preferred size.
+- Grid: Fixed layout to use child's min and max size.
+- Window.Activate now works on macOs.
+- SpeedButton: Changed static border theme color.
+- SpeedColorButton: dispose used popup and dialog.
+- SpeedColorButton: Draw border around color image.
+- PopupWindow: inherit from Window.
+- Color.AsImageWithBorder.
+- ToolBar: DefaultItemPadding, AddTextCore, AddTextBtnCore.
+- ToolBar: MinimumSize is updated when ItemSize is changed.
+- ToolBar: Simple text item is now added with settings similar to SpeedButton item. As a result height of toolbars with only text items will be equal to the toolbars with speedbuttons.
+
 # 0.9.703 (2025 January 17)
 
 - PanelSettings control is finished.

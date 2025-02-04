@@ -53,7 +53,7 @@ namespace Alternet.UI
         
         public object? StatusBar { get; set; }
         
-        Window IWindowHandler.Control => (Window)base.Control;
+        Window? IWindowHandler.Control => (Window?)base.Control;
 
         public void Activate()
         {
@@ -86,6 +86,10 @@ namespace Alternet.UI
         public ModalResult ShowModal(IWindow? owner)
         {
             return ModalResult.Canceled;
+        }
+
+        public void ShowModalAsync(Window? owner, Action<ModalResult> onResult)
+        {
         }
     }
 }

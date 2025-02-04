@@ -47,8 +47,8 @@ namespace Alternet.UI
         public static string GetLogVersionText()
         {
             var wxWidgets = SystemSettings.Handler.GetLibraryVersionString();
-            var bitsOS = App.Is64BitOS ? "x64" : "x86";
-            var bitsApp = App.Is64BitProcess ? "x64" : "x86";
+            var bitsOS = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+            var bitsApp = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture;
 
             var mauiPlatform = AssemblyUtils.InvokeMauiUtilsGetDevicePlatform();
 
@@ -182,6 +182,35 @@ namespace Alternet.UI
             Fn("Log system colors", LogUtils.LogSystemColors);
             Fn("Log constraint checks", LogUtils.LogCheckConstraints);
             Fn("Log used Alternet assemblies", LogUtils.LogUsedAlternetAssemblies);
+            Fn("Log dotnet information", () =>
+            {
+                App.LogNameValue(
+                    "RuntimeEnvironment.GetRuntimeDirectory",
+                    System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory());
+
+                App.LogNameValue("GetSystemDllPath", CodeGeneratorUtils.GetSystemDllPath());
+
+                App.LogNameValue(
+                    "GetDotNetPathFromSystemDllPath()",
+                    CodeGeneratorUtils.GetDotNetPathFromSystemDllPath());
+
+                DotNetUtils.LogDefaultLocation();
+
+                App.LogNameValue(
+                    "Is Net 9 Runtime installed",
+                    DotNetUtils.IsNetCoreRuntimeInstalled(9));
+
+                DotNetUtils.LogEnvironmentVars();
+
+                App.LogEmptyLine();
+                App.Log("Installed net runtimes:");
+                DotNetUtils.LogInstalledRuntimes();
+
+                App.LogEmptyLine();
+                App.Log("Installed net sdks:");
+                DotNetUtils.LogInstalledSdks();
+                App.LogEmptyLine();
+            });
 
             Fn("Set Height = (Width / 3) * 2", () =>
             {
@@ -266,7 +295,11 @@ namespace Alternet.UI
             Fn("Log image bits formats", LogImageBitsFormats);
             Fn("Log Control descendants events", LogControlDescendantsEvents);
             Fn("Log Control descendants", LogControlDescendants);
-            Fn("Test ShowCriticalMessage", () => DialogFactory.ShowCriticalMessage("Critical message."));
+
+            Fn(
+                "Test ShowCriticalMessage",
+                () => DialogFactory.ShowCriticalMessage("Critical message."));
+
             Fn("Log control info", () => LogUtils.LogControlInfo(AppUtils.FirstWindowChildOrEmpty));
             Fn("Test Exception: HookExceptionEvents()", DebugUtils.HookExceptionEvents);
             Fn("Run terminal command", () => DialogFactory.ShowRunTerminalCommandDlg());
@@ -698,8 +731,17 @@ namespace Alternet.UI
             App.LogNameValue("App.IsIOS", App.IsIOS);
             App.LogNameValue("App.Is64BitProcess", App.Is64BitProcess);
             App.LogNameValue("App.Is64BitOS", App.Is64BitOS);
+            App.LogNameValue("C++ CPU", WebBrowser.DoCommandGlobal("CPU"));
 
             App.LogNameValue("AppUtils.FrameworkIdentifier", AppUtils.FrameworkIdentifier);
+
+            App.LogNameValue(
+                "RuntimeInformation.ProcessArchitecture",
+                System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture);
+
+            App.LogNameValue(
+                "RuntimeInformation.OSArchitecture",
+                System.Runtime.InteropServices.RuntimeInformation.OSArchitecture);
 
             if (App.IsLinuxOS)
             {

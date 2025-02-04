@@ -137,6 +137,13 @@ namespace Alternet::UI
             parent->RemoveChild(this);
     }
 
+    void Window::OnActivate(wxActivateEvent& event)
+    {
+        Control::OnActivate(event);
+        if (!HasEnabledChilds())
+            event.Skip(false);
+    }
+
     void Window::OnBeforeDestroyWxWindow()
     {
         Control::OnBeforeDestroyWxWindow();
@@ -145,7 +152,6 @@ namespace Alternet::UI
         wxWindow->Unbind(wxEVT_CLOSE_WINDOW, &Window::OnClose, this);
         wxWindow->Unbind(wxEVT_MAXIMIZE, &Window::OnMaximize, this);
         wxWindow->Unbind(wxEVT_ICONIZE, &Window::OnIconize, this);
-        wxWindow->Unbind(wxEVT_CHAR_HOOK, &Window::OnCharHook, this);
     }
             
     string Window::GetTitle()
@@ -293,7 +299,6 @@ namespace Alternet::UI
         frame->Bind(wxEVT_CLOSE_WINDOW, &Window::OnClose, this);
         frame->Bind(wxEVT_MAXIMIZE, &Window::OnMaximize, this);
         frame->Bind(wxEVT_ICONIZE, &Window::OnIconize, this);
-        frame->Bind(wxEVT_CHAR_HOOK, &Window::OnCharHook, this);
 
         auto panelColor =
             wxSystemSettings::GetColour(wxSystemColour::wxSYS_COLOUR_BTNFACE);
@@ -553,7 +558,10 @@ namespace Alternet::UI
 
     void Window::Activate()
     {
-        GetWxWindow()->SetFocus();
+        auto wxWindow = GetWxWindow();
+        wxWindow->Show();
+        wxWindow->SetFocus();
+        wxWindow->Raise();
     }
 
     bool Window::GetAlwaysOnTop()

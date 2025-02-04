@@ -28,6 +28,8 @@ namespace PropertyGridSample
 
         static MainWindow()
         {
+            Calculator.InitFormulaEngine();
+
             // Registers known collection property editors.
             PropertyGrid.RegisterCollectionEditors();
         }
@@ -168,7 +170,6 @@ namespace PropertyGridSample
 
                 ToolBox.SelectedItem = ToolBox.FirstItem;
 
-                App.Idle += ApplicationIdle;
                 RunTests();
 
                 ComponentDesigner.InitDefault();
@@ -306,7 +307,7 @@ namespace PropertyGridSample
             var type = item?.InstanceType;
             if (type == typeof(WelcomePage))
                 return;
-            if (item?.Instance == e.Instance || e.Instance is null)
+            if (item?.PropInstance == e.Instance || e.Instance is null)
                 updatePropertyGrid = true;
         }
 

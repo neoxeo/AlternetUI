@@ -40,6 +40,13 @@ namespace PropertyGridSample
 
             void Fn()
             {
+                List<Type> noTicks = new();
+
+                if (App.IsMacOS)
+                {
+                    noTicks.Add(typeof(CheckBox));
+                }
+
                 bool logAddedControls = false;
 
                 ControlListBoxItem item = new(typeof(WelcomePage))
@@ -94,6 +101,7 @@ namespace PropertyGridSample
                 LimitedTypes.Add(typeof(RichToolTip));
                 LimitedTypes.Add(typeof(TextBoxAndButton));
                 LimitedTypes.Add(typeof(FontComboBox));
+                LimitedTypes.Add(typeof(Calculator));
 
                 if (DebugUtils.IsDebugDefined)
                 {
@@ -108,7 +116,7 @@ namespace PropertyGridSample
                 {
                     item = new(type)
                     {
-                        HasTicks = true,
+                        HasTicks = noTicks.IndexOf(type) < 0,
                         HasMargins = true,
                     };
 
@@ -183,7 +191,7 @@ namespace PropertyGridSample
             ToolBox.Add(item);
         }
 
-        private void ApplicationIdle(object? sender, EventArgs e)
+        protected override void OnIdle(EventArgs e)
         {
             if (updatePropertyGrid)
             {

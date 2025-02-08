@@ -22,7 +22,19 @@ namespace Alternet.UI.Native
 
         public Alternet.UI.ModalResult ShowModal(Alternet.UI.Window? owner)
         {
-            return ShowModal(GetNativeWindow(owner));
+            var oldColor = Color;
+
+            var result = ShowModal(GetNativeWindow(owner));
+            
+            if (App.IsMacOS && WxGlobals.MacOs.ColorDialogAcceptIfChanged)
+            {
+                if (oldColor.AsStruct == Color.AsStruct)
+                    result = ModalResult.Canceled;
+                else
+                    result = ModalResult.Accepted;
+            }
+
+            return result;
         }
 
         public void ShowAsync(Alternet.UI.Window? owner, Action<bool>? onClose)

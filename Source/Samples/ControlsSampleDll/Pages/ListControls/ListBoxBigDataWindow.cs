@@ -11,16 +11,14 @@ namespace ControlsSample
 {
     internal class ListBoxBigDataWindow : Window
     {
-        private static EnumImages<SymbolKind>? images;
-
         internal bool IsDebugInfoLogged = false;
 
         private static int globalCounter;
 
         private readonly int counter;
-        private readonly ObjectUniqueId statusPanelId;
         private readonly AbstractControl? statusPanel;
 
+        private EnumImages<SymbolKind>? images;
         private string? lastReportedText;
         private VirtualListBox.AddRangeController<MemberInfo>? controller;
 
@@ -65,36 +63,35 @@ namespace ControlsSample
 
             statusBar.MinHeight = 24;
             statusPanel = new Label("Ready");
-            statusPanelId = statusBar.AddControl(statusPanel);
+            statusBar.AddControl(statusPanel);
 
-            LoadImages();
+            LoadImages(this.IsDarkBackground);
 
             ActiveControl = textBox;
         }
 
-        private static void LoadImages()
+        private void LoadImages(bool isDark)
         {
             if (images != null)
                 return;
             images = new();
 
             string prefix = "Resources.CodeComletionSymbols.";
-            images.SetImageName(SymbolKind.Namespace, $"{prefix}NamespaceAlpha");
-            images.SetImageName(SymbolKind.Struct, $"{prefix}StructAlpha");
-            images.SetImageName(SymbolKind.Field, $"{prefix}FieldAlpha");
-            images.SetImageName(SymbolKind.Constant, $"{prefix}ConstantAlpha");
-            images.SetImageName(SymbolKind.Class, $"{prefix}ClassAlpha");
-            images.SetImageName(SymbolKind.Delegate, $"{prefix}DelegateAlpha");
-            images.SetImageName(SymbolKind.Event, $"{prefix}EventAlpha");
-            images.SetImageName(SymbolKind.GenericParameter, $"{prefix}GenericParameterAlpha");
-            images.SetImageName(SymbolKind.Interface, $"{prefix}InterfaceAlpha");
-            images.SetImageName(SymbolKind.Keyword, $"{prefix}KeywordAlpha");
-            images.SetImageName(SymbolKind.LocalOrParameter, $"{prefix}LocalOrParameterAlpha");
-            images.SetImageName(SymbolKind.Method, $"{prefix}MethodAlpha");
-            images.SetImageName(SymbolKind.Property, $"{prefix}PropertyAlpha");
+
+            images.SetImageName(SymbolKind.Field, $"{prefix}Field.svg");
+            images.SetImageName(SymbolKind.Event, $"{prefix}Event.svg");
+            images.SetImageName(SymbolKind.Method, $"{prefix}Method1.svg");
+            images.SetImageName(SymbolKind.Property, $"{prefix}Property.svg");
+
+            images.SetSvgColor(SymbolKind.Field, LightDarkColors.Green.LightOrDark(isDark));
+            images.SetSvgColor(SymbolKind.Event, LightDarkColors.Yellow.LightOrDark(isDark));
+            images.SetSvgColor(SymbolKind.Method, LightDarkColors.Blue.LightOrDark(isDark));
+            
+            images.SetSvgColor(
+                SymbolKind.Property,
+                new LightDarkColor(KnownSvgColor.Normal).LightOrDark(isDark));            
+
             images.AssignImageNames(true);
-            images.FormatImageNames("{0}_HighDpi.png", false);
-            images.FormatImageNames("{0}.png", true);
 
             images.LoadImagesFromResource(typeof(ListBoxBigDataWindow).Assembly, true);
             images.LoadImagesFromResource(typeof(ListBoxBigDataWindow).Assembly, false);
@@ -213,10 +210,14 @@ namespace ControlsSample
         public enum SymbolKind
         {
             Other,
-            Class,
-            Method,
-            Property,
+
             Field,
+            Property,
+            Method,
+            Event,
+
+            /*
+            Class,
             Namespace,
             Constant,
             Keyword,
@@ -224,8 +225,8 @@ namespace ControlsSample
             Interface,
             Delegate,
             LocalOrParameter,
-            Event,
             GenericParameter,
+            */
         }
     }
 }

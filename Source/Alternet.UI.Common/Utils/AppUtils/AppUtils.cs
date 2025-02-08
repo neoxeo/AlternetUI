@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -80,6 +81,18 @@ namespace Alternet.UI
         }
 
         /// <summary>
+        /// Gets library version as string.
+        /// </summary>
+        /// <returns></returns>
+        public static string? GetUIVersion()
+        {
+            Assembly thisAssembly = typeof(App).Assembly;
+            AssemblyName thisAssemblyName = thisAssembly.GetName();
+            Version? ver = thisAssemblyName?.Version;
+            return ver?.ToString();
+        }
+
+        /// <summary>
         /// Opens log file <see cref="App.LogFilePath"/> in the default editor
         /// of the operating system.
         /// </summary>
@@ -138,9 +151,23 @@ namespace Alternet.UI
             bool logStdOut = true)
         {
             if (App.IsWindowsOS)
-                return ExecuteApp("cmd.exe", "/c " + command, folder, waitResult, logStdOut);
+            {
+                return ExecuteApp(
+                    "cmd.exe",
+                    @"/c """ + command + @"""",
+                    folder,
+                    waitResult,
+                    logStdOut);
+            }
             else
-                return ExecuteApp("/bin/bash", "-c " + command, folder, waitResult, logStdOut);
+            {
+                return ExecuteApp(
+                    "/bin/bash",
+                    @"-c """ + command + @"""",
+                    folder,
+                    waitResult,
+                    logStdOut);
+            }
         }
 
         /// <summary>

@@ -303,12 +303,17 @@ namespace PropertyGridSample
 
         private void Designer_PropertyChanged(object? sender, ObjectPropertyChangedEventArgs e)
         {
-            var item = ToolBox.SelectedItem as ControlListBoxItem;
-            var type = item?.InstanceType;
-            if (type == typeof(WelcomePage))
-                return;
-            if (item?.PropInstance == e.Instance || e.Instance is null)
-                updatePropertyGrid = true;
+            RunWhenIdle(() =>
+            {
+                if (DisposingOrDisposed)
+                    return;
+                var item = ToolBox.SelectedItem as ControlListBoxItem;
+                var type = item?.InstanceType;
+                if (type == typeof(WelcomePage))
+                    return;
+                if (item?.PropInstance == e.Instance || e.Instance is null)
+                    updatePropertyGrid = true;
+            });
         }
 
         private void PropertyGrid_ProcessException(object? sender, ThrowExceptionEventArgs e)
@@ -470,6 +475,11 @@ namespace PropertyGridSample
                         }
                     });
                 }
+
+                App.AddIdleTask(() =>
+                {
+                    ControlParent.Refresh();
+                });
             }
 
             DoAction();
@@ -486,10 +496,12 @@ namespace PropertyGridSample
 
         private void SetBackground(Color? color)
         {
+            /*
             if (PropertyGridSettings.Default!.DemoBackgroundIsWhite)
                 color = Color.White;
 
             ControlParent.BackgroundColor = color;
+            */
         }
 
         public class SettingsControl : Control

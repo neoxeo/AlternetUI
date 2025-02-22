@@ -12,11 +12,28 @@ using Alternet.UI.Extensions;
 namespace Alternet.UI
 {
     /// <summary>
-    /// Advanced list box control with ability to customize item painting. Works fine with
+    /// Advanced list box control with ability to customize item painting.
+    /// This control enables you to display a list of items
+    /// to the user that the user can select by clicking.
+    /// Works fine with
     /// large number of the items. You can add <see cref="ListControlItem"/> items to this control.
     /// </summary>
+    /// <remarks>
+    /// This control can provide single or multiple selections
+    /// using the <see cref="VirtualListControl.SelectionMode"/> property.
+    /// The <see cref="AbstractControl.BeginUpdate"/>
+    /// and <see cref="AbstractControl.EndUpdate"/> methods enable
+    /// you to add a large number of items without the control being repainted each
+    /// time an item is added to the list.
+    /// The <see cref="ListControl{T}.Items"/>, <see cref="VirtualListControl.SelectedItems"/>
+    /// and <see cref="VirtualListControl.SelectedIndices"/>
+    /// properties provide access to
+    /// the three collections that are used by the control.
+    /// </remarks>
     public class VirtualListBox : VirtualListControl, IListControl
     {
+        private static SetItemsKind defaultSetItemsKind = SetItemsKind.ChangeField;
+
         private TransformMatrix matrix = new();
 
         private Coord scrollOffset;
@@ -91,6 +108,31 @@ namespace Alternet.UI
             /// Internal field is changed to the new value. This is the fastest method.
             /// </summary>
             ChangeField,
+
+            /// <summary>
+            /// Uses <see cref="DefaultSetItemsKind"/> to get the desired method.
+            /// </summary>
+            Default,
+        }
+
+        /// <summary>
+        /// Gets or sets the way how items are set when <see cref="SetItemsKind.Default"/>
+        /// is specified in <see cref="SetItemsFast"/>. Default is
+        /// <see cref="SetItemsKind.ChangeField"/>.
+        /// </summary>
+        public static SetItemsKind DefaultSetItemsKind
+        {
+            get
+            {
+                return defaultSetItemsKind;
+            }
+
+            set
+            {
+                if (value == SetItemsKind.Default)
+                    return;
+                defaultSetItemsKind = value;
+            }
         }
 
         /// <summary>
@@ -460,6 +502,11 @@ namespace Alternet.UI
         {
             if (DisposingOrDisposed)
                 return default;
+
+            if (kind == SetItemsKind.Default)
+                kind = DefaultSetItemsKind;
+            if (kind == SetItemsKind.Default)
+                kind = SetItemsKind.ChangeField;
 
             switch (kind)
             {

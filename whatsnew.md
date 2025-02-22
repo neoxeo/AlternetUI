@@ -1,3 +1,38 @@
+# 0.9.712 (2025 February 20)
+
+- Fixed bugs introduced with change Alternet.UI.csproj target to netstandard2.0.
+- Updated install scripts.
+- Fixed Calendar foreground color on dark theme.
+
+# 0.9.711 (2025 February 19)
+
+- Target Alternet.UI.csproj to netstandard2.0 (#173).
+- Image: FromUrlCached, ClearCachedImages.
+- Window: Fix exception in ModalResult setter which was raised in some situations.
+- FilesListBox: Show drives list after known folders as it looks better on Linux and macOs.
+- Keyboard.IsAltShiftPressed, DelayedEvent.RaiseWithoutDelay, Calendar.SetColorThemeToAuto, VirtualListBox.DefaultSetItemsKind.
+- VirtualListBox.DelayedSelectionChanged now works similar to SelectionChanged as had some problems on macOs. Will be reimplemented in future builds.
+- ScrollBar: calls Designer.RaisePropertyChanged on value change.
+- Demo: Bug fixes and minor improvements.
+- Updated documentation in order to reflect latest api changes.
+- AssemblyUtils: GetOrLoadAssemblyByName.
+- KnownAssemblies.LibraryInteropServices, KnownTypes: InteropServicesNativeLibrary, InteropServicesDllImportResolver.
+
+# 0.9.710 (2025 February 14)
+
+- Fixes related to arm64 support.
+- Fixes related to nuget packages build.
+- SplittedTreeAndCards: Do not use DelayedSelectionChanged.
+
+# 0.9.709 (2025 February 12)
+
+- ColorDialog: macOs related fixes.
+- Improve installation scripts.
+- CommandLineArgs: AsBool, Reset, Parse().
+- Color: Darker, DarkerDarker, Lighter, LighterLighter.
+- Demo: MacOs and Linux dark theme related improvements.
+- Demo: Improve layout and fix minor bugs.
+
 # 0.9.708 (2025 February 8)
 
 - Window: set default BackColor and ForeColor in contstructor as it will improve look on macOs.
@@ -195,7 +230,7 @@ Summary:
 - Improved MAUI support across the library alongside with WxWidgets.
 - New controls: TextBoxAndButton (TextBox with buttons and image on the right side), RichToolTip (reimplemented inside the library), PopupControl (popups inside the parent control), and others.
 - Generic controls (can be used as parts of native controls and are handled internally in the library without operating system resources allocation) and Template controls that can be rendered to Graphics or Bitmap.
-- VirtualListView: Improved painting in owner-draw mode, with different methods for thread-safe operations that allow fast loading of a large number of items.
+- VirtualListBox: Improved painting in owner-draw mode, with different methods for thread-safe operations that allow fast loading of a large number of items.
 
 More details:
 

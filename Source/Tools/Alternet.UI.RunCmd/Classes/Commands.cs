@@ -43,7 +43,7 @@ namespace Alternet.UI
             }
 
             var appName = adv ? "Alternet.UI.RunCmdAdv" : "Alternet.UI.RunCmd";
-            Console.WriteLine($"{appName} (c) 2023-{DateTime.Now.ToString("YYYY")} AlterNET Software");
+            Console.WriteLine($"{appName} (c) 2023-{DateTime.Now.Year} AlterNET Software");
 
             Console.WriteLine();
 
@@ -279,13 +279,10 @@ namespace Alternet.UI
             return "other";
         }
 
-        public static void CmdZipFile(CommandLineArgs args)
+        public static string? ReplaceParamsInArchivePath(string? pathToArch)
         {
-            string pathToFile = args.AsString("File");
-            var pathToArch = args.AsString("Result");
-
             pathToArch = ReplaceInFilesSetting.ReplaceParam(
-                pathToArch, 
+                pathToArch,
                 "OSArchitecture",
                 GetOSArchitectureAsString(true));
             pathToArch = ReplaceInFilesSetting.ReplaceParam(
@@ -295,12 +292,24 @@ namespace Alternet.UI
             pathToArch = ReplaceInFilesSetting.ReplaceParam(
                 pathToArch,
                 "UIVersion",
-                AppUtils.GetUIVersion());            
+                AppUtils.GetUIVersion());
+
+            return pathToArch;
+        }
+
+        public static void CmdZipFile(CommandLineArgs args)
+        {
+            string pathToFile = args.AsString("File");
+            var pathToArch = args.AsString("Result");
+            var otherExtensions = args.AsString("Ext");
+
+            pathToArch = ReplaceParamsInArchivePath(pathToArch);
 
             var compressionType = CompressionType.Deflate;
 
             Console.WriteLine($"Command: zipFile");
             Console.WriteLine($"File: {pathToFile}");
+            Console.WriteLine($"Other extensions: {otherExtensions}");
             Console.WriteLine($"Result: {pathToArch}");
             Console.WriteLine($"CompressionType: {compressionType}");
 
@@ -313,13 +322,14 @@ namespace Alternet.UI
                 return;
             }
 
-            if (File.Exists(pathToArch))
-                File.Delete(pathToArch);
+            FileUtils.CreateFilePath(pathToArch);
+            FileUtils.DeleteIfExists(pathToArch);
 
             SharpCompressUtils.ZipFile(
                 pathToFile,
                 pathToArch,
-                compressionType);
+                compressionType,
+                otherExtensions);
 
             Console.WriteLine("Completed");
         }
@@ -358,6 +368,8 @@ namespace Alternet.UI
                 "*.png",
                 SearchOption.TopDirectoryOnly);
 
+            FileUtils.CreateFilePath(pathToResult);
+
             foreach (var file in files)
             {
                 var name = Path.GetFileNameWithoutExtension(file);
@@ -366,8 +378,7 @@ namespace Alternet.UI
 
                 var resultPath = Path.Combine(pathToResult, name);
 
-                if (File.Exists(resultPath))
-                    File.Delete(resultPath);
+                FileUtils.DeleteIfExists(resultPath);
 
                 var image = new Bitmap(file);
                 var converted = image.WithLightLightColors();
@@ -401,8 +412,8 @@ namespace Alternet.UI
                 return;
             }
 
-            if (File.Exists(pathToArch))
-                File.Delete(pathToArch);
+            FileUtils.CreateFilePath(pathToArch);
+            FileUtils.DeleteIfExists(pathToArch);
 
             SharpCompressUtils.ZipFolderWithRootSubFolder(
                 pathToFolder,
